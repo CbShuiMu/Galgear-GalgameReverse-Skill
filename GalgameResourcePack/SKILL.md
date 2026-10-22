@@ -11,14 +11,13 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 
 1. 确定原始归档、原样资源根目录、替换资源、输出位置及完整重建或补丁模式。信息足够时直接继续；没有原始归档时需要明确目标格式和创建参数。
 2. 按[工具索引](commands/index.md)选择随附 CLI，读取对应命令；程序路径相对于本技能根目录解析。可读格式不代表可写，默认选项不代表原始设置。
-3. 读[归档重建流程](guides/packing.md)，按资源相对路径准备暂存目录和预期资源清单。使用 GalTTS 资源清单时再读[资源交接与重建](guides/resource-workflow.md)，按 `init → merge → pack/verify` 执行；其他资源任务不要求经过 GalTTS。
+3. 普通资源修改按[归档重建流程](guides/packing.md)准备暂存目录和预期资源清单。接收 GalTTS 输出时，从[资源交接与重建](guides/resource-workflow.md)准备经过核对的暂存资源集，再回到普通流程创建与验证归档。
 
 ## 共同约束
 
 - 默认输出到新路径，保留原始归档与替换输入。安装到游戏目录遵循用户已有授权。
 - 每个归档使用独立基线。完整重建保留所有未替换条目，按完整相对路径匹配，不扁平化、猜名或静默增删。补丁模式须有目标游戏加载规则的证据。
-- 基线是未转换的资源字节；映射、清单、暂存产物和验证目录分别存放。TTS 的 `asset_root` 必须与原样资源根目录一致。
-- `resource_workflow.py init/merge` 使用标准库；`pack/verify` 仅支持 GARbro。其他 CLI 按命令文档独立执行创建、重新提取和资源比对，不能传给 `--garbro`。
+- 基线是未转换的资源字节；映射、清单、暂存产物和验证目录分别存放，不混入归档。
 - 创建参数须能表达当前格式版本、目录、压缩和加密要求。无法表达时报告具体限制，不生成默认替代品冒充兼容结果。保留工具运行依赖及许可证。
 - 按修改的资源类型验证兼容性：脚本的编码、指令与资源引用，图像的尺寸、像素格式与透明通道，音频的编码、采样率、声道、循环与封装长度等。改扩展名不是格式转换；条目索引、CPK ID、AWB wave ID 和脚本引用分别核对。
 
@@ -42,6 +41,8 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 
 | 内容 | 文档 |
 | --- | --- |
+| 资源辅助脚本：基线快照、TTS 合并与 GARbro 往返命令 | [resource-workflow](commands/resource-workflow.md) |
+| 资源交接清单：阶段、身份、路径与完成标记 | [resource-manifest](contracts/resource-manifest.md) |
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
 | GARbro CLI 命令与选项 | [garbro](commands/garbro.md) |

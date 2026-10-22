@@ -4,7 +4,7 @@
 
 ## 入口与资料
 
-- 主入口是 `scripts/galtts.py`；先阅读 [输入与命令](guides/inputs-and-commands.md) 和任务需要的 [后端适配器](guides/backends.md)。流程位于 `guides/`，映射契约位于 `contracts/`。
+- 主入口是 `scripts/galtts.py`；先阅读[生成流程](guides/generation.md)，具体调用见[批处理命令](commands/galtts.md)，接入模型时阅读[后端适配器](guides/backends.md)。流程位于 `guides/`，工具命令位于 `commands/`，映射契约位于 `contracts/`。
 - `scripts/audio_formats.py` 负责源格式导出；`scripts/index_backend.py` 是可选 IndexTTS 适配器，`scripts/command_backend.py` 是通用命令客户端。
 - `scripts/dialogue_mapping.py` 将对白记录规范化，`build_plan` 按实际资源分组；规则见 [映射到任务契约](contracts/dialogue-mapping.md)。共享资源不删除引用，多音频必须显式分段。
 - 使用 `memory --where` 定位本地状态。`memory.example.json` 不是当前用户配置；模型环境、用户路径和运行历史应留在用户本地状态中。
@@ -28,6 +28,6 @@ $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
 python scripts/test_pipeline.py --ffmpeg $ffmpeg
 ```
 
-- 测试使用临时合成音频和模拟后端，不启动真实模型或 GPU。交接协议变化时还应运行 GalPack 的 `scripts/test_resource_workflow.py`，命令见其 `AGENTS.md`。
+- 测试使用临时合成音频和模拟后端，覆盖混合格式导出、配置记忆、续跑、停止、指纹、路径和命令适配器，不启动真实模型或 GPU，也不证明实际模型已成功合成。`scripts/requirements.txt` 只列批处理层依赖。交接协议变化时还应运行 GalPack 的 `scripts/test_resource_workflow.py`，命令见其 `AGENTS.md`。
 - 映射规范化或任务分组变化时先运行 `python scripts/test_dialogue_mapping.py`，此检查不需要音频库或 FFmpeg。
 - 仅改说明时核对链接和命令；不要为文档验证启动真实批次。交付实际输出路径、完成与失败数量、保留的非语言音频数量和未完成检查。

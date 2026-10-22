@@ -4,7 +4,9 @@
 
 ## 兼容输入
 
-保留现有顶层数组和 `{"entries": [...]}`。显式版本格式是 `{"kind":"gal-dialogue-map","schema_version":1,"entries":[...]}`；未知 kind 或版本拒绝处理。每条记录的 `chinese_text`、`audio_files` 与可选 `audio_paths` 保持原语义。新提取结果应提供完整相对 `audio_paths`；旧版省略路径时仍只在 `asset_root/Voice/filename` 和 `asset_root/filename` 查找唯一文件。
+保留现有顶层数组和 `{"entries": [...]}`。显式版本格式是 `{"kind":"gal-dialogue-map","schema_version":1,"entries":[...]}`；未知 kind 或版本拒绝处理。
+
+`chinese_text` 必须是已确认的中文对白，允许中英混合。日文原文尚未翻译或缺少中文字段时先补齐，不静默改用原文；脚本不会翻译。`audio_files` 与可选 `audio_paths` 按索引对应，资源路径相对于 `asset_root` 且必须位于其中。新提取结果应提供完整相对 `audio_paths`；旧版省略路径时仍只在 `asset_root/Voice/filename` 和 `asset_root/filename` 查找唯一文件，歧义时报错。
 
 可选的 `dialogue_id` 是唯一对白记录标识；`speaker` 为字符串或 `null`；`source` 为来源对象。它们保存在计划及交接清单的 `references` 中，不自动成为模型音色或生成参数。没有 `dialogue_id` 的旧数据仍通过 `row` 和 `voice_index` 追溯当前输入快照。
 

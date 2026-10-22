@@ -154,7 +154,7 @@ GalExtract 与 GalTTS 将项目状态保存在用户本地，技能包内的 `me
 | 需要了解 | 文档 |
 | --- | --- |
 | 提取项目记忆与检查点 | [GalExtract 项目记忆](GalgameResourceExtract/guides/memory.md) |
-| TTS 配置、计划、生成、停止与交接 | [GalTTS 输入与命令](GalgameTextToSpeech/guides/inputs-and-commands.md) |
+| TTS 配置、计划、生成、停止与交接 | [GalTTS 生成流程](GalgameTextToSpeech/guides/generation.md)、[批处理命令](GalgameTextToSpeech/commands/galtts.md) |
 | 接入其他 TTS 模型或服务 | [GalTTS 后端适配器](GalgameTextToSpeech/guides/backends.md) |
 | 各类资源的封包与归档重建 | [GalPack 归档重建流程](GalgameResourcePack/guides/packing.md) |
 | TTS 资源交接、基线快照与哈希校验 | [GalPack 资源交接与重建](GalgameResourcePack/guides/resource-workflow.md) |

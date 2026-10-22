@@ -2,7 +2,7 @@
 
 将模型接入与批处理分开。默认不选择或下载任何模型。用户可以选择已有本地模型、已授权服务或其他后端。按用户的优先级评估中文支持、声音克隆需求、硬件、安装工作量和费用；不要假设用户使用 IndexTTS 或作者的硬件。
 
-用户本地状态中的每个模型配置指定 Python 解释器、适配器、FFmpeg 可执行文件和设置。用 `galtts.py profile NAME --python PYTHON --ffmpeg FFMPEG --adapter ADAPTER --settings-file SETTINGS_JSON` 注册。`ADAPTER` 可为 `index`、`command` 或自定义 Python 适配器的绝对路径。内置适配器保存为 `builtin:index` 或 `builtin:command`，相对于本技能安装位置解析。设置必须是包含该后端实际配置的 JSON 对象。重新注册只更新所提供字段；直到项目通过 `--profile NAME` 配置前，不会为项目选择该配置。
+用户本地状态中的每个模型配置指定 Python 解释器、适配器、FFmpeg 可执行文件和设置，注册方法见[批处理命令](../commands/galtts.md#状态与配置)。适配器可选 `index`、`command` 或自定义 Python 文件的绝对路径。内置适配器保存为 `builtin:index` 或 `builtin:command`，相对于本技能安装位置解析。设置必须是包含该后端实际配置的 JSON 对象。
 
 使用该配置的 Python 启动批处理程序。切换模型不仅是更改模型名称：确认目标模型的真实入口与输入要求，必要时实现适配器，测试少量样本并保存验证后的配置。模型、Python 和 FFmpeg 的绝对路径应保存在用户状态中，不要写入分发的示例。
 

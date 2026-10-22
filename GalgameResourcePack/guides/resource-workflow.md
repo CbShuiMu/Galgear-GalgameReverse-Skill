@@ -1,22 +1,14 @@
 # 资源交接与归档重建
 
-本页说明 GalTTS 输出交接与随附的 `scripts/resource_workflow.py`。普通脚本、图像等资源修改使用[归档重建流程](packing.md)，无需经过 GalTTS。辅助脚本使用 Python 3.10+ 和标准库；`init` 可对各类原样资源建立快照，当前 `merge` 读取 GalTTS 的映射和审计字段，`pack/verify` 消费由该流程生成的暂存清单。资源解析与资源匹配仍由 AI 助手负责。
+本页用于接收 GalTTS 的生成资源，建立可核对的暂存资源集。普通资源修改直接使用[归档重建流程](packing.md)。交接清单的阶段、身份和路径规则见[资源清单契约](../contracts/resource-manifest.md)，随附辅助脚本的调用与失败行为见[资源辅助命令](../commands/resource-workflow.md)。
 
-`init/merge` 可用于由其他 CLI 准备、已确认路径的原样资源；`pack/verify` 仅调用 GARbro，不支持通用命令后端，不能把 Ethornell、Mangetsu、pfs-rs 或 CriCodecs 传给 `--garbro`。选择这些工具时，阅读 [Ethornell](../commands/ethornell.md)、[Mangetsu](../commands/mangetsu.md)、[pfs-rs](../commands/pfs-rs.md) 或 [CriCodecs](../commands/cricodecs.md) 命令文档，由 AI 助手独立封包、重新提取并按暂存清单验证。多层封装、MRG 条目索引和填充需按格式规则核对，不能仅比较生成的提取文件名。
+## 准备并核对交接
 
-## 资源根目录与清单
-
-每个原始归档使用独立的原样资源根目录。将 GalTTS 的 `asset_root` 设置为该目录。映射路径是归档内部路径，而非相对于游戏安装目录的路径。例如，归档包含 `char_a/001.ogg` 时，映射必须使用 `char_a/001.ogg`，不要人为添加 `Voice/` 前缀。映射、清单、生成输出、暂存与验证目录都应放在原样资源根目录之外。
-
-所有交接清单使用 `kind: gal-resource-manifest`、`schema_version: 1`、`stage`、`complete` 标记及 `entries` 数组。条目的 `path` 使用 `/` 分隔符，标识原始归档资源。路径必须是相对路径，不得向上穿越父目录，并且忽略大小写后仍须唯一。
-
-| 阶段 | 生成方 | 内容 |
-| --- | --- | --- |
-| `extracted` | `resource_workflow.py init` | 所有原始资源及其源路径、大小、SHA-256，原始归档身份信息，目标格式及显式创建选项 |
-| `generated` | `galtts.py handoff` 或通过的完整 `audit` | 选定替换资源、原始与生成文件身份信息、映射身份信息、生成指纹与根目录 |
-| `staged` | `resource_workflow.py merge` | 预期的完整或补丁资源集、保留或替换操作、预期哈希、暂存根目录与输入清单身份信息 |
-
-生成阶段的 `resources.json` 保存在 TTS 输出的 `.galtts/` 目录下。只接受 `complete: true` 的清单。合并前立即运行 `handoff` 审计当前配置，此操作不加载模型。相对路径布局与旧版扁平布局的 TTS 输出都携带原始条目路径，因此合并脚本无需根据基本文件名猜测即可恢复目录。
+1. **建立原样资源快照。** 按[兼容性检查](packing.md#确定兼容性要求)确认归档与替换资源的要求。每个原始归档使用独立的原样资源根目录，确认原样提取完整后再执行 `resource_workflow.py init`。记录实际格式和已确认的创建选项；快照只覆盖提供的资源目录，不会恢复加密方案或版本。
+2. **审计当前生成批次。** GalTTS 的 `asset_root` 必须与该原样资源根目录一致，映射使用归档内部相对路径。生成完成后，在合并前立即用 GalTTS 的 `handoff` 审计当前配置；该命令不加载模型。接收输出目录 `.galtts/resources.json` 中 `complete: true` 的 `generated` 清单。
+3. **合并至新的暂存目录。** 以原样资源快照和生成清单执行 `merge`，由脚本核对源资源、映射和替换文件的身份。默认 `full` 保留所有未修改资源；确认目标游戏支持补丁后才使用 `patch`。相对路径布局和旧版扁平布局均按清单中的原始条目路径恢复目录，不根据基本文件名猜测。`merge` 不接受任意替换目录，资源解析与资源匹配仍由 AI 助手负责。
+4. **完成目标资源检查。** 核对暂存结果，涉及音频时执行下节的长度与边界检查。若转换或重新封装改变了资源字节，重新建立受影响清单，不能继续使用旧哈希的验证结果。
+5. **创建并验证归档。** 回到[归档重建流程的创建步骤](packing.md#创建归档)。有 `staged` 清单且使用 GARbro 时可执行辅助脚本的 `pack/verify`；其他 CLI 独立创建、原样提取并按暂存清单比对。按普通流程分别交付资源往返、资源格式、引擎边界和游戏运行结果。
 
 ## 解码长度与越界预防
 
@@ -29,51 +21,3 @@
 5. **分别报告验证结果。** 项目报告记录资源与解码器的 SHA-256（或可辨识版本）、检查方法、覆盖数量、声明和实测长度，以及结构、引擎边界和游戏播放各项状态。无法运行目标解码器时明确写“引擎解码边界未验证”，不能将成功播放、普通解码或归档哈希一致写成越界检查通过。已知长度不一致或越界未修正前停止安装。
 
 以上要求由 AI 助手在涉及音频解码与长度字段时按目标游戏执行，适用于随附流程和自定义封包器；当前 `pack`、`verify` 及集成测试不自动实施引擎级内存检查。游戏专用的字段偏移、采样换算和函数地址需要重新确认，不能跨游戏套用。
-
-## 命令
-
-将示例变量解析为真实路径。`$workflow` 是本技能的 `scripts/resource_workflow.py`；`$tts` 是 GalTTS 的 `scripts/galtts.py`；`$garbro` 是随附可执行文件。TTS 使用所选模型环境的 Python，资源辅助脚本可使用任意 Python 3.10+ 解释器。示例中两者均用 `$python` 表示。
-
-```powershell
-# 原样提取，不使用 -ca 或 -if。使用新目录。
-& $garbro x -q -s -o $originalRoot $originalArchive
-
-# 对原样资源目录建立快照，提供已识别的格式和必需选项。
-& $python $workflow init --original-root $originalRoot --archive $originalArchive --format XP3 -O Version=2 -O RetainDirs=true --manifest $originalManifest
-
-# Agent 生成对白映射；照常通过 GalTTS 配置并生成。
-# 新 TTS 项目默认使用相对路径布局。改变布局时使用新的输出目录。
-& $python $tts --project game configure --input-json $mapping --asset-root $originalRoot --output-dir $generatedRoot --profile $profile --output-layout relative
-& $python $tts --project game plan
-& $python $tts --project game run
-& $python $tts --project game handoff
-
-# 将全部未修改资源与已验证替换资源合并到新的暂存目录。
-& $python $workflow merge --manifest $originalManifest --replacements $replacementManifest --staging $stagingRoot --output $stagedManifest
-
-# 封包，重新打开并提取，比较每个预期资源的哈希。
-& $python $workflow pack --manifest $stagedManifest --garbro $garbro --output $outputArchive --verification-dir $verificationRoot --report $verificationReport
-```
-
-`$replacementManifest` 为 `$generatedRoot/.galtts/resources.json`。继续之前检查每个退出码。此处的命令均不会解析对白、翻译文本、启动未经请求的后台任务，或将结果安装到游戏中。
-
-| 命令 | 必需参数 | 用途 |
-| --- | --- | --- |
-| `init` | `--original-root`、`--archive`、`--format`、`--manifest` | 建立原始资源与归档身份快照。对已确认的创建设置重复使用 `-O` / `--option Name=Value` |
-| `merge` | `--manifest`、`--replacements`、`--staging`、`--output` | 验证身份并合并到新目录。默认 `--mode full`；`--mode patch` 仅包含选定的替换条目 |
-| `pack` | `--manifest`、`--garbro`、`--output`、`--verification-dir`、`--report` | 检查暂存目录，使用记录的设置创建归档，并执行提取与哈希校验 |
-| `verify` | `--manifest`、`--garbro`、`--archive`、`--verification-dir`、`--report` | 在新提取目录中，依据暂存清单验证现有归档 |
-
-所有输出清单、报告文件以及暂存、验证目录都必须是新的。不会修改资源输入。合并前会拒绝不完整、缺失、过期、未映射或已改变的替换资源，也会拒绝目录链接及忽略大小写后的资源冲突。完整模式保留每个未修改资源，包括非音频文件；不会从生成目录复制 `.galtts` 元数据。
-
-辅助脚本比较原样提取后精确解码出的资源字节。仅大小写变化的名称规范化会被报告。其他写入器特定资源变换会导致比对失败，需要 AI 助手按格式明确分析，不会被静默接受。验证失败会保留生成归档供检查，并返回非零退出码。报告包含缺失、意外出现和已改变的路径、数量、归档哈希及 `game_playback: not_tested`。需要时仍须进行游戏内播放检查。
-
-辅助脚本不会恢复加密方案或版本，补丁模式也不能证明游戏支持补丁。`init` 记录 AI 助手选定的格式与选项；AI 助手必须确定它们与原始归档的兼容性。快照只覆盖提交给它的原样资源根目录，因此建立快照前必须检查提取是否完整。
-
-## 集成检查
-
-```powershell
-& $python <GalPack>/scripts/test_resource_workflow.py --ffmpeg <FFmpeg> --garbro <GARbro.Console.exe>
-```
-
-使用具有 GalTTS 批处理依赖的 Python 环境。测试在临时目录使用合成音频和模拟后端，验证 ZIP 和 XP3 提取、嵌套同名文件、生成、完整与补丁合并、归档往返、哈希失败及路径拒绝。不加载真实 TTS 模型，也不测试游戏内播放。

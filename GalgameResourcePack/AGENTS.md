@@ -28,5 +28,5 @@ $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
 python scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro tools/GARbro-cli/GARbro.Console.exe
 ```
 
-- 测试使用临时合成资源和模拟后端，不启动真实 TTS 模型。仅改文档时核对链接和命令；缺少依赖时如实记录未运行的检查。
+- 测试使用临时合成资源和模拟后端，覆盖 ZIP 和 XP3 提取、嵌套同名文件、生成、完整与补丁合并、归档往返、哈希失败及路径拒绝，不启动真实 TTS 模型或测试游戏内播放。仅改文档时核对链接和命令；缺少依赖时如实记录未运行的检查。
 - 交付绝对归档路径、封包模式、关键设置、替换及保留数量，以及资源比对、引擎验证和游戏运行验证各自的结果。
