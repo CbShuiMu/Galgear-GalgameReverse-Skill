@@ -1,0 +1,396 @@
+import sys
+from importlib import import_module
+
+import siglus_ssu as _runtime
+from . import CONST_PROFILE_IDS, command_name as _prog, package_version
+
+
+def _print_version() -> None:
+    p = _prog()
+    sys.stdout.write(f"{p} {package_version() or 'unknown'}\n")
+
+
+def _usage():
+    p = _prog()
+    text = (
+        f"{p} {package_version() or 'unknown'}\n"
+        f"usage: {p} [-h] [-V|--version] [--legacy] [--legacy-full] [--const-profile N] [--string-xor-multiplier N] (-lsp|-c|-x|-a|-d|-k|-e|-m|-g|-s|-v|-p|test) [args]\n"
+        "\n"
+        "Options:\n"
+        "  -V, --version   Show version and exit\n"
+        "  --legacy        Force Python compile backend (native helpers remain enabled)\n"
+        "  --legacy-full   Disable all Rust native acceleration\n"
+        f"  --const-profile Select const profile ({', '.join(map(str, CONST_PROFILE_IDS))}; default: 0; 3 supports TheGodofDeath HD; 4 supports Rewrite; 5 supports nanami/Kisaragi; 6 allows property outside command; 7 supports Rurumi/Yamiiro; 8 supports Rewrite trial; 9 supports Rewrite Harvest festa!; 10 reconstructs FlixEngine; not with -c --tmp)\n"
+        "  --string-xor-multiplier Override scene-string XOR multiplier (0..0xFFFF; default: 0 for profiles 3, 5, and 8, 0x7087 otherwise; 0 disables this XOR only)\n"
+        "  --              After a mode, treat all remaining arguments as positional\n"
+        "\n"
+        "Modes:\n"
+        "  -lsp            Start the SiglusSceneScript language server (stdio LSP)\n"
+        "  -c, --compile   Compile scripts\n"
+        "  -x, --extract   Extract/decompile .pck, disassemble .dat, or restore Gameexe.ini from Gameexe.dat\n"
+        "  -a, --analyze   Analyze/compare files\n"
+        "  -d, --db        Export/apply/analyze .dbs\n"
+        "  -k, --koe       Collect KOE/EXKOE voices by character\n"
+        "  -e, --exec      Execute at a #z label\n"
+        "  -m, --textmap   Export/apply text mapping for compiled .dat files\n"
+        "  -g, --g00       Extract/analyze .g00 images\n"
+        "  -s, --sound     Decode/extract/play .ovk/.owp/.nwa sounds\n"
+        "  -v, --video     Extract/analyze .omv videos\n"
+        "  -p, --patch     Patch SiglusEngine.exe (altkey/lang/info/loc)\n"
+        "  test            Round-trip compile-test .pck files with embedded original sources; reports EXACT or PAYLOAD_SAME\n"
+        "\n"
+        "LSP mode:\n"
+        f"  {p} -lsp [--serial]\n"
+        "    --serial       Disable default parallel LSP workspace scanning\n"
+        "\n"
+        "Compile mode:\n"
+        f"  {p} -c [--debug] [--charset ENC] [--allow-invalid] [--no-os] [--dat-repack] [--no-angou] [--no-lzss] [--serial] [--max-workers N] [--set-shuffle SEED] [--tmp <tmp_dir>] <input_dir> <output_pck|output_dir>\n"
+        f"  {p} -c --test-shuffle [seed0] [--csv <seed_csv>] <input_dir> <output_pck|output_dir> <test_dir>\n"
+        f"  {p} -c --gei <input_dir|Gameexe.ini> <output_dir>\n"
+        "    --debug         Keep temp files for inspection (not with --tmp)\n"
+        "    --charset ENC   Force source charset (Python codec name)\n"
+        "    --allow-invalid Replace invalid source bytes with U+FFFD when decoding\n"
+        "    --no-os         Remove source chunks after compilation, preserving the package header\n"
+        "    --dat-repack    Repack existing .dat files in input_dir (mode options: only --no-os/--no-lzss; global options remain available)\n"
+        "    --no-angou      Disable encryption/compression (not with --tmp)\n"
+        "    --no-lzss       Disable scene LZSS and omit source chunks (official easy link; not with --tmp)\n"
+        "    --serial        Disable parallel compilation\n"
+        "    --max-workers   Limit parallel workers to a positive integer (default: auto; parallel only)\n"
+        "    --set-shuffle   Set initial shuffle seed (MSVCRand) for .dat string order; implies --serial (not with --tmp)\n"
+        "    --tmp           Use specific temp directory (not with --debug/--dat-repack/--no-angou/--no-lzss/--set-shuffle/--test-shuffle/--csv/--gei/--const-profile)\n"
+        "    --test-shuffle  Bruteforce initial shuffle seed (MSVCRand) for .dat string order (not with --tmp/--gei)\n"
+        "    --csv           With --test-shuffle, write per-object initial/final seeds to CSV (not with --tmp)\n"
+        "    --gei           Only generate Gameexe.dat when Gameexe.ini exists; missing input is warned and skipped (not with --tmp/--test-shuffle)\n"
+        "\n"
+        "Extract mode:\n"
+        f"  {p} -x <input_pck> [output_dir] [--angou VALUE]\n"
+        f"  {p} -x [--disam|--decompile] <input_pck> [output_dir] [--angou VALUE]\n"
+        f"  {p} -x --disam <input_dir> [output_dir] [--angou VALUE]\n"
+        f"  {p} -x --gei <Gameexe.dat|input_dir> [output_dir] [--angou VALUE]\n"
+        "    --disam        Dump .dat disassembly when extracting .pck or scanning a .dat directory\n"
+        "    --decompile    With complete .pck input, dump .dat disassembly and reconstructed decompiled/*.ss scripts\n"
+        "    --gei          Restore Gameexe.ini from Gameexe.dat\n"
+        "    output_dir     Defaults to the input file directory or the input directory itself\n"
+        "\n"
+        "Analyze mode:\n"
+        f"  {p} -a <input_file.pck> [--angou VALUE]\n"
+        f"  {p} -a [--disam] <input_file.dat> [--angou VALUE]\n"
+        f"  {p} -a [--readall|--apply] <input_file.sav>\n"
+        f"  {p} -a <input_file.(gan|sav|cgm|tcr)>\n"
+        f"  {p} -a [--payload] <input_file_1.pck> <input_file_2.pck> [--angou VALUE]\n"
+        f"  {p} -a [--payload] [--disam] <input_file_1.dat> <input_file_2.dat> [--angou VALUE]\n"
+        f"  {p} -a <input_file_1> <input_file_2>\n"
+        f"  {p} -a --word <input_pck> [output_csv] [--angou VALUE]\n"
+        f"  {p} -a --angou <path|angou=text|key=bytes>\n"
+        f"  {p} -a --gei <Gameexe.dat> [Gameexe.dat_2] [--angou VALUE]\n"
+        "    --disam        With .dat input only, write <scene>.dat.txt next to each analyzed .dat\n"
+        "    --readall      For read.sav/global.sav: unlock read or engine-managed collection flags in-place with backup\n"
+        "    --apply        For global.sav: apply same-directory global.txt to G/Z/cg_table/bgm_table/chrkoe with backup\n"
+        "    --word         Count dialogue units for each .dat/.ss inside a .pck and write CSV only\n"
+        "    --payload      Compare normalized scene runtime semantics for .pck/.dat comparisons, including bytecode and routing/property metadata; expensive\n"
+        "    --angou VALUE  Key source for .pck/.dat, --word, or --gei: path, angou=text, or key=bytes\n"
+        "    --gei          Analyze/compare Gameexe.dat\n"
+        "\n"
+        "KOE mode:\n"
+        f"  {p} -k [--stats-only] <scene_input> <voice_dir> <output_dir> [--angou VALUE]\n"
+        f"  {p} -k [--stats-only] --single KOE_NO <voice_dir> <output_dir>\n"
+        "    --stats-only   Write summary only, and CSV unless --single is used; do not extract .ogg files\n"
+        "    --single       Extract only the specified global KOE number directly into output_dir; no CSV or character subdirectories\n"
+        "\n"
+        "Execute mode:\n"
+        f"  {p} -e <path_to_engine> <scene_name> <label>\n"
+        "\n"
+        "Textmap mode:\n"
+        f"  {p} -m <path_to_dat|path_to_dir> [--angou VALUE]\n"
+        f"  {p} -m --apply <path_to_dat|path_to_dir> [--angou VALUE]\n"
+        "    --apply        Apply .dat.csv back to .dat\n"
+        "\n"
+        "G00 mode:\n"
+        f"  {p} -g --a <input_g00>\n"
+        f"  {p} -g --x [--trim] <input_g00|input_dir> <output_dir>\n"
+        f"  {p} -g --m [--trim] <input_g00[:cutNNN]> <input_g00[:cutNNN]> [input_g00[:cutNNN] ...] [--o <output_dir>]\n"
+        "    note: you can select a type2 cut via suffix :cutNNN (e.g. foo.g00:cut002)\n"
+        "    --trim with --x crops transparent or opaque-background PNG edges and JPEG background edges; type2 JSON is not written; with --m crops merged PNG edges\n"
+        f"  {p} -g --c [--type N] [--refer <ref_g00|ref_dir>] <input_png|input_jpeg|input_json(type2 only)|input_dir> [output_g00|output_dir]\n"
+        "    note: without --refer, --c creates .g00 (type0/type2/type3 supported; JSON input is only accepted with --type 2)\n"
+        "          with --refer, --c updates from the reference .g00 instead of implicitly reading output as base\n"
+        "    type2: use name_cut###.png to target a cut when multiple cuts exist\n"
+        "\n"
+        "Sound mode:\n"
+        f"  {p} -s --x <input_dir|input_file> <output_dir> [--trim <path_to_Gameexe.dat>] [--angou VALUE]\n"
+        f"  {p} -s --a <input_file.(nwa|ovk|owp)> [input_file_2.ovk]\n"
+        f"  {p} -s --c <input_ogg|input_dir> <output_dir>\n"
+        f"  {p} -s --play <input_file.(nwa|owp|ogg)|input_dir> [path_to_Gameexe.dat|Gameexe.ini] [--angou VALUE]\n"
+        "\n"
+        "DB mode:\n"
+        f"  {p} -d --x <input_dir|input_file> <output_dir>\n"
+        f"  {p} -d --a <input_file.dbs> [input_file_2.dbs]\n"
+        f"  {p} -d --c [--type N] [--set-shuffle SEED] <input_csv|input_dir> <output_dbs|output_dir>\n"
+        f"  {p} -d --c --test-shuffle [skip0] <expected.dbs> <input_csv> <output_dbs>\n"
+        "\n"
+        "Video mode:\n"
+        f"  {p} -v --x <input_dir|input_file> <output_dir>\n"
+        f"  {p} -v --a <input_file.omv>\n"
+        f"  {p} -v --c <input_ogv> <output_omv|output_dir> [--refer ref.omv] [--mode N] [--flags 0x18DE00]\n"
+        "    --refer  Apply mode and TableB flags_hi24 from ref .omv (overridden by --mode/--flags)\n"
+        "    --mode   Override header mode (@0x28), default: 2 (YUV)\n"
+        "    --flags  Override TableB flags high 24 bits, default: 0\n"
+        "\n"
+        "Patch mode:\n"
+        f"  {p} -p --altkey <input_exe> <input_key> [-o output_exe] [--inplace]\n"
+        f"  {p} -p --lang (cjk|cjk-path|config.json) <input_exe> [-o output_exe] [--inplace] [--allow-partial] [--revert]\n"
+        f"  {p} -p --info <input_exe>\n"
+        f"  {p} -p --loc (0|1) <input_exe> [-o output_exe] [--inplace]\n"
+        "    <input_key> accepts a file path to \u6697\u53f7.dat / key.txt / SiglusEngine*.exe / Scene.pck, key=bytes, or angou=text; directories are not accepted\n"
+        "    --loc 0       Disable region detection (force pass)\n"
+        "    --loc 1       Enable region detection (restore original check)\n"
+        "    --lang cjk       Patch font charset, locale, and language code for CJK; keep Gameexe/Scene/savedata paths\n"
+        "    --lang cjk-path  Same as cjk, and retarget paths to GameexeZH.dat, SceneZH.pck, and savedata_zh\n"
+        "    --lang config.json  Apply a six-field reversible language configuration\n"
+        "    --revert          Restore the byte-identical original executable using the embedded overlay\n"
+        "    --allow-partial   Write a language patch even when part of the selected preset is unavailable\n"
+        "\n"
+        "Test mode:\n"
+        f"  {p} test [--serial] <input_pck|input_dir>\n"
+        "    input_dir      Tests .pck files directly under the directory\n"
+        "    --serial       Disable parallel compilation during rebuild\n"
+        "    output         Reports EXACT/PAYLOAD_SAME/SKIP/FAIL and total/summary timings for analyze/extract/compile/payload/cleanup\n"
+        f"    const-profile  Compile tries profiles {', '.join(map(str, CONST_PROFILE_IDS))}; if all fail, retries with --charset utf8 --allow-invalid\n"
+    )
+    sys.stdout.write(text)
+
+
+def _usage_short():
+    p = _prog()
+    text = (
+        f"{p} {package_version() or 'unknown'}\n"
+        f"usage: {p} [-h] [-V|--version] [--legacy] [--legacy-full] [--const-profile N] [--string-xor-multiplier N] (-lsp|-c|-x|-a|-d|-k|-e|-m|-g|-s|-v|-p|test) [args]\n"
+        f"Try '{p} --help' for more information.\n"
+    )
+    sys.stderr.write(text)
+
+
+def _parse_scene_string_xor_multiplier(value):
+    text = value.strip()
+    if text.startswith(("0x", "0X")):
+        digits = text[2:]
+        base = 16
+        valid = bool(digits) and all(ch in "0123456789abcdefABCDEF" for ch in digits)
+    else:
+        digits = text
+        base = 10
+        valid = bool(digits) and all("0" <= ch <= "9" for ch in digits)
+    if not valid:
+        raise ValueError(f"invalid --string-xor-multiplier value: {value}")
+    multiplier = int(digits, base)
+    if not 0 <= multiplier <= 0xFFFF:
+        raise ValueError(
+            f"invalid --string-xor-multiplier value: {value} (expected 0..0xFFFF)"
+        )
+    return multiplier
+
+
+def _consume_global_options(argv):
+    legacy = False
+    legacy_full = False
+    const_profile = None
+    string_xor_multiplier = None
+    out = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--":
+            out.extend(argv[i:])
+            break
+        if arg == "--legacy":
+            legacy = True
+            i += 1
+            continue
+        if arg == "--legacy-full":
+            legacy_full = True
+            i += 1
+            continue
+        if arg == "--const-profile":
+            if i + 1 >= len(argv):
+                raise ValueError("--const-profile requires a value")
+            const_profile = argv[i + 1]
+            i += 2
+            continue
+        if arg.startswith("--const-profile="):
+            const_profile = arg.split("=", 1)[1]
+            i += 1
+            continue
+        if arg == "--string-xor-multiplier":
+            if i + 1 >= len(argv):
+                raise ValueError("--string-xor-multiplier requires a value")
+            string_xor_multiplier = argv[i + 1]
+            i += 2
+            continue
+
+        if arg.startswith("--string-xor-multiplier="):
+            string_xor_multiplier = arg.split("=", 1)[1]
+            i += 1
+            continue
+        out.append(arg)
+        i += 1
+    profile = None
+    if const_profile is not None:
+        value = str(const_profile).strip()
+        try:
+            profile = int(value, 0)
+        except ValueError as exc:
+            raise ValueError(f"invalid --const-profile value: {const_profile}") from exc
+        if profile not in CONST_PROFILE_IDS:
+            raise ValueError(
+                f"invalid --const-profile value: {const_profile} (expected {', '.join(map(str, CONST_PROFILE_IDS))})"
+            )
+
+    multiplier = 0x7087
+    if string_xor_multiplier is not None:
+        multiplier = _parse_scene_string_xor_multiplier(string_xor_multiplier)
+    return (
+        out,
+        profile,
+        legacy or legacy_full,
+        legacy_full,
+        multiplier,
+        string_xor_multiplier is not None,
+    )
+
+
+def _run_mode(module_name, args):
+    module = import_module(f"siglus_ssu.{module_name}")
+    try:
+        rc = module.main(args)
+    except OSError as exc:
+        sys.stderr.write(f"{_prog()}: error: {exc}\n")
+        return 1
+    if rc == 2:
+        _usage_short()
+    return rc
+
+
+MODE_MODULES = {
+    "-c": "compiler",
+    "--compile": "compiler",
+    "-x": "extract",
+    "--extract": "extract",
+    "-a": "analyze",
+    "--analyze": "analyze",
+    "-d": "db",
+    "--db": "db",
+    "-k": "koe_collector",
+    "--koe": "koe_collector",
+    "-e": "exec",
+    "--exec": "exec",
+    "--execute": "exec",
+    "-m": "textmap",
+    "--textmap": "textmap",
+    "-g": "g00",
+    "--g00": "g00",
+    "-s": "sound_tool",
+    "--sound": "sound_tool",
+    "-v": "video_tool",
+    "--video": "video_tool",
+    "-p": "patch",
+    "--patch": "patch",
+    "test": "test",
+}
+
+
+def _uses_string_xor_multiplier(mode, args):
+    if "--" in args:
+        args = args[: args.index("--")]
+    options = {str(arg).partition("=")[0] for arg in args}
+    match MODE_MODULES.get(mode):
+        case "compiler":
+            return not options & {"--gei", "--dat-repack"}
+        case "extract":
+            return bool(options & {"--disam", "--decompile"})
+        case "analyze":
+            return bool(options & {"--disam", "--payload", "--word"})
+        case "koe_collector":
+            return "--single" not in options
+        case "textmap" | "test":
+            return True
+        case _:
+            return False
+
+
+def main():
+    argv = sys.argv[1:]
+    _runtime._LEGACY_COMPILE = False
+    _runtime._LEGACY_FULL = False
+    _runtime._SCENE_STRING_XOR_MULTIPLIER = 0x7087
+    _runtime._SCENE_STRING_XOR_MULTIPLIER_EXPLICIT = False
+    try:
+        (
+            argv,
+            const_profile,
+            _runtime._LEGACY_COMPILE,
+            _runtime._LEGACY_FULL,
+            _runtime._SCENE_STRING_XOR_MULTIPLIER,
+            string_xor_multiplier_explicit,
+        ) = _consume_global_options(argv)
+        _runtime._SCENE_STRING_XOR_MULTIPLIER_EXPLICIT = string_xor_multiplier_explicit
+    except ValueError as exc:
+        sys.stderr.write(f"{_prog()}: {exc}\n")
+        return 2
+    if argv and argv[0] in ("-V", "--version", "version"):
+        _print_version()
+        return 0
+    if not argv:
+        _usage_short()
+        return 0
+    if argv[0] in ("-h", "--help", "help"):
+        _usage()
+        return 0
+    mode = argv[0]
+    mode_args = argv[1:]
+    if "--" in mode_args:
+        mode_args = mode_args[: mode_args.index("--")]
+    if len(argv) > 1 and (
+        argv[1] == "help" or any(a in ("-h", "--help") for a in mode_args)
+    ):
+        _usage()
+        return 0
+    if (
+        string_xor_multiplier_explicit
+        and (mode in MODE_MODULES or mode == "-lsp")
+        and not _uses_string_xor_multiplier(mode, argv[1:])
+    ):
+        sys.stderr.write(
+            f"{_prog()}: warning: --string-xor-multiplier has no effect for this operation\n"
+        )
+    try:
+        from . import const as C
+
+        C.set_profile(const_profile)
+    except FileNotFoundError as exc:
+        sys.stderr.write(f"{_prog()}: {exc}\n")
+        return 2
+    except Exception as exc:
+        sys.stderr.write(f"{_prog()}: failed to load const.py: {exc}\n")
+        return 1
+    if mode in ("-c", "--compile") and const_profile is not None:
+        from .common import has_option
+
+        if has_option(argv[1:], "--tmp"):
+            sys.stderr.write(
+                f"{_prog()}: error: --tmp cannot be used with --const-profile\n"
+            )
+            return 2
+    if mode == "-lsp":
+        from . import lsp as lsp_server
+
+        return lsp_server.main(argv[1:])
+    module_name = MODE_MODULES.get(mode)
+    if module_name is not None:
+        return _run_mode(module_name, argv[1:])
+    sys.stderr.write(f"{_prog()}: unknown mode: {mode}\n")
+    _usage_short()
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

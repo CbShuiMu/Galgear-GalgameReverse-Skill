@@ -1,0 +1,319 @@
+import os
+from .common import (
+    collect_batch_files,
+    eprint,
+    fmt_kv,
+    hint_help,
+    read_bytes,
+    content_digest,
+    parse_main_argv,
+    prepare_batch_paths,
+    missing_input_file,
+    run_batch,
+    split_end_of_options,
+    first_option_token,
+    is_option_token,
+)
+from . import dbs
+from .native_ops import find_rand_skip
+from .path_policy import resolve_read_path, windows_filename_key
+
+
+def _analyze_one(path):
+    if os.path.splitext(path)[1].lower() != ".dbs":
+        eprint("error: unsupported file type (expected .dbs)")
+        return 1
+    try:
+        blob = read_bytes(path)
+        m_type, expanded = dbs.dbs_unpack(blob)
+        info = dbs.parse_dbs(m_type, expanded)
+    except Exception as exc:
+        eprint(f"error: analyze failed: {exc}")
+        return 1
+    print(fmt_kv("path", path))
+    print(fmt_kv("type", "dbs"))
+    print(fmt_kv("size_bytes", len(blob)))
+    print(fmt_kv("packed_bytes", len(blob) - 4))
+    print(fmt_kv("m_type", int(m_type)))
+    print(fmt_kv("unpacked_bytes", len(expanded)))
+    print(fmt_kv("unpacked_sha256", content_digest(expanded)))
+    for k in (
+        "data_size",
+        "row_cnt",
+        "col_cnt",
+        "offset_scale",
+        "row_header_offset",
+        "column_header_offset",
+        "data_offset",
+        "str_offset",
+    ):
+        print(fmt_kv(k, info[k]))
+    return 0
+
+
+def _compare_two(p1, p2):
+    if (
+        os.path.splitext(p1)[1].lower() != ".dbs"
+        or os.path.splitext(p2)[1].lower() != ".dbs"
+    ):
+        eprint("error: unsupported file type (expected .dbs)")
+        return 1
+    if missing_input_file(p1):
+        return 1
+    if missing_input_file(p2):
+        return 1
+    b1 = read_bytes(p1)
+    b2 = read_bytes(p2)
+    return dbs.compare_dbs(b1, b2)
+
+
+def _is_int_token(s) -> bool:
+    try:
+        int(str(s).strip(), 0)
+        return True
+    except Exception:
+        return False
+
+
+def _map_out_name(csv_path: str):
+    name = os.path.basename(csv_path)
+    base = name[:-4] if name.lower().endswith(".csv") else name
+    if base.lower().endswith(".dbs"):
+        return base
+    return base + ".dbs"
+
+
+def _map_out_path(inp_root: str, out_root: str, csv_path: str, src_is_dir: bool):
+    if (not src_is_dir) and os.path.splitext(out_root)[1].lower() == ".dbs":
+        return out_root
+    rel_dir = os.path.dirname(os.path.relpath(csv_path, inp_root)) if src_is_dir else ""
+    out_name = _map_out_name(csv_path)
+    return os.path.join(out_root, rel_dir, out_name)
+
+
+def _extract_padding_pattern_from_dbs(blob: bytes):
+    m_type, expanded = dbs.dbs_unpack(blob)
+    info = dbs.parse_dbs(m_type, expanded)
+    return m_type, expanded[info["data_size"] + 1 :]
+
+
+def main(argv):
+    mode, argv, rc = parse_main_argv(argv, hint_help)
+    if rc is not None:
+        return rc
+    argv, positional_args = split_end_of_options(argv)
+    opt_type = None
+    while "--type" in argv:
+        i = argv.index("--type")
+        if i + 1 >= len(argv) or is_option_token(argv[i + 1]):
+            eprint("error: --type requires a value")
+            hint_help()
+            return 2
+        try:
+            opt_type = int(argv[i + 1], 0)
+        except Exception:
+            eprint("error: invalid --type value")
+            hint_help()
+            return 2
+        del argv[i : i + 2]
+    opt_seed = 1
+    opt_seed_given = False
+    while "--set-shuffle" in argv:
+        i = argv.index("--set-shuffle")
+        if i + 1 >= len(argv) or is_option_token(argv[i + 1]):
+            eprint("error: --set-shuffle requires a value")
+            hint_help()
+            return 2
+        try:
+            opt_seed = int(argv[i + 1], 0) & 0xFFFFFFFF
+        except Exception:
+            eprint("error: invalid --set-shuffle value")
+            hint_help()
+            return 2
+        opt_seed_given = True
+        del argv[i : i + 2]
+    test_shuffle = False
+    test_skip0 = 0
+    test_skip0_given = False
+    if "--test-shuffle" in argv:
+        if argv.count("--test-shuffle") != 1:
+            eprint("error: --test-shuffle specified more than once")
+            hint_help()
+            return 2
+        i = argv.index("--test-shuffle")
+        argv.pop(i)
+        test_shuffle = True
+        remaining_count = len(argv) - i + len(positional_args or ())
+        if i < len(argv) and _is_int_token(argv[i]) and remaining_count >= 4:
+            test_skip0 = int(str(argv[i]).strip(), 0)
+            test_skip0_given = True
+            argv.pop(i)
+    unknown_option = first_option_token(argv)
+    if unknown_option is not None:
+        eprint(f"error: unknown option: {unknown_option}")
+        hint_help()
+        return 2
+    if positional_args is not None:
+        argv.extend(positional_args)
+    if mode != "c":
+        invalid_options = []
+        if opt_type is not None:
+            invalid_options.append("--type")
+        if opt_seed_given:
+            invalid_options.append("--set-shuffle")
+        if test_shuffle:
+            invalid_options.append("--test-shuffle")
+        if invalid_options:
+            eprint(
+                "error: " + ", ".join(invalid_options) + " can only be used with --c"
+            )
+            hint_help()
+            return 2
+    if mode == "a":
+        if len(argv) not in (1, 2):
+            eprint("error: expected 1 or 2 input files for --a")
+            hint_help()
+            return 2
+        if len(argv) == 1:
+            inp = argv[0]
+            if missing_input_file(inp):
+                return 1
+            return _analyze_one(inp)
+        return _compare_two(argv[0], argv[1])
+    if mode == "x":
+        inp, out_root, src_is_dir, rc = prepare_batch_paths(
+            argv, hint_help, "error: expected 2 arguments", create_output=False
+        )
+        if rc is not None:
+            return rc
+        files, rc = collect_batch_files(
+            inp,
+            src_is_dir,
+            [".dbs"],
+            "no .dbs files found",
+            sort_key=lambda p: os.path.relpath(p, inp).replace("\\", "/"),
+        )
+        if rc is not None:
+            return rc
+        os.makedirs(out_root, exist_ok=True)
+
+        def _proc(src_path):
+            rel_dir = (
+                os.path.dirname(os.path.relpath(src_path, inp)) if src_is_dir else ""
+            )
+            out_path = os.path.join(
+                out_root, rel_dir, os.path.basename(src_path) + ".csv"
+            )
+            dbs.export_one_dbs_to_csv(src_path, out_path)
+            return 1, out_path
+
+        return run_batch(files, _proc)
+    if mode != "c":
+        eprint("error: unknown mode")
+        return 2
+    expected_dbs = ""
+    if test_shuffle:
+        if len(argv) != 3:
+            eprint(
+                "error: --test-shuffle expects: <expected.dbs> <input.csv> <output.dbs|output_dir>"
+            )
+            hint_help()
+            return 2
+        expected_dbs, inp, out_root = argv[0], argv[1], argv[2]
+    else:
+        if len(argv) != 2:
+            eprint(
+                "error: expected 2 arguments: <input_csv|input_dir> <output_dbs|output_dir>"
+            )
+            hint_help()
+            return 2
+        inp, out_root = argv[0], argv[1]
+    try:
+        inp = resolve_read_path(inp)
+    except (FileNotFoundError, NotADirectoryError):
+        eprint(f"input not found: {inp}")
+        return 1
+    src_is_dir = os.path.isdir(inp)
+    if src_is_dir:
+        if test_shuffle:
+            eprint("error: --test-shuffle supports only single file mode")
+            return 2
+        files, rc = collect_batch_files(
+            inp,
+            True,
+            [".csv"],
+            "no .csv files found",
+            sort_key=lambda p: os.path.relpath(p, inp).replace("\\", "/"),
+        )
+        if rc is not None:
+            return rc
+        if os.path.splitext(out_root)[1].lower() == ".dbs":
+            eprint("error: output must be a directory when input is a directory")
+            return 2
+        outputs = {}
+        for csv_path in files:
+            out_path = _map_out_path(inp, out_root, csv_path, src_is_dir)
+            key = windows_filename_key(os.path.abspath(out_path))
+            previous = outputs.get(key)
+            if previous is not None:
+                eprint(
+                    f"error: output path collision: {previous!r} and {csv_path!r} -> {out_path!r}"
+                )
+                return 1
+            outputs[key] = csv_path
+        os.makedirs(out_root, exist_ok=True)
+        m_type = int(opt_type) if opt_type is not None else 1
+        dbs.reset_msvcrt_rand(opt_seed)
+
+        def _proc(csv_path):
+            out_path = _map_out_path(inp, out_root, csv_path, src_is_dir)
+            os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+            dbs.create_one_dbs_from_csv(csv_path, out_path, m_type=m_type)
+            return 1, out_path
+
+        return run_batch(files, _proc)
+    if missing_input_file(inp):
+        return 1
+    out_is_file = os.path.splitext(out_root)[1].lower() == ".dbs"
+    if out_is_file:
+        out_path = out_root
+        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    else:
+        os.makedirs(out_root, exist_ok=True)
+        out_path = os.path.join(out_root, _map_out_name(inp))
+    if test_shuffle:
+        try:
+            expected_dbs = resolve_read_path(expected_dbs, kind="file")
+        except (FileNotFoundError, NotADirectoryError):
+            eprint(f"error: expected dbs not found: {expected_dbs}")
+            return 1
+        expected_blob = read_bytes(expected_dbs)
+        exp_m_type, pat = _extract_padding_pattern_from_dbs(expected_blob)
+        m_type = int(opt_type) if opt_type is not None else int(exp_m_type)
+        seed = int(opt_seed) & 0xFFFFFFFF
+        skip0 = int(test_skip0) if test_skip0_given else 0
+        found = find_rand_skip(seed, pat, start_skip=skip0)
+        if found is None:
+            eprint("error: test-shuffle failed to locate rand-skip")
+            return 1
+        dbs.reset_msvcrt_rand(seed)
+        dbs.burn_msvcrt_rand(found)
+        try:
+            dbs.create_one_dbs_from_csv(inp, out_path, m_type=m_type)
+        except (OSError, ValueError) as exc:
+            eprint(f"error: create failed: {exc}")
+            return 1
+        if read_bytes(out_path) != expected_blob:
+            eprint("error: test-shuffle mismatch")
+            return 1
+        eprint(f"[test-shuffle] using set-shuffle={seed} rand-skip={found}")
+        return 0
+    m_type = int(opt_type) if opt_type is not None else 1
+    dbs.reset_msvcrt_rand(opt_seed)
+    try:
+        dbs.create_one_dbs_from_csv(inp, out_path, m_type=m_type)
+    except (OSError, ValueError) as exc:
+        eprint(f"error: create failed: {exc}")
+        return 1
+    eprint(f"done: wrote {out_path}")
+    return 0

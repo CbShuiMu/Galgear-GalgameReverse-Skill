@@ -1,0 +1,1863 @@
+import os
+import struct
+import copy
+import time
+from collections import Counter
+from . import const as C
+from .CA import CharacterAnalizer, copy_replace_tree, new_replace_tree
+from .IA import IncAnalyzer
+from .LA import la_analize
+from .SA import SA
+from .MA import MA
+from .common import (
+    ascii_lower,
+    build_empty_ia_data,
+    build_operator_render_tables,
+    empty_macro_stat_counts,
+    format_scene_name,
+    log_stage,
+    merge_macro_stat_counts,
+    record_stage_time,
+    set_stage_time,
+    write_u16_le,
+    write_i32_le,
+    write_i32_le_array,
+    read_compile_source,
+    write_text,
+    write_bytes,
+    read_scn_header,
+    scene_string_xor_key,
+)
+from .path_policy import read_directory, resolve_read_path
+
+TNMSERR_BS_NONE = 0
+TNMSERR_BS_ILLEGAL_DEFAULT_ARG = 1
+TNMSERR_BS_CONTINUE_NO_LOOP = 2
+TNMSERR_BS_BREAK_NO_LOOP = 3
+TNMSERR_BS_NEED_REFERENCE = 4
+TNMSERR_BS_NEED_VALUE = 5
+
+
+def _form_code(name):
+    forms = C._FORM_CODE
+    if not isinstance(forms, dict):
+        return None
+    key = str(name)
+    if key not in forms:
+        return None
+    try:
+        return int(forms[key])
+    except (TypeError, ValueError):
+        return None
+
+
+def is_value(form):
+    try:
+        if isinstance(form, str):
+            return form in (C.FM_VOID, C.FM_INT, C.FM_STR, C.FM_INTLIST, C.FM_STRLIST)
+        code = int(form)
+    except (TypeError, ValueError):
+        return False
+    return any(
+        isinstance(fc, int) and code == fc
+        for fc in (
+            _form_code(C.FM_VOID),
+            _form_code(C.FM_INT),
+            _form_code(C.FM_STR),
+            _form_code(C.FM_INTLIST),
+            _form_code(C.FM_STRLIST),
+        )
+    )
+
+
+def dereference(form):
+    if isinstance(form, str):
+        if form == C.FM_INTREF:
+            return C.FM_INT
+        if form == C.FM_STRREF:
+            return C.FM_STR
+        if form == C.FM_INTLISTREF:
+            return C.FM_INTLIST
+        if form == C.FM_STRLISTREF:
+            return C.FM_STRLIST
+        return form
+    try:
+        code = int(form)
+    except (TypeError, ValueError):
+        return form
+    if code == _form_code(C.FM_INTREF):
+        return _form_code(C.FM_INT)
+    if code == _form_code(C.FM_STRREF):
+        return _form_code(C.FM_STR)
+    if code == _form_code(C.FM_INTLISTREF):
+        return _form_code(C.FM_INTLIST)
+    if code == _form_code(C.FM_STRLISTREF):
+        return _form_code(C.FM_STRLIST)
+    return code
+
+
+def _fc(x):
+    if isinstance(x, int):
+        return int(x)
+    if isinstance(x, str):
+        fc = _form_code(x)
+        return int(fc) if isinstance(fc, int) else -1
+    return -1
+
+
+def _to_int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        if isinstance(v, str):
+            fc = _form_code(v)
+            return int(fc) if isinstance(fc, int) else 0
+        return 0
+
+
+def copy_ia_data(base):
+    form_table = copy.copy(base["form_table"])
+    form_table.form_map_by_name = {
+        name: {
+            **info,
+            "element_map_by_name": dict(info["element_map_by_name"]),
+            "element_map_by_code": dict(info["element_map_by_code"]),
+        }
+        for name, info in form_table.form_map_by_name.items()
+    }
+    form_table.form_map_by_code = {
+        code: form_table.form_map_by_name[info["name"]]
+        for code, info in form_table.form_map_by_code.items()
+    }
+    return {
+        "form_table": form_table,
+        "replace_tree": copy_replace_tree(base["replace_tree"]),
+        "name_set": set(base["name_set"]),
+        "macro_defs": list(base["macro_defs"]),
+        "macro_map": dict(base["macro_map"]),
+        "property_list": [copy.deepcopy(p) for p in base["property_list"]],
+        "command_list": [copy.deepcopy(c) for c in base["command_list"]],
+        "property_cnt": base["property_cnt"],
+        "command_cnt": base["command_cnt"],
+        "inc_property_cnt": base["inc_property_cnt"],
+        "inc_command_cnt": base["inc_command_cnt"],
+    }
+
+
+def _merge_int_section(dst, src, keys):
+    for k in keys:
+        dst[k] += src[k]
+
+
+def empty_source_stat_counts():
+    return {
+        "scene_count": 0,
+        "preprocess": {
+            "ifdef": 0,
+            "elseifdef": 0,
+            "else": 0,
+            "endif": 0,
+            "max_ifdef_depth": 0,
+            "excluded_lines": 0,
+        },
+        "inc": {
+            "blocks": 0,
+            "ends": 0,
+            "lines": 0,
+            "scene_properties": 0,
+            "scene_commands": 0,
+        },
+        "directives": {
+            "global_inc_properties": 0,
+            "global_inc_commands": 0,
+            "scene_inc_properties": 0,
+            "scene_inc_commands": 0,
+            "property_directives_total": 0,
+            "command_directives_total": 0,
+            "command_definitions": 0,
+            "global_command_implementations": 0,
+            "scene_command_definitions": 0,
+        },
+        "strings": {
+            "entries": 0,
+            "utf16_units": 0,
+            "dialogue_text_lines": 0,
+            "speaker_names": 0,
+            "top_scenes": [],
+        },
+        "statements": Counter(),
+        "labels": {
+            "defs": 0,
+            "refs": 0,
+            "unused": 0,
+            "z_defs": 0,
+            "z_refs": 0,
+            "z_unused": 0,
+            "generated": 0,
+        },
+        "expressions": {
+            "unary_ops": 0,
+            "binary_ops": 0,
+            "max_depth": 0,
+            "named_args": 0,
+            "default_arg_fills": 0,
+            "assign_ops": Counter(),
+            "unary_op_kinds": Counter(),
+            "binary_op_kinds": Counter(),
+        },
+        "_unique_strings": set(),
+        "_unique_speakers": set(),
+    }
+
+
+def merge_source_stat_counts(dst, src):
+    dst["scene_count"] += src["scene_count"]
+    dp = dst["preprocess"]
+    sp = src["preprocess"]
+    _merge_int_section(
+        dp, sp, ("ifdef", "elseifdef", "else", "endif", "excluded_lines")
+    )
+    dp["max_ifdef_depth"] = max(dp["max_ifdef_depth"], sp["max_ifdef_depth"])
+    _merge_int_section(
+        dst["inc"],
+        src["inc"],
+        ("blocks", "ends", "lines", "scene_properties", "scene_commands"),
+    )
+    _merge_int_section(
+        dst["directives"],
+        src["directives"],
+        (
+            "global_inc_properties",
+            "global_inc_commands",
+            "scene_inc_properties",
+            "scene_inc_commands",
+            "property_directives_total",
+            "command_directives_total",
+            "command_definitions",
+            "global_command_implementations",
+            "scene_command_definitions",
+        ),
+    )
+    ds = dst["strings"]
+    ss = src["strings"]
+    _merge_int_section(
+        ds, ss, ("entries", "utf16_units", "dialogue_text_lines", "speaker_names")
+    )
+    ds["top_scenes"].extend(ss["top_scenes"])
+    dst["statements"].update(src["statements"])
+    _merge_int_section(
+        dst["labels"],
+        src["labels"],
+        ("defs", "refs", "unused", "z_defs", "z_refs", "z_unused", "generated"),
+    )
+    de = dst["expressions"]
+    se = src["expressions"]
+    _merge_int_section(
+        de, se, ("unary_ops", "binary_ops", "named_args", "default_arg_fills")
+    )
+    de["max_depth"] = max(de["max_depth"], se["max_depth"])
+    de["assign_ops"].update(se["assign_ops"])
+    de["unary_op_kinds"].update(se["unary_op_kinds"])
+    de["binary_op_kinds"].update(se["binary_op_kinds"])
+    dst["_unique_strings"].update(src["_unique_strings"])
+    dst["_unique_speakers"].update(src["_unique_speakers"])
+
+
+def _exp_depth(node):
+    nt = node["node_type"]
+    if nt == C.NT_EXP_OPR1:
+        return 1 + _exp_depth(node["exp_1"])
+    if nt == C.NT_EXP_OPR2:
+        return 1 + max(_exp_depth(node["exp_1"]), _exp_depth(node["exp_2"]))
+    if nt == C.NT_EXP_SIMPLE:
+        return _exp_depth(node["smp_exp"])
+    if nt == C.NT_SMP_KAKKO:
+        return 1 + _exp_depth(node["exp"])
+    if nt == C.NT_SMP_EXP_LIST:
+        return 1 + max(_exp_depth(x) for x in node["exp_list"]["exp"])
+    if nt in (C.NT_SMP_GOTO, C.NT_SMP_ELM_EXP, C.NT_SMP_LITERAL):
+        return 1
+    return 0
+
+
+def _collect_statement_stats(root, plad, stats, inc_command_cnt, operator_tables):
+    strings = stats["strings"]
+    statements = stats["statements"]
+    directives = stats["directives"]
+    expressions = stats["expressions"]
+    label_defs = set()
+    z_defs = set()
+
+    def visit_block(block):
+        sentences = block["sentense_list"] if isinstance(block, dict) else block
+        for sen in sentences:
+            visit_sentence(sen)
+
+    def visit_sentence(sen):
+        nt = sen["node_type"]
+        if nt == C.NT_S_LABEL:
+            statements["label"] += 1
+            label_defs.add(sen["label"]["label"]["atom"]["opt"])
+            return
+        if nt == C.NT_S_Z_LABEL:
+            statements["z_label"] += 1
+            z_defs.add(sen["z_label"]["z_label"]["atom"]["opt"])
+            return
+        if nt == C.NT_S_DEF_PROP:
+            statements["property_def"] += 1
+            return
+        if nt == C.NT_S_DEF_CMD:
+            statements["command_def"] += 1
+            directives["command_definitions"] += 1
+            node = sen["def_cmd"]
+            if 0 <= node["cmd_id"] < inc_command_cnt:
+                directives["global_command_implementations"] += 1
+            else:
+                directives["scene_command_definitions"] += 1
+            visit_block(node["block"])
+            return
+        if nt == C.NT_S_GOTO:
+            gnt = sen["Goto"]["node_type"]
+            if gnt == C.NT_GOTO_GOSUB:
+                statements["gosub"] += 1
+            elif gnt == C.NT_GOTO_GOSUBSTR:
+                statements["gosubstr"] += 1
+            else:
+                statements["goto"] += 1
+            return
+        if nt == C.NT_S_RETURN:
+            statements["return"] += 1
+            return
+        if nt == C.NT_S_IF:
+            statements["if"] += 1
+            for sub in sen["If"]["sub"]:
+                if sub["If"]["atom"]["type"] == C.LA_T["ELSEIF"]:
+                    statements["elseif"] += 1
+                elif sub["If"]["atom"]["type"] == C.LA_T["ELSE"]:
+                    statements["else"] += 1
+                visit_block(sub["block"])
+            return
+        if nt == C.NT_S_FOR:
+            statements["for"] += 1
+            node = sen["For"]
+            visit_block(node["init"])
+            visit_block(node["loop"])
+            visit_block(node["block"])
+            return
+        if nt == C.NT_S_WHILE:
+            statements["while"] += 1
+            visit_block(sen["While"]["block"])
+            return
+        if nt == C.NT_S_CONTINUE:
+            statements["continue"] += 1
+            return
+        if nt == C.NT_S_BREAK:
+            statements["break"] += 1
+            return
+        if nt == C.NT_S_SWITCH:
+            statements["switch"] += 1
+            sw = sen["Switch"]
+            for cs in sw["case"]:
+                statements["case"] += 1
+                visit_block(cs["block"])
+            if sw["Default"] is not None:
+                statements["default"] += 1
+                visit_block(sw["Default"]["block"])
+            return
+        if nt == C.NT_S_ASSIGN:
+            statements["assign"] += 1
+            op = sen["assign"]["equal"]["atom"]["opt"]
+            symbol = "=" if op == C.OP_NONE else operator_tables[3][op] + "="
+            expressions["assign_ops"][symbol] += 1
+            return
+        if nt == C.NT_S_COMMAND:
+            statements["command_call"] += 1
+            expressions["max_depth"] = max(expressions["max_depth"], 1)
+            return
+        if nt == C.NT_S_TEXT:
+            statements["text"] += 1
+            strings["dialogue_text_lines"] += 1
+            return
+        if nt == C.NT_S_NAME:
+            statements["name"] += 1
+            name = plad["str_list"][sen["name"]["name"]["atom"]["opt"]]
+            strings["speaker_names"] += 1
+            if name:
+                stats["_unique_speakers"].add(name)
+            return
+        if nt == C.NT_S_EOF:
+            statements["eof"] += 1
+
+    visit_block(root)
+    return label_defs, z_defs
+
+
+def _collect_tree_stats(root, stats, operator_tables):
+    expressions = stats["expressions"]
+    labels = stats["labels"]
+    label_refs = set()
+    z_refs = set()
+
+    def visit(node):
+        if isinstance(node, dict):
+            nt = node.get("node_type")
+            if nt in (C.NT_GOTO_GOTO, C.NT_GOTO_GOSUB, C.NT_GOTO_GOSUBSTR):
+                if node["node_sub_type"] == C.NT_GOTO_Z_LABEL:
+                    labels["z_refs"] += 1
+                    z_refs.add(node["z_label"]["atom"]["opt"])
+                else:
+                    labels["refs"] += 1
+                    label_refs.add(node["label"]["atom"]["opt"])
+                expressions["max_depth"] = max(expressions["max_depth"], 1)
+            elif nt == C.NT_SMP_LITERAL:
+                atom = node["Literal"]["atom"]
+                if atom["type"] == C.LA_T["LABEL"]:
+                    labels["refs"] += 1
+                    label_refs.add(atom["opt"])
+            if nt == C.NT_EXP_OPR1:
+                expressions["unary_ops"] += 1
+                expressions["unary_op_kinds"][
+                    operator_tables[2][node["opr"]["atom"]["opt"]]
+                ] += 1
+            elif nt == C.NT_EXP_OPR2:
+                expressions["binary_ops"] += 1
+                expressions["binary_op_kinds"][
+                    operator_tables[3][node["opr"]["atom"]["opt"]]
+                ] += 1
+            if nt in (C.NT_EXP_SIMPLE, C.NT_EXP_OPR1, C.NT_EXP_OPR2):
+                expressions["max_depth"] = max(
+                    expressions["max_depth"], _exp_depth(node)
+                )
+            if "named_arg_cnt" in node:
+                expressions["named_args"] += node["named_arg_cnt"]
+            for key, value in node.items():
+                if key in ("atom", "_elm_chain"):
+                    continue
+                visit(value)
+        elif isinstance(node, list):
+            for value in node:
+                visit(value)
+
+    visit(root)
+    return label_refs, z_refs
+
+
+def collect_scene_source_stats(nm, pcad, plad, psad, pbsd, dat_bytes):
+    stats = empty_source_stat_counts()
+    stats["scene_count"] = 1
+    pre = pcad["preprocess_stats"]
+    out_pre = stats["preprocess"]
+    for key in ("ifdef", "elseifdef", "else", "endif", "excluded_lines"):
+        out_pre[key] = pre[key]
+    out_pre["max_ifdef_depth"] = pre["max_ifdef_depth"]
+    inc = stats["inc"]
+    inc["blocks"] = pre["inc_start"]
+    inc["ends"] = pre["inc_end"]
+    inc["lines"] = pre["inc_lines"]
+    inc["scene_properties"] = pre["scene_inc_properties"]
+    inc["scene_commands"] = pre["scene_inc_commands"]
+    directives = stats["directives"]
+    directives["scene_inc_properties"] = inc["scene_properties"]
+    directives["scene_inc_commands"] = inc["scene_commands"]
+    directives["property_directives_total"] = inc["scene_properties"]
+    directives["command_directives_total"] = inc["scene_commands"]
+    strings = plad["str_list"]
+    utf16_units = sum(len(x.encode("utf-16le", "surrogatepass")) // 2 for x in strings)
+    stats["strings"]["entries"] = len(strings)
+    stats["strings"]["utf16_units"] = utf16_units
+    stats["strings"]["top_scenes"].append(
+        {"name": nm, "utf16_units": utf16_units, "entries": len(strings)}
+    )
+    stats["_unique_strings"] = set(strings)
+    root = psad["root"]
+    inc_command_cnt = pcad["global_inc_command_cnt"]
+    operator_tables = build_operator_render_tables()
+    label_defs, z_defs = _collect_statement_stats(
+        root, plad, stats, inc_command_cnt, operator_tables
+    )
+    label_refs, z_refs = _collect_tree_stats(root, stats, operator_tables)
+    labels = stats["labels"]
+    labels["defs"] = len(label_defs)
+    labels["unused"] = len(label_defs - label_refs)
+    labels["z_defs"] = len(z_defs)
+    labels["z_unused"] = len(z_defs - {0} - z_refs)
+    header = read_scn_header(dat_bytes)
+    labels["generated"] = max(0, header["label_cnt"] - len(plad["label_list"]))
+    stats["expressions"]["default_arg_fills"] = pbsd["default_arg_fills"]
+    return stats
+
+
+def summarize_scene_macro_stats(iad, base, baseline_usage):
+    counts = empty_macro_stat_counts()
+    usage_delta = {}
+    macro_defs = iad["macro_defs"]
+    base_defs = base["macro_defs"]
+    base_count = len(base_defs)
+    for rep in macro_defs[base_count:]:
+        kind = rep["decl_type"]
+        bucket = counts[kind]
+        bucket["total"] += 1
+        if rep["used_count"] <= 0:
+            bucket["unused"] += 1
+    for rep, used_before in zip(base_defs, baseline_usage):
+        kind = rep["decl_type"]
+        name = rep["name"]
+        used_after = rep["used_count"]
+        if used_after > used_before:
+            usage_delta[(kind, name)] = used_after - used_before
+    return counts, usage_delta
+
+
+def build_ia_data(ctx):
+    sp = ctx.get("scn_path") or ""
+    inc_list = ctx.get("inc_list") or []
+    enc = ctx.get("debug_charset") or ("utf-8" if ctx.get("utf8") else "cp932")
+    if not inc_list and sp:
+        try:
+            _, entries = read_directory(sp)
+        except (FileNotFoundError, NotADirectoryError):
+            entries = []
+        inc_list = sorted(
+            [
+                entry.name
+                for entry in entries
+                if entry.is_file() and ascii_lower(entry.name).endswith(".inc")
+            ],
+            key=ascii_lower,
+        )
+        ctx["inc_list"] = inc_list
+    iad = build_empty_ia_data(new_replace_tree(), ctx.get("defined_names"))
+    ia2 = []
+    start = time.time()
+    for inc in inc_list:
+        inc_path = inc if os.path.isabs(inc) else os.path.join(sp, inc)
+        log_stage("IA", inc_path, ctx)
+        try:
+            inc_path = resolve_read_path(inc_path, kind="file")
+        except (FileNotFoundError, NotADirectoryError):
+            raise FileNotFoundError(f"inc not found: {inc_path}")
+        txt = read_compile_source(ctx, inc_path)
+        iad2 = {"pt": [], "pl": [], "ct": [], "cl": []}
+        ia = IncAnalyzer(txt, C.FM_GLOBAL, iad, iad2)
+        if not ia.step1():
+            raise RuntimeError(f"{os.path.basename(inc_path)} line({ia.el}): {ia.es}")
+        ia2.append((os.path.basename(inc_path), iad2))
+    for name, iad2 in ia2:
+        ia = IncAnalyzer("", C.FM_GLOBAL, iad, iad2)
+        if not ia.step2():
+            raise RuntimeError(f"{name} line({ia.el}): {ia.es}")
+        if ctx.get("debug_outputs"):
+            write_text(
+                os.path.join(
+                    ctx.get("tmp_path") or ".",
+                    "inc",
+                    os.path.splitext(name)[0] + ".txt",
+                ),
+                "OK",
+                enc=enc,
+            )
+    record_stage_time(ctx, "IA", time.time() - start)
+    return iad
+
+
+class MSVCRand:
+    def __init__(s, seed=1):
+        s.x = seed & 0xFFFFFFFF
+
+    def shuffle(s, a):
+        from .native_ops import msvcrand_shuffle_inplace
+
+        s.x = msvcrand_shuffle_inplace(s.x, a)
+
+
+_MSR = MSVCRand()
+
+
+def set_shuffle_seed(seed=1):
+    global _MSR
+    _MSR = MSVCRand(seed)
+
+
+def get_shuffle_seed():
+    return _MSR.x
+
+
+def _u16(t):
+    b = t.encode("utf-16le", "surrogatepass")
+    return [b[i] | (b[i + 1] << 8) for i in range(0, len(b), 2)]
+
+
+def _w_idx(b, a):
+    for o, s in a:
+        b.extend(struct.pack("<ii", int(o), int(s)))
+
+
+def _w_utf16_raw(b, s):
+    if s:
+        b.extend(s.encode("utf-16le", "surrogatepass"))
+
+
+def _mk_index_list(strings):
+    idx = []
+    ofs = 0
+    for s in strings:
+        n = len(_u16(s))
+        idx.append((ofs, n))
+        ofs += n
+    return idx
+
+
+class BinaryStream:
+    __slots__ = ("buf",)
+
+    def __init__(s):
+        s.buf = bytearray()
+
+    def size(s):
+        return len(s.buf)
+
+    def to_bytes(s):
+        return bytes(s.buf)
+
+    def push_u8(s, v):
+        s.buf.extend(struct.pack("<B", int(v) & 0xFF))
+
+    def push_i32(s, v):
+        s.buf.extend(struct.pack("<i", int(v)))
+
+
+def build_scn_dat(plad, out_scn):
+    b = bytearray(b"\0" * C.SCN_HDR_SIZE)
+    h = {"header_size": C.SCN_HDR_SIZE}
+
+    def sec(ok, ck, ofs, cnt):
+        h[ok] = ofs
+        h[ck] = cnt
+
+    sl = list((plad or {}).get("str_list") or [])
+    n = len(sl)
+    order_src = out_scn.get("str_sort_index") if isinstance(out_scn, dict) else None
+    if isinstance(order_src, (list, tuple)) and len(order_src) == n:
+        order = list(order_src)
+    else:
+        order = list(range(n))
+        if n:
+            _MSR.shuffle(order)
+    idx_src = out_scn.get("str_index_list") if isinstance(out_scn, dict) else None
+    use_idx = isinstance(idx_src, (list, tuple)) and len(idx_src) == n
+    idx = [(0, 0)] * n
+    u16_map = {}
+    if use_idx:
+        for i in range(n):
+            it = idx_src[i]
+            idx[i] = (int(it[0]), int(it[1]))
+        for orig in order:
+            u16_map[orig] = _u16(sl[orig])
+    else:
+        ofs = 0
+        for orig in order:
+            u = _u16(sl[orig])
+            u16_map[orig] = u
+            idx[orig] = (ofs, len(u))
+            ofs += len(u)
+    sec("str_index_list_ofs", "str_index_cnt", len(b), n)
+    _w_idx(b, idx)
+    sec("str_list_ofs", "str_cnt", len(b), n)
+    for orig in order:
+        k = scene_string_xor_key(orig)
+        for w in u16_map[orig]:
+            write_u16_le(b, (w ^ k) & 0xFFFF)
+    scn = bytes(out_scn.get("scn_bytes") or b"")
+    sec("scn_ofs", "scn_size", len(b), len(scn))
+    b.extend(scn)
+    label_list = list(out_scn.get("label_list") or [])
+    sec("label_list_ofs", "label_cnt", len(b), len(label_list))
+    write_i32_le_array(b, label_list)
+    z_label_list = list(out_scn.get("z_label_list") or [])
+    sec("z_label_list_ofs", "z_label_cnt", len(b), len(z_label_list))
+    write_i32_le_array(b, z_label_list)
+    cmd_label_list = list(out_scn.get("cmd_label_list") or [])
+    sec("cmd_label_list_ofs", "cmd_label_cnt", len(b), len(cmd_label_list))
+    for it in cmd_label_list:
+        if isinstance(it, dict):
+            write_i32_le(b, it.get("cmd_id", 0))
+            write_i32_le(b, it.get("offset", 0))
+        else:
+            write_i32_le(b, it[0])
+            write_i32_le(b, it[1])
+    scn_prop_list = list(out_scn.get("scn_prop_list") or [])
+    sec("scn_prop_list_ofs", "scn_prop_cnt", len(b), len(scn_prop_list))
+    for it in scn_prop_list:
+        if isinstance(it, dict):
+            write_i32_le(b, _fc(it.get("form", -1)))
+            write_i32_le(b, int(it.get("size", 0) or 0))
+        else:
+            write_i32_le(b, _fc(it[0]))
+            write_i32_le(b, int(it[1]))
+    scn_prop_name_list = list(out_scn.get("scn_prop_name_list") or [])
+    scn_prop_name_index_list = list(out_scn.get("scn_prop_name_index_list") or [])
+    if len(scn_prop_name_index_list) != len(scn_prop_name_list):
+        scn_prop_name_index_list = _mk_index_list(scn_prop_name_list)
+    sec(
+        "scn_prop_name_index_list_ofs",
+        "scn_prop_name_index_cnt",
+        len(b),
+        len(scn_prop_name_index_list),
+    )
+    _w_idx(b, scn_prop_name_index_list)
+    sec("scn_prop_name_list_ofs", "scn_prop_name_cnt", len(b), len(scn_prop_name_list))
+    for s0 in scn_prop_name_list:
+        _w_utf16_raw(b, s0)
+    scn_cmd_list = list(out_scn.get("scn_cmd_list") or [])
+    sec("scn_cmd_list_ofs", "scn_cmd_cnt", len(b), len(scn_cmd_list))
+    for it in scn_cmd_list:
+        write_i32_le(b, int((it.get("offset", 0) if isinstance(it, dict) else it) or 0))
+    scn_cmd_name_list = list(out_scn.get("scn_cmd_name_list") or [])
+    scn_cmd_name_index_list = list(out_scn.get("scn_cmd_name_index_list") or [])
+    if len(scn_cmd_name_index_list) != len(scn_cmd_name_list):
+        scn_cmd_name_index_list = _mk_index_list(scn_cmd_name_list)
+    sec(
+        "scn_cmd_name_index_list_ofs",
+        "scn_cmd_name_index_cnt",
+        len(b),
+        len(scn_cmd_name_index_list),
+    )
+    _w_idx(b, scn_cmd_name_index_list)
+    sec("scn_cmd_name_list_ofs", "scn_cmd_name_cnt", len(b), len(scn_cmd_name_list))
+    for s0 in scn_cmd_name_list:
+        _w_utf16_raw(b, s0)
+    call_prop_name_list = list(out_scn.get("call_prop_name_list") or [])
+    call_prop_name_index_list = list(out_scn.get("call_prop_name_index_list") or [])
+    if len(call_prop_name_index_list) != len(call_prop_name_list):
+        call_prop_name_index_list = _mk_index_list(call_prop_name_list)
+    sec(
+        "call_prop_name_index_list_ofs",
+        "call_prop_name_index_cnt",
+        len(b),
+        len(call_prop_name_index_list),
+    )
+    _w_idx(b, call_prop_name_index_list)
+    sec(
+        "call_prop_name_list_ofs",
+        "call_prop_name_cnt",
+        len(b),
+        len(call_prop_name_list),
+    )
+    for s0 in call_prop_name_list:
+        _w_utf16_raw(b, s0)
+    namae_list = list(out_scn.get("namae_list") or [])
+    sec("namae_list_ofs", "namae_cnt", len(b), len(namae_list))
+    write_i32_le_array(b, namae_list)
+    read_flag_list = list(out_scn.get("read_flag_list") or [])
+    sec("read_flag_list_ofs", "read_flag_cnt", len(b), len(read_flag_list))
+    for it in read_flag_list:
+        write_i32_le(
+            b, int((it.get("line_no", 0) if isinstance(it, dict) else it) or 0)
+        )
+    hdr = struct.pack(
+        "<" + "i" * len(C.SCN_HDR_FIELDS), *[int(h.get(k, 0)) for k in C.SCN_HDR_FIELDS]
+    )
+    b[0 : len(hdr)] = hdr
+    return bytes(b)
+
+
+class BS:
+    def clear_error(s):
+        s.last_error = {
+            "type": TNMSERR_BS_NONE,
+            "atom": {"id": 0, "line": 0, "type": 0, "opt": 0, "subopt": 0},
+        }
+
+    def error(s, etype, atom):
+        at = dict(atom) if isinstance(atom, dict) else {}
+        for k in ("id", "line", "type", "opt", "subopt"):
+            if k not in at:
+                at[k] = 0
+        s.last_error = {"type": int(etype or 0), "atom": at}
+        return False
+
+    def _first_atom(s, node):
+        if isinstance(node, dict):
+            a = node.get("atom")
+            if isinstance(a, dict):
+                return a
+            for k in (
+                "Literal",
+                "label",
+                "z_label",
+                "Goto",
+                "name",
+                "opr",
+                "exp",
+                "exp_1",
+                "exp_2",
+                "smp_exp",
+                "elm_exp",
+                "elm_list",
+            ):
+                if k in node:
+                    r = s._first_atom(node.get(k))
+                    if isinstance(r, dict):
+                        return r
+            for v in node.values():
+                r = s._first_atom(v)
+                if isinstance(r, dict):
+                    return r
+        if isinstance(node, list):
+            for v in node:
+                r = s._first_atom(v)
+                if isinstance(r, dict):
+                    return r
+        return None
+
+    def _last_atom(s, node):
+        if isinstance(node, dict):
+            a = node.get("atom")
+            if isinstance(a, dict):
+                return a
+            for v in reversed(list(node.values())):
+                r = s._last_atom(v)
+                if isinstance(r, dict):
+                    return r
+        if isinstance(node, list):
+            for v in reversed(node):
+                r = s._last_atom(v)
+                if isinstance(r, dict):
+                    return r
+        return None
+
+    def _bs_write_cd_nl(s, node_line):
+        s.out_scn["scn"].push_u8(C.CD_NL)
+        s.out_scn["scn"].push_i32(int(node_line or 0))
+
+    def bs_block(s, block):
+        if block is None:
+            return True
+        if isinstance(block, dict) and "sentense_list" in block:
+            return s.bs_ss(block)
+        if isinstance(block, list):
+            for sn in block:
+                if not s.bs_sentence(sn):
+                    return False
+            return True
+        return False
+
+    def bs_sentence(s, sentense):
+        if sentense is None:
+            return True
+        if not isinstance(sentense, dict):
+            return False
+        node_line = int(sentense.get("node_line", 0) or 0)
+        is_inc = bool(sentense.get("is_include_sel"))
+        s._bs_write_cd_nl(node_line)
+        if is_inc:
+            s.out_scn["scn"].push_u8(C.CD_SEL_BLOCK_START)
+        if not s.bs_sentence_sub(sentense):
+            return False
+        if is_inc:
+            s.out_scn["scn"].push_u8(C.CD_SEL_BLOCK_END)
+        return True
+
+    def bs_sentence_sub(s, node):
+        if node is None:
+            return True
+        if not isinstance(node, dict):
+            return False
+        nt = int(node.get("node_type", 0) or 0)
+        if nt == C.NT_S_LABEL:
+            return s.bs_label(node.get("label"))
+        if nt == C.NT_S_Z_LABEL:
+            return s.bs_z_label(node.get("z_label"))
+        if nt == C.NT_S_DEF_PROP:
+            return s.bs_def_prop(node.get("def_prop"))
+        if nt == C.NT_S_DEF_CMD:
+            return s.bs_def_cmd(node.get("def_cmd"))
+        if nt == C.NT_S_GOTO:
+            return s.bs_goto({"Goto": node.get("Goto")})
+        if nt == C.NT_S_RETURN:
+            return s.bs_return({"Return": node.get("Return")})
+        if nt == C.NT_S_IF:
+            return s.bs_if(node.get("If"))
+        if nt == C.NT_S_FOR:
+            return s.bs_for(node.get("For"))
+        if nt == C.NT_S_WHILE:
+            return s.bs_while(node.get("While"))
+        if nt == C.NT_S_CONTINUE:
+            return s.bs_continue(node.get("Continue"))
+        if nt == C.NT_S_BREAK:
+            return s.bs_break(node.get("Break"))
+        if nt == C.NT_S_SWITCH:
+            return s.bs_switch(node.get("Switch"))
+        if nt == C.NT_S_ASSIGN:
+            return s.bs_assign(node.get("assign"))
+        if nt == C.NT_S_COMMAND:
+            return s.bs_command(node.get("command"))
+        if nt == C.NT_S_TEXT:
+            return s.bs_text(node.get("text"))
+        if nt == C.NT_S_NAME:
+            return s.bs_name(node.get("name"))
+        if nt == C.NT_S_EOF:
+            return s.bs_eof()
+        return False
+
+    def bs_ss(s, ss):
+        if ss is None:
+            return True
+        if not isinstance(ss, dict):
+            return False
+        sl = ss.get("sentense_list")
+        if isinstance(sl, list):
+            for sn in sl:
+                if not s.bs_sentence(sn):
+                    return False
+        return True
+
+    def bs_label(s, label):
+        if label is None:
+            return True
+        if isinstance(label, dict) and "label" in label:
+            label = label.get("label")
+        if not isinstance(label, dict):
+            return False
+        atom = (label.get("atom") or {}) if isinstance(label, dict) else {}
+        opt = atom.get("opt", None)
+        label_id = int(opt) if opt is not None else int(label.get("label_id", 0) or 0)
+        if label_id < 0 or label_id >= len(s.out_scn["label_list"]):
+            return True
+        s.out_scn["label_list"][label_id] = s.out_scn["scn"].size()
+        return True
+
+    def bs_z_label(s, z_label):
+        if z_label is None:
+            return True
+        if isinstance(z_label, dict) and "z_label" in z_label:
+            z_label = z_label.get("z_label")
+        if not isinstance(z_label, dict):
+            return False
+        atom = (z_label.get("atom") or {}) if isinstance(z_label, dict) else {}
+        opt_v = atom.get("opt", None)
+        sub_v = atom.get("subopt", None)
+        opt = int(opt_v) if opt_v is not None else int(z_label.get("opt", 0) or 0)
+        sub = int(sub_v) if sub_v is not None else int(z_label.get("subopt", 0) or 0)
+        if opt < 0 or opt >= len(s.out_scn["z_label_list"]):
+            return True
+        ofs = s.out_scn["scn"].size()
+        label_list = s.out_scn.get("label_list")
+        if isinstance(label_list, list) and 0 <= sub < len(label_list):
+            label_list[sub] = ofs
+        s.out_scn["z_label_list"][opt] = ofs
+        return True
+
+    def bs_def_prop(s, def_prop):
+        if def_prop is None:
+            return True
+        if not isinstance(def_prop, dict):
+            return False
+        form_code = def_prop.get("form_code")
+        if form_code in (C.FM_INTLIST, C.FM_STRLIST):
+            idx = (def_prop.get("form") or {}).get("index")
+            if idx:
+                if not s.bs_exp(idx, True):
+                    return False
+            else:
+                s.out_scn["scn"].push_u8(C.CD_PUSH)
+                s.out_scn["scn"].push_i32(_fc(C.FM_INT))
+                s.out_scn["scn"].push_i32(0)
+        s.out_scn["scn"].push_u8(C.CD_DEC_PROP)
+        s.out_scn["scn"].push_i32(_fc(form_code))
+        s.out_scn["scn"].push_i32(int(def_prop.get("prop_id", 0) or 0))
+        return True
+
+    def bs_def_cmd(s, def_cmd):
+        if def_cmd is None:
+            return True
+        if not isinstance(def_cmd, dict):
+            return False
+        label_no_end = len(s.out_scn["label_list"])
+        s.out_scn["label_list"].append(0)
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no_end)
+        cmd_label = {
+            "cmd_id": int(def_cmd.get("cmd_id", 0) or 0),
+            "offset": s.out_scn["scn"].size(),
+        }
+        s.out_scn["cmd_label_list"].append(cmd_label)
+        for p in def_cmd.get("prop_list") or []:
+            if not s.bs_def_prop(p):
+                return False
+        s.out_scn["scn"].push_u8(C.CD_ARG)
+        if not s.bs_block(def_cmd.get("block")):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_RETURN)
+        s.out_scn["scn"].push_i32(0)
+        s.out_scn["label_list"][label_no_end] = s.out_scn["scn"].size()
+        inc_cnt = int(s.m_piad.get("inc_command_cnt", 0) or 0)
+        if cmd_label["cmd_id"] >= inc_cnt:
+            idx = cmd_label["cmd_id"] - inc_cnt
+            if 0 <= idx < len(s.out_scn["scn_cmd_list"]):
+                s.out_scn["scn_cmd_list"][idx] = cmd_label
+        return True
+
+    def bs_goto(s, goto):
+        if goto is None:
+            return True
+        if not isinstance(goto, dict):
+            return False
+        gt = goto.get("Goto")
+        if not isinstance(gt, dict):
+            return False
+        nt = int(gt.get("node_type", 0) or 0)
+        if nt == C.NT_GOTO_GOTO:
+            if (
+                int(gt.get("node_sub_type", gt.get("node_type", 0)) or 0)
+                == C.NT_GOTO_LABEL
+            ):
+                lid = int(
+                    ((gt.get("label") or {}).get("atom") or {}).get("opt", 0)
+                    or (gt.get("label") or {}).get("label_id", 0)
+                    or 0
+                )
+            else:
+                lid = int(
+                    ((gt.get("z_label") or {}).get("atom") or {}).get("subopt", 0)
+                    or (gt.get("z_label") or {}).get("opt", 0)
+                    or 0
+                )
+            s.out_scn["scn"].push_u8(C.CD_GOTO)
+            s.out_scn["scn"].push_i32(lid)
+            return True
+        if nt in (C.NT_GOTO_GOSUB, C.NT_GOTO_GOSUBSTR):
+            if not s.bs_goto_exp(gt):
+                return False
+            form = C.FM_INT if nt == C.NT_GOTO_GOSUB else C.FM_STR
+            s.out_scn["scn"].push_u8(C.CD_POP)
+            s.out_scn["scn"].push_i32(_fc(form))
+            return True
+        return False
+
+    def bs_goto_exp(s, goto):
+        if goto is None:
+            return True
+        if not isinstance(goto, dict):
+            return False
+        nt = int(goto.get("node_type", 0) or 0)
+        if nt == C.NT_GOTO_GOTO:
+            return s.bs_goto({"Goto": goto})
+        if not s.bs_arg_list(goto.get("arg_list"), True):
+            return False
+        label_no = int(
+            ((goto.get("label") or {}).get("atom") or {}).get("opt", 0)
+            or (goto.get("label") or {}).get("label_id", 0)
+            or ((goto.get("z_label") or {}).get("atom") or {}).get("subopt", 0)
+            or (goto.get("z_label") or {}).get("opt", 0)
+            or 0
+        )
+        if nt == C.NT_GOTO_GOSUB:
+            s.out_scn["scn"].push_u8(C.CD_GOSUB)
+            s.out_scn["scn"].push_i32(label_no)
+        else:
+            s.out_scn["scn"].push_u8(C.CD_GOSUBSTR)
+            s.out_scn["scn"].push_i32(label_no)
+        args = list((goto.get("arg_list") or {}).get("arg") or [])
+        s.out_scn["scn"].push_i32(len(args))
+        for a in args:
+            form = dereference(((a or {}).get("exp") or {}).get("tmp_form"))
+            s.out_scn["scn"].push_i32(_fc(form))
+        return True
+
+    def bs_return(s, ret):
+        if ret is None:
+            return True
+        if not isinstance(ret, dict):
+            return False
+        rt = ret.get("Return")
+        if not isinstance(rt, dict):
+            return False
+        nt = int(rt.get("node_type", 0) or 0)
+        if nt == C.NT_RETURN_WITH_ARG:
+            if not s.bs_exp(rt.get("exp"), True):
+                return False
+            s.out_scn["scn"].push_u8(C.CD_RETURN)
+            s.out_scn["scn"].push_i32(1)
+            form = _fc(dereference((rt.get("exp") or {}).get("node_form")))
+            s.out_scn["scn"].push_i32(form)
+            return True
+        if nt == C.NT_RETURN_WITHOUT_ARG:
+            s.out_scn["scn"].push_u8(C.CD_RETURN)
+            s.out_scn["scn"].push_i32(0)
+            return True
+        return False
+
+    def bs_if(s, if_):
+        if if_ is None:
+            return True
+        if not isinstance(if_, dict):
+            return False
+        sub = list(if_.get("sub") or [])
+        label_no_end = len(s.out_scn["label_list"])
+        s.out_scn["label_list"].append(0)
+        for sb in sub:
+            If = (sb.get("If") or {}).get("atom", {}) if isinstance(sb, dict) else {}
+            if If.get("type") in (
+                C.LA_T["IF"],
+                C.LA_T["ELSEIF"],
+            ):
+                label_no_if = len(s.out_scn["label_list"])
+                s.out_scn["label_list"].append(0)
+                if not s.bs_exp(sb.get("cond"), True):
+                    return False
+                s.out_scn["scn"].push_u8(C.CD_GOTO_FALSE)
+                s.out_scn["scn"].push_i32(label_no_if)
+                if not s.bs_block(sb.get("block")):
+                    return False
+                s.out_scn["scn"].push_u8(C.CD_GOTO)
+                s.out_scn["scn"].push_i32(label_no_end)
+                s.out_scn["label_list"][label_no_if] = s.out_scn["scn"].size()
+            else:
+                if not s.bs_block(sb.get("block")):
+                    return False
+        s.out_scn["label_list"][label_no_end] = s.out_scn["scn"].size()
+        return True
+
+    def bs_for(s, for_):
+        if for_ is None:
+            return True
+        if not isinstance(for_, dict):
+            return False
+        label_size = len(s.out_scn["label_list"])
+        label_no_init = label_size
+        label_no_loop = label_size + 1
+        label_no_out = label_size + 2
+        s.out_scn["label_list"].extend([0, 0, 0])
+        s.loop_label.append({"Continue": label_no_loop, "Break": label_no_out})
+        if not s.bs_block(for_.get("init")):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no_init)
+        s.out_scn["label_list"][label_no_loop] = s.out_scn["scn"].size()
+        if not s.bs_block(for_.get("loop")):
+            return False
+        s.out_scn["label_list"][label_no_init] = s.out_scn["scn"].size()
+        if not s.bs_exp(for_.get("cond"), True):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_GOTO_FALSE)
+        s.out_scn["scn"].push_i32(label_no_out)
+        if not s.bs_block(for_.get("block")):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no_loop)
+        s.out_scn["label_list"][label_no_out] = s.out_scn["scn"].size()
+        s.loop_label.pop()
+        return True
+
+    def bs_while(s, while_):
+        if while_ is None:
+            return True
+        if not isinstance(while_, dict):
+            return False
+        label_size = len(s.out_scn["label_list"])
+        label_no_loop = label_size
+        label_no_out = label_size + 1
+        s.out_scn["label_list"].extend([0, 0])
+        s.loop_label.append({"Continue": label_no_loop, "Break": label_no_out})
+        s.out_scn["label_list"][label_no_loop] = s.out_scn["scn"].size()
+        if not s.bs_exp(while_.get("cond"), True):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_GOTO_FALSE)
+        s.out_scn["scn"].push_i32(label_no_out)
+        if not s.bs_block(while_.get("block")):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no_loop)
+        s.out_scn["label_list"][label_no_out] = s.out_scn["scn"].size()
+        s.loop_label.pop()
+        return True
+
+    def bs_continue(s, cont):
+        if cont is None:
+            return True
+        if not s.loop_label:
+            return s.error(
+                TNMSERR_BS_CONTINUE_NO_LOOP, (cont.get("Continue") or {}).get("atom")
+            )
+        label_no = s.loop_label[-1].get("Continue", 0)
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no)
+        return True
+
+    def bs_break(s, brk):
+        if brk is None:
+            return True
+        if not s.loop_label:
+            return s.error(
+                TNMSERR_BS_BREAK_NO_LOOP, (brk.get("Break") or {}).get("atom")
+            )
+        label_no = s.loop_label[-1].get("Break", 0)
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(label_no)
+        return True
+
+    def bs_switch(s, switch):
+        if switch is None:
+            return True
+        if not isinstance(switch, dict):
+            return False
+        form_l = _fc(dereference((switch.get("cond") or {}).get("node_form")))
+        cases = list(switch.get("case") or [])
+        label_size = len(s.out_scn["label_list"])
+        label_no_out = label_size
+        label_no_case = label_size + 1
+        label_no_default = label_size + 1 + len(cases)
+        s.out_scn["label_list"].extend([0] * (len(cases) + 1))
+        if switch.get("Default"):
+            s.out_scn["label_list"].append(0)
+        if not s.bs_exp(switch.get("cond"), True):
+            return False
+        for idx, cs in enumerate(cases):
+            form_r = _fc(dereference((cs.get("value") or {}).get("node_form")))
+            s.out_scn["scn"].push_u8(C.CD_COPY)
+            s.out_scn["scn"].push_i32(form_l)
+            if not s.bs_exp(cs.get("value"), True):
+                return False
+            s.out_scn["scn"].push_u8(C.CD_OPERATE_2)
+            s.out_scn["scn"].push_i32(form_l)
+            s.out_scn["scn"].push_i32(form_r)
+            s.out_scn["scn"].push_u8(C.OP_EQUAL)
+            s.out_scn["scn"].push_u8(C.CD_GOTO_TRUE)
+            s.out_scn["scn"].push_i32(label_no_case + idx)
+        s.out_scn["scn"].push_u8(C.CD_POP)
+        s.out_scn["scn"].push_i32(form_l)
+        s.out_scn["scn"].push_u8(C.CD_GOTO)
+        s.out_scn["scn"].push_i32(
+            label_no_default if switch.get("Default") else label_no_out
+        )
+        for idx, cs in enumerate(cases):
+            s.out_scn["label_list"][label_no_case + idx] = s.out_scn["scn"].size()
+            s.out_scn["scn"].push_u8(C.CD_POP)
+            s.out_scn["scn"].push_i32(form_l)
+            if not s.bs_block(cs.get("block")):
+                return False
+            s.out_scn["scn"].push_u8(C.CD_GOTO)
+            s.out_scn["scn"].push_i32(label_no_out)
+        if switch.get("Default"):
+            s.out_scn["label_list"][label_no_default] = s.out_scn["scn"].size()
+            if not s.bs_block((switch.get("Default") or {}).get("block")):
+                return False
+            s.out_scn["scn"].push_u8(C.CD_GOTO)
+            s.out_scn["scn"].push_i32(label_no_out)
+        s.out_scn["label_list"][label_no_out] = s.out_scn["scn"].size()
+        return True
+
+    def bs_assign(s, assign):
+        if assign is None:
+            return True
+        if not isinstance(assign, dict):
+            return False
+        if not s.bs_left(assign.get("left")):
+            return False
+        opr_opt = ((assign.get("equal") or {}).get("atom") or {}).get("opt", C.OP_NONE)
+        if opr_opt != C.OP_NONE:
+            s.out_scn["scn"].push_u8(C.CD_COPY_ELM)
+            s.out_scn["scn"].push_u8(C.CD_PROPERTY)
+        if not s.bs_exp(assign.get("right"), not bool(assign.get("set_flag"))):
+            return False
+        form_l = _fc(dereference((assign.get("left") or {}).get("node_form")))
+        form_r = _fc(dereference((assign.get("right") or {}).get("node_form")))
+        if opr_opt != C.OP_NONE:
+            s.out_scn["scn"].push_u8(C.CD_OPERATE_2)
+            s.out_scn["scn"].push_i32(form_l)
+            s.out_scn["scn"].push_i32(form_r)
+            s.bs_operator_1(assign.get("equal"))
+        form_r2 = _fc(dereference(assign.get("equal_form", assign.get("node_form"))))
+        s.out_scn["scn"].push_u8(C.CD_ASSIGN)
+        s.out_scn["scn"].push_i32(_fc((assign.get("left") or {}).get("node_form")))
+        s.out_scn["scn"].push_i32(form_r2)
+        s.out_scn["scn"].push_i32(int(assign.get("al_id", 0) or 0))
+        return True
+
+    def bs_command(s, command):
+        if command is None:
+            return True
+        if not isinstance(command, dict):
+            return False
+        if not s.bs_elm_exp(command.get("command"), True):
+            return False
+        form = _fc((command.get("command") or {}).get("node_form"))
+        s.out_scn["scn"].push_u8(C.CD_POP)
+        s.out_scn["scn"].push_i32(form)
+        return True
+
+    def bs_text(s, text):
+        if text is None:
+            return True
+        s.bs_push_msg_block()
+        opt = int(
+            ((text.get("text") or text or {}).get("atom") or {}).get("opt", 0) or 0
+        )
+        line = int(
+            ((text.get("text") or text or {}).get("atom") or {}).get("line", 0) or 0
+        )
+        s.out_scn["scn"].push_u8(C.CD_PUSH)
+        s.out_scn["scn"].push_i32(_fc(C.FM_STR))
+        s.out_scn["scn"].push_i32(opt)
+        s.out_scn["scn"].push_u8(C.CD_TEXT)
+        s.out_scn["scn"].push_i32(s.cur_read_flag_no)
+        s.cur_read_flag_no += 1
+        s.out_scn["read_flag_list"].append({"line_no": line})
+        return True
+
+    def bs_name(s, name):
+        if name is None:
+            return True
+        s.bs_push_msg_block()
+        if not s.bs_literal(name.get("name")):
+            return False
+        opt = int(((name.get("name") or {}).get("atom") or {}).get("opt", 0) or 0)
+        s.out_scn["scn"].push_u8(C.CD_NAME)
+        new_name = True
+        sl = s.out_scn.get("str_list") or []
+        for nid in s.out_scn.get("namae_list") or []:
+            if 0 <= nid < len(sl) and sl[nid] == (
+                sl[opt] if 0 <= opt < len(sl) else None
+            ):
+                new_name = False
+                break
+        if new_name:
+            s.out_scn.get("namae_list", []).append(opt)
+        return True
+
+    def bs_eof(s):
+        s.out_scn["scn"].push_u8(C.CD_EOF)
+        return True
+
+    def bs_exp(s, exp, need_value):
+        if exp is None:
+            return True
+        if not isinstance(exp, dict):
+            return False
+        nt = int(exp.get("node_type", 0) or 0)
+        if nt == C.NT_EXP_SIMPLE:
+            return s.bs_smp_exp(exp.get("smp_exp"), bool(need_value))
+        if nt == C.NT_EXP_OPR1:
+            if not need_value:
+                return s.error(TNMSERR_BS_NEED_REFERENCE, s._first_atom(exp))
+            if not s.bs_exp(exp.get("exp_1"), True):
+                return False
+            form = _fc(dereference((exp.get("exp_1") or {}).get("node_form")))
+            s.out_scn["scn"].push_u8(C.CD_OPERATE_1)
+            s.out_scn["scn"].push_i32(form)
+            return s.bs_operator_1(exp.get("opr"))
+        if nt == C.NT_EXP_OPR2:
+            if not need_value:
+                return s.error(TNMSERR_BS_NEED_REFERENCE, s._first_atom(exp))
+            if not s.bs_exp(exp.get("exp_1"), True):
+                return False
+            if not s.bs_exp(exp.get("exp_2"), True):
+                return False
+            form_l = _fc(dereference((exp.get("exp_1") or {}).get("node_form")))
+            form_r = _fc(dereference((exp.get("exp_2") or {}).get("node_form")))
+            s.out_scn["scn"].push_u8(C.CD_OPERATE_2)
+            s.out_scn["scn"].push_i32(form_l)
+            s.out_scn["scn"].push_i32(form_r)
+            return s.bs_operator_1(exp.get("opr"))
+        return False
+
+    def bs_smp_exp(s, smp_exp, need_value):
+        if smp_exp is None:
+            return True
+        if not isinstance(smp_exp, dict):
+            return False
+        nt = int(smp_exp.get("node_type", 0) or 0)
+        if nt == C.NT_SMP_KAKKO:
+            return s.bs_exp(smp_exp.get("exp"), bool(need_value))
+        if nt == C.NT_SMP_GOTO:
+            if not need_value:
+                return s.error(TNMSERR_BS_NEED_REFERENCE, s._first_atom(smp_exp))
+            return s.bs_goto_exp(smp_exp.get("Goto"))
+        if nt == C.NT_SMP_ELM_EXP:
+            return s.bs_elm_exp(smp_exp.get("elm_exp"), bool(need_value))
+        if nt == C.NT_SMP_EXP_LIST:
+            if not need_value:
+                return s.error(TNMSERR_BS_NEED_REFERENCE, s._first_atom(smp_exp))
+            return s.bs_exp_list(smp_exp.get("exp_list"))
+        if nt == C.NT_SMP_LITERAL:
+            if not need_value:
+                return s.error(TNMSERR_BS_NEED_REFERENCE, s._first_atom(smp_exp))
+            return s.bs_literal(smp_exp.get("Literal"))
+        return False
+
+    def bs_exp_list(s, exp_list):
+        if exp_list is None:
+            return True
+        if not isinstance(exp_list, dict):
+            return False
+        for e in exp_list.get("exp") or []:
+            if not s.bs_exp(e, True):
+                return False
+        return True
+
+    def bs_arg_list(s, arg_list, need_value):
+        if arg_list is None:
+            return True
+        if not isinstance(arg_list, dict):
+            return False
+        args = list(arg_list.get("arg") or [])
+        for a in args:
+            if not isinstance(a, dict):
+                return False
+            form = (a.get("exp") or {}).get("tmp_form") or (a.get("exp") or {}).get(
+                "node_form"
+            )
+            need_val_arg = bool(need_value) or form in (C.FM_LIST,) or is_value(form)
+            if not s.bs_arg(a, need_val_arg):
+                return False
+        return True
+
+    def bs_element(s, element):
+        if element is None:
+            return True
+        if not isinstance(element, dict):
+            return False
+        nt = int(element.get("node_type", 0) or 0)
+        if nt == C.NT_ELM_ELEMENT:
+            s.out_scn["scn"].push_u8(C.CD_PUSH)
+            s.out_scn["scn"].push_i32(_fc(C.FM_INT))
+            s.out_scn["scn"].push_i32(_to_int(element.get("element_code", 0) or 0))
+            if int(element.get("element_type", 0) or 0) == C.ET_COMMAND:
+                arg_list = element.get("arg_list") or {}
+                arg_cnt = (
+                    len(arg_list.get("arg") or []) if isinstance(arg_list, dict) else 0
+                )
+                if not s.bs_arg_list(arg_list, False):
+                    return False
+                ft = s.m_piad["form_table"]
+                info = ft.get_element_by_code(
+                    element.get("element_parent_form"), element.get("element_code")
+                )
+                aid = int(element.get("arg_list_id", 0) or 0)
+                temp_args = None
+                if isinstance(info, dict):
+                    temp = (info.get("arg_map", {}) or {}).get(aid)
+                    temp_args = (
+                        (temp.get("arg_list") if isinstance(temp, dict) else temp)
+                        if temp is not None
+                        else None
+                    )
+                if isinstance(temp_args, list) and arg_cnt < len(temp_args):
+                    for ta in temp_args[arg_cnt:]:
+                        tf = (ta or {}).get("form")
+                        if tf in (C.FM___ARGS, C.FM___ARGSREF):
+                            break
+                        s.out_scn["scn"].push_u8(C.CD_PUSH)
+                        s.out_scn["scn"].push_i32(_fc(tf))
+                        if tf == C.FM_INT:
+                            s.out_scn["scn"].push_i32(
+                                int((ta or {}).get("def_int", 0) or 0)
+                            )
+                        else:
+                            return s.error(
+                                TNMSERR_BS_ILLEGAL_DEFAULT_ARG,
+                                (element.get("name") or {}).get("atom"),
+                            )
+                        s.out_scn["default_arg_fills"] = (
+                            int(s.out_scn.get("default_arg_fills", 0) or 0) + 1
+                        )
+                        arg_cnt += 1
+                s.out_scn["scn"].push_u8(C.CD_COMMAND)
+                s.out_scn["scn"].push_i32(int(element.get("arg_list_id", 0) or 0))
+                s.out_scn["scn"].push_i32(int(arg_cnt))
+                if isinstance(temp_args, list) and len(arg_list.get("arg") or []) < len(
+                    temp_args
+                ):
+                    for ta in reversed(temp_args[len(arg_list.get("arg") or []) :]):
+                        tf = (ta or {}).get("form")
+                        if tf in (C.FM___ARGS, C.FM___ARGSREF):
+                            break
+                        s.out_scn["scn"].push_i32(_fc(tf))
+                for a in reversed(list(arg_list.get("arg") or [])):
+                    tf = ((a or {}).get("exp") or {}).get("tmp_form")
+                    s.out_scn["scn"].push_i32(_fc(tf))
+                    if tf == C.FM_LIST:
+                        smp = (a.get("exp") or {}).get("smp_exp") or {}
+                        while smp.get("node_type") == C.NT_SMP_KAKKO:
+                            smp = (smp.get("exp") or {}).get("smp_exp") or {}
+                        fl = list(smp.get("exp_list", {}).get("form_list") or [])
+                        s.out_scn["scn"].push_i32(len(fl))
+                        for f0 in reversed(fl):
+                            s.out_scn["scn"].push_i32(_fc(dereference(f0)))
+                s.out_scn["scn"].push_i32(
+                    int((arg_list or {}).get("named_arg_cnt", 0) or 0)
+                )
+                for a in reversed(list(arg_list.get("arg") or [])):
+                    if int((a or {}).get("node_type", 0) or 0) == C.NT_ARG_WITH_NAME:
+                        s.out_scn["scn"].push_i32(int((a or {}).get("name_id", 0) or 0))
+                s.out_scn["scn"].push_i32(_fc(element.get("node_form")))
+            return True
+        if nt == C.NT_ELM_ARRAY:
+            s.out_scn["scn"].push_u8(C.CD_PUSH)
+            s.out_scn["scn"].push_i32(_fc(C.FM_INT))
+            s.out_scn["scn"].push_i32(int(C.ELM_ARRAY))
+            s.bs_exp(element.get("exp"), True)
+            return True
+        return False
+
+    def bs_elm_list(s, elm_list):
+        if elm_list is None:
+            return True
+        if not isinstance(elm_list, dict):
+            return False
+        s.out_scn["scn"].push_u8(C.CD_ELM_POINT)
+        if elm_list.get("parent_form_code") == C.FM_CALL:
+            cur = C.ELM_GLOBAL_CUR_CALL
+            if not isinstance(cur, int):
+                return False
+            s.out_scn["scn"].push_u8(C.CD_PUSH)
+            s.out_scn["scn"].push_i32(_fc(C.FM_INT))
+            s.out_scn["scn"].push_i32(int(cur))
+        for el in elm_list.get("element") or []:
+            if not s.bs_element(el):
+                return False
+            if (
+                (_to_int((el or {}).get("element_code", 0)) >> 24) & 0xFF
+            ) == C.ELM_OWNER_CALL_PROP and not is_value((el or {}).get("node_form")):
+                s.out_scn["scn"].push_u8(C.CD_PROPERTY)
+        return True
+
+    def bs_left(s, left):
+        if not isinstance(left, dict):
+            return False
+        return s.bs_elm_list(left.get("elm_list"))
+
+    def bs_elm_exp(s, elm_exp, need_value):
+        if not isinstance(elm_exp, dict):
+            return False
+        elm_list = elm_exp.get("elm_list")
+        et = int(elm_exp.get("element_type", 0) or 0)
+        if et == C.ET_COMMAND:
+            el = elm_list.get("element") or []
+            parent_form_code = _to_int(
+                (el[-1] or {}).get("element_parent_form", 0) if el else 0
+            )
+            element_code = _to_int((el[-1] or {}).get("element_code", 0) if el else 0)
+            if (parent_form_code, element_code) in C.MESSAGE_BLOCK_COMMAND_CODES:
+                s.bs_push_msg_block()
+            if not s.bs_elm_list(elm_list):
+                return False
+            if (parent_form_code, element_code) in C.READ_FLAG_COMMAND_CODES:
+                s.out_scn["scn"].push_i32(s.cur_read_flag_no)
+                s.cur_read_flag_no += 1
+                s.out_scn["read_flag_list"].append(
+                    {"line_no": int((el[-1] or {}).get("node_line", 0) if el else 0)}
+                )
+        elif et == C.ET_PROPERTY:
+            if not s.bs_elm_list(elm_list):
+                return False
+        else:
+            return True
+        if need_value:
+            nf = elm_exp.get("node_form")
+            if is_value(nf):
+                pass
+            elif nf in (C.FM_INTREF, C.FM_STRREF, C.FM_INTLISTREF, C.FM_STRLISTREF):
+                s.out_scn["scn"].push_u8(C.CD_PROPERTY)
+            else:
+                return s.error(TNMSERR_BS_NEED_VALUE, s._last_atom(elm_list))
+        return True
+
+    def bs_arg(s, arg, need_value):
+        if arg is None:
+            return True
+        if not isinstance(arg, dict):
+            return False
+        if not s.bs_exp(arg.get("exp"), bool(need_value)):
+            return False
+        return True
+
+    def bs_literal(s, Literal):
+        if Literal is None:
+            return True
+        if not isinstance(Literal, dict):
+            return False
+        form = Literal["node_form"]
+        s.out_scn["scn"].push_u8(C.CD_PUSH)
+        s.out_scn["scn"].push_i32(_fc(C.FM_INT if form == C.FM_LABEL else form))
+        s.out_scn["scn"].push_i32(int(Literal["atom"]["opt"]))
+        return True
+
+    def bs_operator_1(s, opr):
+        s.out_scn["scn"].push_u8(
+            int(((opr or {}).get("atom") or {}).get("opt", 0) or 0)
+        )
+        return True
+
+    def bs_push_msg_block(s):
+        s.out_scn["scn"].push_u8(C.CD_ELM_POINT)
+        s.out_scn["scn"].push_u8(C.CD_PUSH)
+        s.out_scn["scn"].push_i32(_fc(C.FM_INT))
+        msg_block = C.ELM_GLOBAL_MSG_BLOCK
+        if not isinstance(msg_block, int):
+            msg_block = int(msg_block or 0)
+        s.out_scn["scn"].push_i32(int(msg_block))
+        s.out_scn["scn"].push_u8(C.CD_COMMAND)
+        s.out_scn["scn"].push_i32(0)
+        s.out_scn["scn"].push_i32(0)
+        s.out_scn["scn"].push_i32(0)
+        s.out_scn["scn"].push_i32(_fc(C.FM_VOID))
+
+    def compile(s, piad, plad, psad, pbsd):
+        s.clear_error()
+        try:
+            s.m_piad = piad
+            s.loop_label = []
+            s.cur_read_flag_no = 0
+            out_scn = {
+                "scn": BinaryStream(),
+                "cmd_label_list": [],
+                "namae_list": [],
+                "read_flag_list": [],
+                "default_arg_fills": 0,
+            }
+            sl = list(plad.get("str_list") or [])
+            str_cnt = len(sl)
+            str_sort_index = list(range(str_cnt))
+            _MSR.shuffle(str_sort_index)
+            out_scn["str_sort_index"] = str_sort_index
+            ofs = 0
+            str_index_list = [(0, 0)] * str_cnt
+            out_scn["str_list"] = [sl[i] for i in str_sort_index]
+            for orig in str_sort_index:
+                ln = len(_u16(sl[orig]))
+                str_index_list[orig] = (ofs, ln)
+                ofs += ln
+            out_scn["str_index_list"] = str_index_list
+            out_scn["label_list"] = [0] * len(plad.get("label_list") or [])
+            out_scn["z_label_list"] = [0] * C.TNM_Z_LABEL_CNT
+            inc_prop_cnt = int(piad.get("inc_property_cnt", 0) or 0)
+            inc_cmd_cnt = int(piad.get("inc_command_cnt", 0) or 0)
+            props = list(piad.get("property_list") or [])
+            cmds = list(piad.get("command_list") or [])
+            user_props = props[inc_prop_cnt:]
+            user_cmds = cmds[inc_cmd_cnt:]
+            out_scn["scn_prop_list"] = [
+                {"form": p.get("form", "int"), "size": int(p.get("size", 0) or 0)}
+                for p in user_props
+            ]
+            out_scn["scn_prop_name_list"] = [p.get("name", "") for p in user_props]
+            ofs = 0
+            idx = []
+            for nm in out_scn["scn_prop_name_list"]:
+                ln = len(_u16(nm))
+                idx.append((ofs, ln))
+                ofs += ln
+            out_scn["scn_prop_name_index_list"] = idx
+            out_scn["scn_cmd_list"] = [0] * len(user_cmds)
+            out_scn["scn_cmd_name_list"] = [c.get("name", "") for c in user_cmds]
+            ofs = 0
+            idx = []
+            for nm in out_scn["scn_cmd_name_list"]:
+                ln = len(_u16(nm))
+                idx.append((ofs, ln))
+                ofs += ln
+            out_scn["scn_cmd_name_index_list"] = idx
+            out_scn["call_prop_name_list"] = list(psad.get("call_prop_name_list") or [])
+            ofs = 0
+            idx = []
+            for nm in out_scn["call_prop_name_list"]:
+                ln = len(_u16(nm))
+                idx.append((ofs, ln))
+                ofs += ln
+            out_scn["call_prop_name_index_list"] = idx
+            s.out_scn = out_scn
+            if not s.bs_ss(psad["root"]):
+                return 0
+            out_scn["scn_bytes"] = out_scn["scn"].to_bytes()
+            out = build_scn_dat(plad, out_scn)
+        except Exception:
+            return 0
+        pbsd["out_scn"] = out
+        pbsd["default_arg_fills"] = int(out_scn.get("default_arg_fills", 0) or 0)
+        return 1
+
+
+def get_error_line(s):
+    return int((s.last_error.get("atom") or {}).get("line", 0) or 0)
+
+
+def get_error_code(s):
+    t = int(s.last_error.get("type", 0) or 0)
+    if t == TNMSERR_BS_ILLEGAL_DEFAULT_ARG:
+        return "TNMSERR_BS_ILLEGAL_DEFAULT_ARG"
+    if t == TNMSERR_BS_CONTINUE_NO_LOOP:
+        return "TNMSERR_BS_CONTINUE_NO_LOOP"
+    if t == TNMSERR_BS_BREAK_NO_LOOP:
+        return "TNMSERR_BS_BREAK_NO_LOOP"
+    if t == TNMSERR_BS_NEED_REFERENCE:
+        return "TNMSERR_BS_NEED_REFERENCE"
+    if t == TNMSERR_BS_NEED_VALUE:
+        return "TNMSERR_BS_NEED_VALUE"
+    return "UNK_ERROR"
+
+
+def compile_one_pipeline(
+    ctx,
+    ss_path,
+    ia_data=None,
+    debug_outputs=False,
+    tmp_path=None,
+    log=True,
+    record_time=False,
+):
+    nm = os.path.splitext(os.path.basename(ss_path))[0]
+    display_name = format_scene_name(ss_path, ctx)
+
+    def fmt_err(code, line):
+        return f"{code} at {display_name}:{int(line or 0)}"
+
+    enc = ctx.get("debug_charset") or ("utf-8" if ctx.get("utf8") else "cp932")
+    scn = read_compile_source(ctx, ss_path)
+    base = ia_data if ia_data is not None else ctx.get("ia_data")
+    if base is None:
+        base = build_ia_data(ctx)
+        ctx["ia_data"] = base
+    full_compile_stats = ctx["stats"]["full_compile_stats"]
+    baseline_usage = (
+        [rep["used_count"] for rep in base["macro_defs"]] if full_compile_stats else []
+    )
+    iad = copy_ia_data(base)
+    pcad = {"global_inc_command_cnt": base["inc_command_cnt"]}
+    ca = CharacterAnalizer()
+    if log:
+        log_stage("CA", ss_path, ctx)
+    t = time.time()
+    if not ca.analize_file(scn, iad, pcad):
+        raise RuntimeError(fmt_err("UNK_ERROR", ca.get_error_line()))
+    if record_time:
+        record_stage_time(ctx, "CA", time.time() - t)
+    tmp = tmp_path or ctx.get("tmp_path") or "."
+    if debug_outputs and ctx.get("debug_outputs"):
+        write_text(
+            os.path.join(tmp, "ca", nm + ".txt"), pcad.get("scn_text", ""), enc=enc
+        )
+    if log:
+        log_stage("LA", ss_path, ctx)
+    t = time.time()
+    lad, err = la_analize(pcad)
+    if record_time:
+        record_stage_time(ctx, "LA", time.time() - t)
+    if err:
+        raise RuntimeError(fmt_err("UNK_ERROR", err.get("line", 0)))
+    if log:
+        log_stage("SA", ss_path, ctx)
+    t = time.time()
+    sa = SA(iad, lad)
+    ok, sad = sa.analize()
+    if record_time:
+        record_stage_time(ctx, "SA", time.time() - t)
+    if not ok:
+        raise RuntimeError(
+            fmt_err(
+                sa.last.get("type") or "UNK_ERROR",
+                (sa.last.get("atom") or {}).get("line", 0),
+            )
+        )
+    if log:
+        log_stage("MA", ss_path, ctx)
+    t = time.time()
+    ma = MA(iad, lad, sad)
+    ok, mad = ma.analize()
+    if record_time:
+        record_stage_time(ctx, "MA", time.time() - t)
+    if not ok:
+        code = ma.last.get("type") or "UNK_ERROR"
+        atom = ma.last.get("atom") or {}
+        line = int(atom.get("line", 0) or 0)
+        if code == "TNMSERR_MA_ELEMENT_UNKNOWN":
+            unknown_name = None
+            try:
+                atom_type = int(atom.get("type", -1))
+                idx = int(atom.get("opt", -1))
+            except (TypeError, ValueError):
+                atom_type = -1
+                idx = -1
+            if atom_type == int(C.LA_T.get("UNKNOWN", -999)):
+                u = (lad or {}).get("unknown_list") or []
+                if 0 <= idx < len(u):
+                    unknown_name = str(u[idx])
+            qname = str(ma.last.get("qname") or unknown_name or "")
+            if unknown_name:
+                raise RuntimeError(
+                    f"{code}({qname or unknown_name}) at {display_name}:{line}"
+                )
+        raise RuntimeError(fmt_err(code, line))
+    if log:
+        log_stage("BS", ss_path, ctx)
+    t = time.time()
+    bs = BS()
+    bsd = {}
+    if not bs.compile(iad, lad, mad, bsd):
+        raise RuntimeError(fmt_err(bs.get_error_code(), bs.get_error_line()))
+    if record_time:
+        record_stage_time(ctx, "BS", time.time() - t)
+    if full_compile_stats:
+        scene_macro_counts, global_macro_usage_delta = summarize_scene_macro_stats(
+            iad, base, baseline_usage
+        )
+        source_stats = collect_scene_source_stats(
+            nm,
+            pcad,
+            lad,
+            mad,
+            bsd,
+            bsd["out_scn"],
+        )
+    else:
+        scene_macro_counts = empty_macro_stat_counts()
+        global_macro_usage_delta = {}
+        source_stats = empty_source_stat_counts()
+    write_bytes(os.path.join(tmp, "bs", nm + ".dat"), bsd["out_scn"])
+    return {
+        "scene_macro_counts": scene_macro_counts,
+        "global_macro_usage_delta": global_macro_usage_delta,
+        "source_stats": source_stats,
+    }
+
+
+def compile_one(ctx, ss_path):
+    return compile_one_pipeline(
+        ctx,
+        ss_path,
+        ia_data=None,
+        debug_outputs=True,
+        tmp_path=None,
+        log=True,
+        record_time=True,
+    )
+
+
+def compile_all(ctx, only, max_workers=None, parallel=True):
+    if ctx.get("ia_data") is None:
+        ctx["ia_data"] = build_ia_data(ctx)
+    ss_files = list(only)
+    if parallel and len(ss_files) > 1:
+        from .parallel import parallel_compile
+
+        start = time.time()
+        result = parallel_compile(ctx, ss_files, max_workers)
+        set_stage_time(ctx, "Compiling", time.time() - start)
+        return result
+    scene_macro_counts = empty_macro_stat_counts()
+    source_stats = empty_source_stat_counts()
+    for p in ss_files:
+        res = compile_one(ctx, p)
+        merge_macro_stat_counts(scene_macro_counts, res["scene_macro_counts"])
+        merge_source_stat_counts(source_stats, res["source_stats"])
+    return {
+        "parallel": False,
+        "scene_macro_counts": scene_macro_counts,
+        "global_macro_usage_delta": {},
+        "source_stats": source_stats,
+    }
+
+
+BS.get_error_line = get_error_line
+BS.get_error_code = get_error_code

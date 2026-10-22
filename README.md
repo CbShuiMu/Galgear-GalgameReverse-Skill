@@ -66,7 +66,7 @@ npx skills add CbShuiMu/Galgear-GalgameReverse-Skill --skill galgame-resource-pa
 | --- | --- |
 | AI 助手 | 能读取 `SKILL.md`、访问本地文件并运行命令 |
 | Python | 3.10+；配置记忆与资源交接脚本使用标准库 |
-| 解包与封包工具 | GalExtract、GalPack 随附 GARbro、Ethornell、Mangetsu、pfs-rs 和 CriCodecs 的 Windows CLI；按[工具索引](GalgameResourceExtract/commands/index.md)选择，其他系统需另行确认可用运行方式 |
+| 解包与封包工具 | GalExtract、GalPack 独立随附 11 组 CLI；新补 GalArc 子集、FreeMote、Siglus、rpatool、RLdev SEEN 与 Majiro V3。按[工具索引](GalgameResourceExtract/commands/index.md)确认版本与能力；rpatool / SEEN / Majiro 需 Python 3.9+，GalArc / FreeMote 需 Windows .NET Framework 4.8，其他系统另行确认 |
 | 逆向工具 | GalReverse 不随附调试器、编译器或通用游戏解析器，按目标平台与当前障碍使用已有工具 |
 | 音频处理 | GalTTS 需要 FFmpeg，以及 `av`、`numpy`、`soundfile`、`filelock` |
 | TTS 后端 | 自行准备可用模型或服务；可使用 IndexTTS 适配器、通用命令客户端或自定义 Python 适配器 |
@@ -207,7 +207,7 @@ python GalgameResourceExtract/scripts/test_mapping.py
 python GalgameTextToSpeech/scripts/test_dialogue_mapping.py
 ```
 
-结构检查验证所有 Markdown 的本地链接、维护资料的一层目录限制、常用资料的直接引用、引擎文件命名、术语、格式路由、工具入口、JSON 和 Python 语法；根目录测试验证独立安装及经验生命周期。生成和交接变更另需运行以下集成检查，`$ffmpeg` 为实际 FFmpeg 路径，Python 环境需满足批处理依赖：
+结构检查验证所有 Markdown 的本地链接、维护资料的一层目录限制、常用资料的直接引用、引擎文件命名、术语、格式路由、工具入口、JSON 和 Python 语法；根目录测试验证独立安装、经验生命周期及新增 CLI 的合成资源往返与失败路径。生成和交接变更另需运行以下集成检查，`$ffmpeg` 为实际 FFmpeg 路径，Python 环境需满足批处理依赖：
 
 ```powershell
 $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source

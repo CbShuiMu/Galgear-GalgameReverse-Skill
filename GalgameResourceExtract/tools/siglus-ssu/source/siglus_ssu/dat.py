@@ -1,0 +1,1230 @@
+import json
+import hashlib
+import os
+import struct
+import sys
+import time
+from .path_policy import read_file_stat, resolve_read_path
+from . import const as C
+from . import disam
+from . import pck
+from .decompiler import (
+    _write_support_inc_lines,
+    build_decompile_hints,
+    write_decompiled_ss,
+)
+from .common import (
+    hx,
+    fmt_ts,
+    content_digest,
+    I32_STRUCT,
+    I32_PAIR_STRUCT,
+    read_struct_list,
+    max_pair_end,
+    add_gap_sections,
+    print_sections,
+    diff_kv,
+    build_sections,
+    parse_i32_header_checked,
+    read_bytes,
+    is_named_filename,
+    unique_out_path,
+    write_text,
+    ANGOU_DAT_NAME,
+    looks_like_siglus_dat,
+    new_disam_stats,
+    add_elapsed_seconds,
+    read_scn_metadata,
+    decode_utf16le_strings,
+    write_status,
+    write_disam_totals,
+    format_exe_el_source,
+    scene_string_xor_key,
+)
+
+
+def decode_xor_utf16le_strings(dat, idx_pairs, blob_ofs, blob_end):
+    out = []
+    if blob_ofs < 0 or blob_end < blob_ofs or blob_ofs > len(dat):
+        return out
+    blob_end = max(0, min(blob_end, len(dat)))
+    for si, (o, ln) in enumerate(idx_pairs):
+        if o < 0 or ln < 0:
+            out.append("")
+            continue
+        a = blob_ofs + o * 2
+        b = a + ln * 2
+        if b > blob_end:
+            out.append("")
+            continue
+        key = scene_string_xor_key(si)
+        try:
+            mask = int.from_bytes(key.to_bytes(2, "little") * ln, "little")
+            raw = (int.from_bytes(dat[a:b], "little") ^ mask).to_bytes(ln * 2, "little")
+            out.append(raw.decode("utf-16le", "surrogatepass"))
+        except (UnicodeDecodeError, ValueError):
+            out.append("")
+    return out
+
+
+def _build_decompile_hints(bundles):
+    def _hint_status(bundle):
+        name = os.path.basename(str(bundle.get("dat_path") or "")) or str(
+            bundle.get("scene_name") or "<unknown>"
+        )
+        write_status(f"Building hints {name} ...")
+
+    try:
+        return build_decompile_hints(bundles, status=_hint_status)
+    except Exception as exc:
+        sys.stderr.write(f"decompile: failed to build hints: {exc}\n")
+        return None
+
+
+def is_decompiler_excluded_dat(dat_path=None, scene_name=None):
+    names = []
+    if dat_path:
+        name = os.path.basename(str(dat_path))
+        if name:
+            names.append(name)
+    if scene_name not in (None, ""):
+        scene_text = str(scene_name)
+        if scene_text:
+            names.append(scene_text)
+            names.append(scene_text + ".dat")
+    for name in names:
+        if is_named_filename(name, ANGOU_DAT_NAME):
+            return True
+    return False
+
+
+def _payload_metadata_trace(meta, pack_context):
+    out = []
+    names = meta.get("raw_names") or {}
+
+    def emit(op, **fields):
+        event = {"op": op}
+        event.update({key: value for key, value in fields.items() if value is not None})
+        out.append(event)
+
+    for op, key in (("meta_label", "label_list"), ("meta_z_label", "z_label_list")):
+        offsets = [int(value) for value in meta.get(key) or []]
+        if key == "z_label_list":
+            while offsets and offsets[-1] == 0:
+                offsets.pop()
+        emit(op, offsets=offsets)
+    for command_id, offset in meta.get("cmd_label_list") or []:
+        emit("meta_command_label", id=int(command_id), offset=int(offset))
+    for op, key in (
+        ("meta_scene_property_name_index", "scn_prop_name_index_list"),
+        ("meta_scene_command_name_index", "scn_cmd_name_index_list"),
+        ("meta_call_property_name_index", "call_prop_name_index_list"),
+    ):
+        for idx, (offset, size) in enumerate(meta.get(key) or []):
+            emit(op, id=int(idx), offset=int(offset), size=int(size))
+
+    prop_list = list(meta.get("scn_prop_list") or [])
+    prop_names = list(names.get("scn_prop_names") or [])
+    for idx in range(max(len(prop_list), len(prop_names))):
+        item = prop_list[idx] if idx < len(prop_list) else None
+        emit(
+            "meta_scene_property",
+            id=int(idx),
+            form=int(item[0]) if item is not None else None,
+            size=int(item[1]) if item is not None else None,
+            name=str(prop_names[idx]) if idx < len(prop_names) else None,
+        )
+
+    command_list = list(meta.get("scn_cmd_list") or [])
+    command_names = list(names.get("scn_cmd_names") or [])
+    for idx in range(max(len(command_list), len(command_names))):
+        emit(
+            "meta_scene_command",
+            id=int(idx),
+            offset=int(command_list[idx]) if idx < len(command_list) else None,
+            name=str(command_names[idx]) if idx < len(command_names) else None,
+        )
+
+    for idx, name in enumerate(names.get("call_prop_names") or []):
+        emit("meta_call_property", id=int(idx), name=str(name))
+
+    for idx, value in enumerate(meta.get("read_flag_list") or []):
+        emit("meta_read_flag", id=int(idx), value=int(value))
+
+    context = dict(pack_context or {})
+    emit(
+        "meta_pack_property_count",
+        value=int(context.get("inc_property_cnt", 0) or 0),
+    )
+    for item in context.get("inc_property_defs") or []:
+        emit(
+            "meta_pack_property",
+            id=item["id"],
+            form=item["form"],
+            size=item["size"],
+            name=item["name"],
+        )
+
+    scene_names = list(context.get("scene_names") or [])
+    current_scene = context.get("payload_scene_name")
+    emit(
+        "meta_pack_command_count",
+        value=int(context.get("inc_command_cnt", 0) or 0),
+    )
+    for item in context.get("inc_command_defs") or []:
+        scene_no = item["scn_no"]
+        scene = str(scene_names[scene_no]) if 0 <= scene_no < len(scene_names) else None
+        if current_scene is not None and scene is not None and scene != current_scene:
+            continue
+        emit(
+            "meta_pack_command",
+            id=item["id"],
+            name=item["name"],
+            scene=scene,
+            scene_no=scene_no if scene is None else None,
+            offset=item["offset"],
+        )
+    return out
+
+
+def _payload_string_trace(str_list):
+    strings = sorted(
+        str_list, key=lambda value: value.encode("utf-16-be", "surrogatepass")
+    )
+    encoded = []
+    for value in strings:
+        size = len(value.encode("utf-16-le", "surrogatepass")) // 2
+        encoded.extend((f"S{size:d}:", value))
+    return [{"op": "meta_string_pool", "size": len(strings), "text": "".join(encoded)}]
+
+
+def dat_disassembly_bundle(
+    blob,
+    dat_path=None,
+    *,
+    pack_context=None,
+    scene_no=None,
+    scene_name=None,
+    emit_text=True,
+    trace_profile=None,
+    with_trace=True,
+):
+    try:
+        payload_trace = trace_profile == "payload"
+        decompiler_excluded = is_decompiler_excluded_dat(dat_path, scene_name)
+        bounds = _scn_payload_bounds(blob)
+        if bounds is None:
+            return None
+        sections, meta = dat_sections(blob)
+        h = meta.get("header") or {}
+        so, ss = bounds
+        scn = blob[so : so + ss]
+        str_idx = meta["str_index_list"]
+        str_blob_end = meta["str_blob_end"]
+        str_list = (
+            decode_xor_utf16le_strings(
+                blob, str_idx, h.get("str_list_ofs", 0), str_blob_end
+            )
+            if str_idx
+            else []
+        )
+        label_list = meta["label_list"]
+        z_label_list = meta["z_label_list"]
+        parse_status = {}
+        result = disam.disassemble_scn_bytes(
+            scn,
+            str_list,
+            label_list,
+            z_label_list,
+            cmd_label_list=meta.get("cmd_label_list"),
+            scn_prop_defs=meta.get("scn_prop_defs"),
+            scn_cmd_names=meta.get("scn_cmd_names"),
+            call_prop_names=(
+                (meta.get("raw_names") or {}).get("call_prop_names")
+                if payload_trace
+                else meta.get("call_prop_names")
+            ),
+            pack_context=pack_context,
+            with_trace=with_trace,
+            emit_text=emit_text,
+            trace_profile=trace_profile,
+            parse_status=parse_status,
+        )
+        dis, trace = result if with_trace else (result, None)
+        if payload_trace and with_trace:
+            runtime_trace = list(trace or [])
+            trace = (
+                _payload_metadata_trace(meta, pack_context)
+                + runtime_trace
+                + _payload_string_trace(str_list)
+            )
+        return {
+            "header": h,
+            "sections": sections,
+            "meta": meta,
+            "command_ranges": parse_status["command_ranges"],
+            "str_list": str_list,
+            "label_list": label_list,
+            "z_label_list": z_label_list,
+            "pack_context": dict(pack_context or {}),
+            "scene_no": scene_no,
+            "scene_name": scene_name,
+            "dat_path": dat_path,
+            "decompiler_excluded": decompiler_excluded,
+            "trace": trace,
+            "dis": dis,
+            "complete": parse_status["complete"] and scn_structure_valid(blob),
+        }
+    except Exception:
+        return None
+
+
+def _write_dat_txt_prepared(dat_path, blob, out_dir, stats, bundle):
+    h = bundle.get("header") or {}
+    str_list = bundle.get("str_list") or []
+    label_list = bundle.get("label_list") or []
+    z_label_list = bundle.get("z_label_list") or []
+    dis = bundle.get("dis") or []
+    so = int(h.get("scn_ofs", 0) or 0)
+    ss = int(h.get("scn_size", 0) or 0)
+    ended_unexpectedly = not bundle.get("complete")
+    if ended_unexpectedly:
+        stats["ended_unexpectedly"] += 1
+        print(f"Disassembly of {os.path.basename(str(dat_path))} ended unexpectedly.")
+    out_name = os.path.basename(str(dat_path)) + ".txt"
+    out_path = os.path.join(str(out_dir), out_name)
+    os.makedirs(str(out_dir), exist_ok=True)
+    out_path = unique_out_path(out_path)
+    lines = []
+    lines.append("==== DAT DISASSEMBLY ====")
+    lines.append(f"file: {dat_path}")
+    lines.append(f"size: {len(blob):d}")
+    lines.append(f"header_size: {int(h.get('header_size', 0) or 0):d}")
+    lines.append(f"scn_ofs: {hx(so)}")
+    lines.append(f"scn_size: {ss:d}")
+    lines.append(f"str_cnt: {int(h.get('str_cnt', 0) or 0):d}")
+    lines.append(f"label_cnt: {int(h.get('label_cnt', 0) or 0):d}")
+    lines.append(f"z_label_cnt: {int(h.get('z_label_cnt', 0) or 0):d}")
+    lines.append(f"cmd_label_cnt: {int(h.get('cmd_label_cnt', 0) or 0):d}")
+    lines.append(f"scn_prop_cnt: {int(h.get('scn_prop_cnt', 0) or 0):d}")
+    lines.append(f"scn_cmd_cnt: {int(h.get('scn_cmd_cnt', 0) or 0):d}")
+    lines.append(f"namae_cnt: {int(h.get('namae_cnt', 0) or 0):d}")
+    lines.append(f"read_flag_cnt: {int(h.get('read_flag_cnt', 0) or 0):d}")
+    if bundle["scene_no"] is not None:
+        lines.append(f"scene_no: {bundle['scene_no']:d}")
+    if bundle.get("scene_name") not in (None, ""):
+        lines.append(f"scene_name: {bundle.get('scene_name')}")
+    lines.append("")
+    lines.append("---- header ----")
+    for key, value in h.items():
+        lines.append(f"{key}: {value:d}")
+    meta = bundle.get("meta") or {}
+    for key in (
+        "str_index_list",
+        "cmd_label_list",
+        "scn_prop_list",
+        "scn_prop_names",
+        "scn_prop_name_index_list",
+        "scn_cmd_list",
+        "scn_cmd_names",
+        "scn_cmd_name_index_list",
+        "call_prop_names",
+        "call_prop_name_index_list",
+    ):
+        lines.append("")
+        lines.append(f"---- {key} ----")
+        values = (meta.get("raw_names") or {}).get(key, meta.get(key)) or []
+        for idx, value in enumerate(values):
+            lines.append(f"[{idx:d}] {value!r}")
+    if bundle.get("pack_context"):
+        lines.append("")
+        lines.append("---- pack_context ----")
+        for key, value in bundle["pack_context"].items():
+            lines.append(f"{key}: {value!r}")
+    lines.append("")
+    lines.append("---- str_list (xor utf16le) ----")
+    for i, s in enumerate(str_list or []):
+        lines.append(f"[{i:d}] {s!r}")
+    lines.append("")
+    lines.append("---- namae_list ----")
+    for idx, sid in enumerate(meta["namae_list"]):
+        text = str_list[sid] if 0 <= sid < len(str_list) else None
+        lines.append(
+            f"[{idx:d}] str[{sid:d}] {repr(text) if text is not None else ''}".rstrip()
+        )
+    lines.append("")
+    lines.append("---- read_flag_list ----")
+    for idx, line in enumerate(meta["read_flag_list"]):
+        lines.append(f"[{idx:d}] line {line:d}")
+    lines.append("")
+    lines.append("---- label_list ----")
+    for i, ofs in enumerate(label_list):
+        lines.append(f"L{i:d} = {ofs:08X}")
+    lines.append("")
+    lines.append("---- z_label_list ----")
+    for i, ofs in enumerate(z_label_list):
+        lines.append(f"Z{i:d} = {ofs:08X}")
+    used = [(0, min(C.SCN_HDR_SIZE, len(blob)))]
+    used.extend(
+        (start, end)
+        for start, end, kind, _ in bundle.get("sections") or []
+        if kind not in {"H", "G", "S", "s", "n", "Q"}
+    )
+    for name in ("str", "scn_prop_name", "scn_cmd_name", "call_prop_name"):
+        base = int(h.get(f"{name}_list_ofs", 0))
+        for offset, length in meta.get(f"{name}_index_list") or []:
+            start = base + offset * 2
+            end = start + length * 2
+            if base >= 0 and offset >= 0 and 0 <= start <= end <= len(blob):
+                used.append((start, end))
+    gaps = []
+    add_gap_sections(gaps, used, len(blob))
+    if gaps:
+        lines.append("")
+        lines.append("---- uncovered_bytes ----")
+        for start, end, _, _ in gaps:
+            for offset in range(start, end, 16):
+                lines.append(
+                    f"{offset:08X}: {blob[offset : min(offset + 16, end)].hex(' ')}"
+                )
+    lines.append("")
+    lines.append("---- scn_bytes disassembly ----")
+    lines.extend(dis)
+    lines.append("")
+    write_text(out_path, "\n".join(lines), enc="utf-8")
+    return out_path
+
+
+def _write_dat_txt(dat_path, blob, out_dir, stats, bundle):
+    try:
+        if os.path.exists(out_dir) and (not os.path.isdir(out_dir)):
+            return None
+        if bundle["decompiler_excluded"]:
+            return None
+        return _write_dat_txt_prepared(dat_path, blob, out_dir, stats, bundle)
+    except Exception:
+        return None
+
+
+def _write_dat_decompiled(dat_path, out_dir, bundle, decompile_hints, stats):
+    try:
+        if os.path.exists(out_dir) and (not os.path.isdir(out_dir)):
+            return None
+        name = os.path.basename(str(dat_path))
+        write_status(f"Decompiling {name} ...")
+        started = time.perf_counter()
+        out_path = write_decompiled_ss(dat_path, bundle, out_dir, hints=decompile_hints)
+        add_elapsed_seconds(stats, "decompile_seconds", time.perf_counter() - started)
+        return out_path
+    except Exception:
+        return None
+
+
+def process_dat_output_items(items, stats, decompile=False):
+    ready_items = []
+    written_paths = []
+    failed_paths = []
+
+    def iter_bundles():
+        for item in items:
+            dat_path = item["dat_path"]
+            blob = item["blob"]
+            out_dir = item["out_dir"]
+            name = os.path.basename(str(dat_path or ""))
+            write_status(f"Disassembling {name} ...")
+            started = time.perf_counter()
+            bundle = dat_disassembly_bundle(
+                blob,
+                dat_path,
+                pack_context=item.get("pack_context"),
+                scene_no=item.get("scene_no"),
+                scene_name=item.get("scene_name"),
+                with_trace=decompile,
+                trace_profile="decompile" if decompile else None,
+            )
+            add_elapsed_seconds(
+                stats, "disassembly_seconds", time.perf_counter() - started
+            )
+            if bundle is None:
+                failed_paths.append(dat_path)
+                continue
+            started = time.perf_counter()
+            out_path = _write_dat_txt(
+                dat_path,
+                blob,
+                out_dir,
+                stats,
+                bundle=bundle,
+            )
+            add_elapsed_seconds(
+                stats, "disassembly_seconds", time.perf_counter() - started
+            )
+            bundle.pop("dis")
+            if not out_path:
+                failed_paths.append(dat_path)
+                continue
+            if decompile and not bundle["complete"]:
+                sys.stderr.write(f"decompile: incomplete disassembly: {dat_path}\n")
+                failed_paths.append(dat_path)
+                continue
+            written_paths.append(out_path)
+            if decompile:
+                ready_items.append(
+                    {
+                        "dat_path": dat_path,
+                        "out_dir": out_dir,
+                        "pack_context": item.get("pack_context"),
+                        "scene_no": item.get("scene_no"),
+                        "scene_name": item.get("scene_name"),
+                    }
+                )
+            yield bundle
+            del bundle
+
+    bundles = iter_bundles()
+    if decompile:
+        started = time.perf_counter()
+        disassembly_before = stats["disassembly_seconds"]
+        decompile_hints = _build_decompile_hints(bundles)
+        if decompile_hints is not None:
+            try:
+                out_root = os.path.join(ready_items[0]["out_dir"], "decompiled")
+                os.makedirs(out_root, exist_ok=True)
+                _write_support_inc_lines(out_root, decompile_hints["inc_lines"])
+            except Exception as exc:
+                sys.stderr.write(
+                    f"decompile: failed to write shared declarations: {exc}\n"
+                )
+                decompile_hints = None
+        add_elapsed_seconds(
+            stats,
+            "decompile_hints_seconds",
+            time.perf_counter()
+            - started
+            - (stats["disassembly_seconds"] - disassembly_before),
+        )
+        if decompile_hints is None:
+            failed_paths.extend(item["dat_path"] for item in ready_items)
+            return {"written": written_paths, "failed_paths": failed_paths}
+        for item in ready_items:
+            started = time.perf_counter()
+            try:
+                bundle = dat_disassembly_bundle(
+                    read_bytes(item["dat_path"]),
+                    item["dat_path"],
+                    pack_context=item["pack_context"],
+                    scene_no=item["scene_no"],
+                    scene_name=item["scene_name"],
+                    emit_text=False,
+                    trace_profile="decompile",
+                )
+            except OSError:
+                bundle = None
+            add_elapsed_seconds(
+                stats, "disassembly_seconds", time.perf_counter() - started
+            )
+            if bundle is None or not bundle["complete"]:
+                failed_paths.append(item["dat_path"])
+                del bundle
+                continue
+            out_path = _write_dat_decompiled(
+                item["dat_path"],
+                out_dir=item["out_dir"],
+                bundle=bundle,
+                decompile_hints=decompile_hints,
+                stats=stats,
+            )
+            del bundle
+            if not out_path:
+                failed_paths.append(item["dat_path"])
+    else:
+        for bundle in bundles:
+            del bundle
+    return {"written": written_paths, "failed_paths": failed_paths}
+
+
+def _write_dat_disassembly(dat_path, blob, out_dir, stats):
+    try:
+        name = os.path.basename(str(dat_path))
+        write_status(f"Disassembling {name} ...")
+        started = time.perf_counter()
+        if not out_dir:
+            return None
+        bundle = dat_disassembly_bundle(blob, dat_path, with_trace=False)
+        if bundle is None:
+            return None
+        out_path = _write_dat_txt(dat_path, blob, out_dir, stats, bundle)
+        if not out_path:
+            return None
+        add_elapsed_seconds(stats, "disassembly_seconds", time.perf_counter() - started)
+        return out_path
+    except Exception:
+        return None
+
+
+def _scn_payload_bounds(blob):
+    if (
+        not isinstance(blob, (bytes, bytearray, memoryview))
+        or len(blob) < C.SCN_HDR_SIZE
+    ):
+        return None
+    try:
+        h, _, _, _, _, _ = build_sections(blob, C.SCN_HDR_FIELDS, C.SCN_HDR_SIZE)
+        so = h.get("scn_ofs", 0)
+        ss = h.get("scn_size", 0)
+    except Exception:
+        return None
+    if so < 0 or ss < 0 or (so + ss) > len(blob):
+        return None
+    return so, ss
+
+
+def scn_structure_valid(blob):
+    header = parse_i32_header_checked(blob, C.SCN_HDR_FIELDS, C.SCN_HDR_SIZE)
+    if not header:
+        return False
+    size = len(blob)
+    header_size = header["header_size"]
+    for name, count_key, item_size in (
+        ("scn", "scn_size", 1),
+        ("str_index_list", "str_index_cnt", 8),
+        ("label_list", "label_cnt", 4),
+        ("z_label_list", "z_label_cnt", 4),
+        ("cmd_label_list", "cmd_label_cnt", 8),
+        ("scn_prop_list", "scn_prop_cnt", 8),
+        ("scn_prop_name_index_list", "scn_prop_name_index_cnt", 8),
+        ("scn_cmd_list", "scn_cmd_cnt", 4),
+        ("scn_cmd_name_index_list", "scn_cmd_name_index_cnt", 8),
+        ("call_prop_name_index_list", "call_prop_name_index_cnt", 8),
+        ("namae_list", "namae_cnt", 4),
+        ("read_flag_list", "read_flag_cnt", 4),
+    ):
+        offset = header[f"{name}_ofs"]
+        count = header[count_key]
+        if offset < 0 or count < 0 or offset + count * item_size > size:
+            return False
+        if count and offset < header_size:
+            return False
+    for name in ("str", "scn_prop_name", "scn_cmd_name", "call_prop_name"):
+        count = header[f"{name}_index_cnt"]
+        if count != header[f"{name}_cnt"]:
+            return False
+        blob_ofs = header[f"{name}_list_ofs"]
+        if blob_ofs < 0 or blob_ofs > size:
+            return False
+        if count and blob_ofs < header_size:
+            return False
+        index_ofs = header[f"{name}_index_list_ofs"]
+        index_end = index_ofs + count * I32_PAIR_STRUCT.size
+        for offset, length in I32_PAIR_STRUCT.iter_unpack(
+            memoryview(blob)[index_ofs:index_end]
+        ):
+            if offset < 0 or length < 0:
+                return False
+            if blob_ofs + (offset + length) * 2 > size:
+                return False
+    for value in read_struct_list(
+        blob, header["namae_list_ofs"], header["namae_cnt"], I32_STRUCT
+    ):
+        if not 0 <= value < header["str_cnt"]:
+            return False
+    return True
+
+
+def _payload_trace_normalize_value(ev, key, value):
+    if key == "value" and ev.get("text") is not None:
+        return None
+    if isinstance(value, dict):
+        out = {}
+        for sub_key in sorted(value):
+            sub_val = _payload_trace_normalize_value(ev, sub_key, value[sub_key])
+            if sub_val is not None:
+                out[sub_key] = sub_val
+        return out
+    if isinstance(value, list):
+        out = []
+        for item in value:
+            sub_val = _payload_trace_normalize_value(ev, key, item)
+            if sub_val is not None:
+                out.append(sub_val)
+        return out
+    return value
+
+
+def _payload_trace_hash_bundles(trace):
+    full_h = hashlib.sha256()
+    no_text_h = hashlib.sha256()
+    full_size = 0
+    no_text_size = 0
+    full_wrote_line = False
+    no_text_wrote_line = False
+
+    def _update(hasher, size, wrote_line, norm):
+        if not norm:
+            return size, wrote_line
+        data = json.dumps(norm, ensure_ascii=False, sort_keys=True).encode(
+            "utf-8", "surrogatepass"
+        )
+        if wrote_line:
+            hasher.update(b"\n")
+            size += 1
+        hasher.update(data)
+        size += len(data)
+        return size, True
+
+    for ev in trace:
+        full_norm = {}
+        no_text_norm = {}
+        for key in sorted(ev):
+            if key.startswith("_"):
+                continue
+            val = _payload_trace_normalize_value(ev, key, ev[key])
+            if val is not None:
+                full_norm[key] = val
+                if key != "text":
+                    no_text_norm[key] = val
+        full_size, full_wrote_line = _update(
+            full_h, full_size, full_wrote_line, full_norm
+        )
+        no_text_size, no_text_wrote_line = _update(
+            no_text_h, no_text_size, no_text_wrote_line, no_text_norm
+        )
+    return {
+        "full": {"size": full_size, "sha256": full_h.hexdigest()},
+        "no_text": {"size": no_text_size, "sha256": no_text_h.hexdigest()},
+    }
+
+
+def scn_payload_hash_bundles(blob, *, pack_context=None, scene_name=None, hashes=True):
+    from .native_ops import scn_payload_hash_bundles_native
+
+    payload_context = dict(pack_context or {})
+    if scene_name is not None:
+        payload_context["payload_scene_name"] = str(scene_name)
+    if not scn_structure_valid(blob):
+        return {"status": "INCOMPLETE"}
+    native = scn_payload_hash_bundles_native(
+        blob, pack_context=payload_context, hashes=hashes
+    )
+    if native is not None:
+        return native
+    bundle = dat_disassembly_bundle(
+        blob,
+        pack_context=payload_context,
+        scene_name=scene_name,
+        emit_text=False,
+        trace_profile="payload",
+        with_trace=hashes,
+    )
+    if bundle is None:
+        return None
+    if not bundle["complete"]:
+        return {"status": "INCOMPLETE"}
+    if not hashes:
+        return {"status": "COMPLETE"}
+    return _payload_trace_hash_bundles(bundle["trace"])
+
+
+def dat_sections(blob):
+    n = len(blob)
+
+    def _validate_header_size(hs, n, default):
+        if hs < default or hs > n:
+            return default
+        return hs
+
+    h, hs, used, secs, sec, sec_fixed = build_sections(
+        blob, C.SCN_HDR_FIELDS, C.SCN_HDR_SIZE, _validate_header_size
+    )
+    sec(0, hs, "H", "scene_header")
+    str_idx = read_struct_list(
+        blob,
+        h.get("str_index_list_ofs", 0),
+        h.get("str_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    str_blob_end = h.get("str_list_ofs", 0) + max_pair_end(str_idx) * 2
+    sec_fixed(
+        h.get("str_index_list_ofs", 0),
+        h.get("str_index_cnt", 0),
+        8,
+        "I",
+        "str_index_list",
+    )
+    if h.get("str_list_ofs", 0) > 0 and str_blob_end > h.get("str_list_ofs", 0):
+        sec(h.get("str_list_ofs", 0), str_blob_end, "S", "str_list (xor-encoded utf16)")
+    so = h.get("scn_ofs", 0)
+    ss = h.get("scn_size", 0)
+    if so > 0 and ss > 0:
+        sec(so, so + ss, "B", "scn_bytes")
+    sec_fixed(
+        h.get("label_list_ofs", 0), h.get("label_cnt", 0), 4, "L", "label_list (i32)"
+    )
+    sec_fixed(
+        h.get("z_label_list_ofs", 0),
+        h.get("z_label_cnt", 0),
+        4,
+        "Z",
+        "z_label_list (i32)",
+    )
+    sec_fixed(
+        h.get("cmd_label_list_ofs", 0),
+        h.get("cmd_label_cnt", 0),
+        8,
+        "C",
+        "cmd_label_list (i32,i32)",
+    )
+    sec_fixed(
+        h.get("scn_prop_list_ofs", 0),
+        h.get("scn_prop_cnt", 0),
+        8,
+        "P",
+        "scn_prop_list (i32,i32)",
+    )
+    sec_fixed(
+        h.get("scn_prop_name_index_list_ofs", 0),
+        h.get("scn_prop_name_index_cnt", 0),
+        8,
+        "p",
+        "scn_prop_name_index_list",
+    )
+    sec_fixed(
+        h.get("scn_cmd_list_ofs", 0),
+        h.get("scn_cmd_cnt", 0),
+        4,
+        "K",
+        "scn_cmd_list (i32)",
+    )
+    sec_fixed(
+        h.get("scn_cmd_name_index_list_ofs", 0),
+        h.get("scn_cmd_name_index_cnt", 0),
+        8,
+        "k",
+        "scn_cmd_name_index_list",
+    )
+    sec_fixed(
+        h.get("call_prop_name_index_list_ofs", 0),
+        h.get("call_prop_name_index_cnt", 0),
+        8,
+        "q",
+        "call_prop_name_index_list",
+    )
+    sec_fixed(
+        h.get("namae_list_ofs", 0), h.get("namae_cnt", 0), 4, "N", "namae_list (i32)"
+    )
+    sec_fixed(
+        h.get("read_flag_list_ofs", 0),
+        h.get("read_flag_cnt", 0),
+        4,
+        "R",
+        "read_flag_list (i32)",
+    )
+    scn_meta = read_scn_metadata(blob, h)
+    label_list = scn_meta.get("label_list") or []
+    z_label_list = scn_meta.get("z_label_list") or []
+    cmd_label_list = scn_meta.get("cmd_label_list") or []
+    scn_prop_list = scn_meta.get("scn_prop_list") or []
+    spn_idx = scn_meta.get("scn_prop_name_index_list") or []
+    spn_end = int(scn_meta.get("scn_prop_name_blob_end", 0) or 0)
+    if h.get("scn_prop_name_list_ofs", 0) > 0 and spn_end > h.get(
+        "scn_prop_name_list_ofs", 0
+    ):
+        sec(h.get("scn_prop_name_list_ofs", 0), spn_end, "s", "scn_prop_name_list")
+    scn_cmd_list = scn_meta.get("scn_cmd_list") or []
+    scn_idx = scn_meta.get("scn_cmd_name_index_list") or []
+    scn_end = int(scn_meta.get("scn_cmd_name_blob_end", 0) or 0)
+    if h.get("scn_cmd_name_list_ofs", 0) > 0 and scn_end > h.get(
+        "scn_cmd_name_list_ofs", 0
+    ):
+        sec(h.get("scn_cmd_name_list_ofs", 0), scn_end, "n", "scn_cmd_name_list")
+    cpn_idx = scn_meta.get("call_prop_name_index_list") or []
+    cpn_end = int(scn_meta.get("call_prop_name_blob_end", 0) or 0)
+    if h.get("call_prop_name_list_ofs", 0) > 0 and cpn_end > h.get(
+        "call_prop_name_list_ofs", 0
+    ):
+        sec(h.get("call_prop_name_list_ofs", 0), cpn_end, "Q", "call_prop_name_list")
+    namae_list = scn_meta.get("namae_list") or []
+    read_flag_list = scn_meta.get("read_flag_list") or []
+    add_gap_sections(secs, used, n)
+    scn_prop_names = scn_meta.get("scn_prop_name_list") or []
+    meta = {
+        "header": h,
+        "str_blob_end": str_blob_end,
+        "str_index_list": str_idx,
+        "label_list": label_list,
+        "z_label_list": z_label_list,
+        "cmd_label_list": cmd_label_list,
+        "scn_prop_list": scn_prop_list,
+        "scn_prop_names": scn_prop_names,
+        "scn_prop_name_index_list": spn_idx,
+        "scn_prop_defs": [
+            {
+                "code": i,
+                "form": int(it[0]),
+                "extra": int(it[1]),
+                "name": (
+                    str(scn_prop_names[i])
+                    if 0 <= i < len(scn_prop_names) and scn_prop_names[i] is not None
+                    else ""
+                ),
+            }
+            for i, it in enumerate(scn_prop_list or [])
+            if isinstance(it, (list, tuple)) and len(it) >= 2
+        ],
+        "scn_cmd_list": scn_cmd_list,
+        "scn_cmd_names": scn_meta.get("scn_cmd_name_list") or [],
+        "scn_cmd_name_index_list": scn_idx,
+        "call_prop_names": scn_meta.get("call_prop_name_list") or [],
+        "call_prop_name_index_list": cpn_idx,
+        "namae_list": namae_list,
+        "read_flag_list": read_flag_list,
+        "raw_names": {
+            f"{name}s": decode_utf16le_strings(
+                blob,
+                indices,
+                h.get(f"{name}_list_ofs", 0),
+                len(blob),
+                errors="surrogatepass",
+                strip_null=False,
+                on_error="append_default",
+                allow_empty_blob=True,
+            )
+            for name, indices in (
+                ("scn_prop_name", spn_idx),
+                ("scn_cmd_name", scn_idx),
+                ("call_prop_name", cpn_idx),
+            )
+        },
+    }
+    return secs, meta
+
+
+def dat(path, blob: bytes, disam_out_dir=None) -> int:
+    if len(blob) < C.SCN_HDR_SIZE:
+        print("too small for dat header")
+        return 1
+    secs, meta = dat_sections(blob)
+    h = meta.get("header") or {}
+    print("header:")
+    print(f"  header_size={h.get('header_size', 0):d}")
+    print(f"  scn_ofs={hx(h.get('scn_ofs', 0))}  scn_size={h.get('scn_size', 0):d}")
+    print("counts:")
+    print(
+        f"  str_cnt={h.get('str_cnt', 0):d}  label_cnt={h.get('label_cnt', 0):d}  z_label_cnt={h.get('z_label_cnt', 0):d}  cmd_label_cnt={h.get('cmd_label_cnt', 0):d}"
+    )
+    print(
+        f"  scn_prop_cnt={h.get('scn_prop_cnt', 0):d}  scn_cmd_cnt={h.get('scn_cmd_cnt', 0):d}"
+    )
+    print(
+        f"  namae_cnt={h.get('namae_cnt', 0):d}  read_flag_cnt={h.get('read_flag_cnt', 0):d}"
+    )
+    sp = (meta.get("raw_names") or {}).get("scn_prop_names") or []
+    if sp:
+        pv = sp[: C.MAX_LIST_PREVIEW]
+        print(
+            f"scn_prop_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(sp) > len(pv) else '')}"
+        )
+    sc = (meta.get("raw_names") or {}).get("scn_cmd_names") or []
+    if sc:
+        pv = sc[: C.MAX_LIST_PREVIEW]
+        print(
+            f"scn_cmd_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(sc) > len(pv) else '')}"
+        )
+    cp = (meta.get("raw_names") or {}).get("call_prop_names") or []
+    if cp:
+        pv = cp[: C.MAX_LIST_PREVIEW]
+        print(
+            f"call_prop_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(cp) > len(pv) else '')}"
+        )
+    print()
+    print_sections(secs, len(blob))
+    disam_stats = new_disam_stats()
+    out_txt = _write_dat_disassembly(
+        path,
+        blob,
+        out_dir=disam_out_dir,
+        stats=disam_stats,
+    )
+    if out_txt:
+        print()
+        print(f"wrote: {out_txt}")
+        write_disam_totals(sys.stdout, disam_stats)
+    elif disam_out_dir:
+        print(f"failed to write: {path}.txt")
+        return 1
+    return 0
+
+
+def decode_scn_dat_with_candidates(blob: bytes, candidates=None):
+    if looks_like_siglus_dat(blob):
+        return bytes(blob)
+    from . import textmap as _textmap
+
+    cands = list(candidates or [])
+    if not cands:
+        cands = [b""]
+    for cand in cands:
+        src = cand if isinstance(cand, dict) else {"exe_el": cand, "kind": "bytes"}
+        exe_el = src.get("exe_el")
+        sys.stderr.write(f"key source try: {format_exe_el_source(src)}\n")
+        try:
+            parsed, plain_blob, _enc = _textmap._parse_scn_dat_with_decrypt(
+                blob, exe_el
+            )
+        except Exception:
+            parsed = None
+            plain_blob = blob
+        if parsed and looks_like_siglus_dat(plain_blob):
+            sys.stderr.write(f"key source accepted: {format_exe_el_source(src)}\n")
+            return bytes(plain_blob)
+        sys.stderr.write(
+            f"key source rejected, falling back: {format_exe_el_source(src)}\n"
+        )
+    return bytes(blob)
+
+
+def _gei_decode_txt(path, explicit_angou: str = ""):
+    blob = read_bytes(path)
+    if not blob or len(blob) < 8:
+        raise RuntimeError("Invalid Gameexe.dat: too small")
+    _, mode = struct.unpack_from("<ii", blob, 0)
+    cands = [b""]
+    if int(mode) != 0:
+        cands = list(
+            pck.iter_exe_el_candidates(
+                os.path.dirname(os.path.abspath(path)),
+                explicit_angou=explicit_angou,
+                with_sources=True,
+            )
+        )
+        if not cands:
+            cands = [b""]
+    from . import GEI
+
+    for cand in cands:
+        src = cand if isinstance(cand, dict) else {"exe_el": cand, "kind": "bytes"}
+        exe_el = src.get("exe_el")
+        sys.stderr.write(f"key source try: {format_exe_el_source(src)}\n")
+        info, txt = GEI.read_gameexe_dat(path, exe_el=exe_el)
+        if int(mode) == 0 or (info.get("used_exe_el") and txt and info.get("ini_ok")):
+            sys.stderr.write(f"key source accepted: {format_exe_el_source(src)}\n")
+            return info, txt
+        sys.stderr.write(
+            f"key source rejected, falling back: {format_exe_el_source(src)}\n"
+        )
+    return info, txt
+
+
+def _parse_gameexe_ini_configs(txt):
+    m = {}
+    if not txt:
+        return m
+    for raw in txt.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k = k.strip()
+        v = v.strip()
+        if not k:
+            continue
+        k = k.upper()
+        m.setdefault(k, []).append(v)
+    return m
+
+
+def analyze_gameexe_dat(path, explicit_angou: str = ""):
+    import sys
+
+    try:
+        path = resolve_read_path(path, kind="file")
+    except (FileNotFoundError, NotADirectoryError):
+        sys.stderr.write(f"not found: {path}\n")
+        return 2
+    blob = read_bytes(path)
+    st = read_file_stat(path)
+    print("==== Analyze ====")
+    print(f"file: {path}")
+    print("type: gameexe_dat")
+    print(f"size: {len(blob):d} bytes ({hx(len(blob))})")
+    print(f"mtime: {fmt_ts(st.st_mtime)}")
+    print(f"sha256: {content_digest(blob)}")
+    print()
+    if not blob or len(blob) < 8:
+        print("invalid gameexe.dat: too small")
+        return 1
+    hdr0, mode = struct.unpack_from("<ii", blob, 0)
+    payload_size = max(0, len(blob) - 8)
+    try:
+        info, _ = _gei_decode_txt(path, explicit_angou=explicit_angou)
+    except Exception as e:
+        sys.stderr.write(str(e) + "\n")
+        return 1
+    print("==== Meta ====")
+    print(f"header0: {int(hdr0):d}")
+    print(f"mode: {int(mode):d}")
+    print(f"payload_size: {payload_size:d} bytes ({hx(payload_size)})")
+    if int(mode) != 0:
+        print(f"exe_el: {('present' if info.get('used_exe_el') else 'missing')}")
+    lz0, lz1 = info.get("lzss_header") or (0, 0)
+    print(f"lzss_header: {int(lz0):d}, {int(lz1):d}")
+    print(
+        f"lzss_size: {int(info.get('lzss_size', 0) or 0):d} bytes ({hx(int(info.get('lzss_size', 0) or 0))})"
+    )
+    print(
+        f"raw_size: {int(info.get('raw_size', 0) or 0):d} bytes ({hx(int(info.get('raw_size', 0) or 0))})"
+    )
+    if info.get("warning"):
+        print(f"warning: {info.get('warning')}")
+    if int(mode) != 0 and not info.get("ini_ok"):
+        print("warning: failed to validate Gameexe.ini text")
+    print()
+    print("==== Structure ====")
+    print("0x00000000: header (<ii>) 8 bytes")
+    print(f"0x00000008: payload {payload_size:d} bytes")
+    print(f"0x00000008: lzss_header (<II>) {int(lz0):d}, {int(lz1):d}")
+    return 0
+
+
+def compare_gameexe_dat(p1, p2, explicit_angou: str = ""):
+    try:
+        p1 = resolve_read_path(p1, kind="file")
+        p2 = resolve_read_path(p2, kind="file")
+    except (FileNotFoundError, NotADirectoryError):
+        sys.stderr.write("not found\n")
+        return 2
+    b1 = read_bytes(p1)
+    b2 = read_bytes(p2)
+    if (not b1) or len(b1) < 8 or (not b2) or len(b2) < 8:
+        sys.stderr.write("invalid Gameexe.dat: too small\n")
+        return 1
+    _, m1 = struct.unpack_from("<ii", b1, 0)
+    _, m2 = struct.unpack_from("<ii", b2, 0)
+    try:
+        info1, t1 = _gei_decode_txt(p1, explicit_angou=explicit_angou)
+        info2, t2 = _gei_decode_txt(p2, explicit_angou=explicit_angou)
+    except Exception as e:
+        sys.stderr.write(str(e) + "\n")
+        return 1
+    if int(m1) != 0 and not info1.get("ini_ok"):
+        sys.stderr.write("Failed to decode first Gameexe.dat payload.\n")
+        return 1
+    if int(m2) != 0 and not info2.get("ini_ok"):
+        sys.stderr.write("Failed to decode second Gameexe.dat payload.\n")
+        return 1
+    c1 = _parse_gameexe_ini_configs(t1)
+    c2 = _parse_gameexe_ini_configs(t2)
+    keys = sorted(set(c1.keys()) | set(c2.keys()))
+    diffs = []
+    for k in keys:
+        v1 = c1.get(k)
+        v2 = c2.get(k)
+        if v1 == v2:
+            continue
+        diffs.append((k, v1, v2))
+    if not diffs:
+        print("Configs are identical.")
+        return 0
+    for k, v1, v2 in diffs:
+        s1 = " | ".join(v1) if v1 else "<missing>"
+        s2 = " | ".join(v2) if v2 else "<missing>"
+        print(f"{k}: {s1} -> {s2}")
+    return 0
+
+
+def compare_dat(
+    p1,
+    p2,
+    b1: bytes,
+    b2: bytes,
+    compare_payload=False,
+    disam_to_input_dir=False,
+) -> int:
+    m1 = dat_sections(b1)[1]
+    m2 = dat_sections(b2)[1]
+    h1 = m1.get("header") or {}
+    h2 = m2.get("header") or {}
+    diffs = [
+        diff_kv(k, h1.get(k), h2.get(k))
+        for k in C.SCN_HDR_FIELDS
+        if h1.get(k) != h2.get(k)
+    ]
+    if diffs:
+        print("Header differences:")
+        for d in diffs:
+            print("  " + d)
+    else:
+        print("Header: identical")
+
+    def _cmp_list(title, a, b):
+        if a == b:
+            print(f"{title}: identical ({len(a):d})")
+            return
+        print(f"{title}: different (len1={len(a):d} len2={len(b):d})")
+        for i in range(min(12, max(len(a), len(b)))):
+            v1 = a[i] if i < len(a) else None
+            v2 = b[i] if i < len(b) else None
+            if v1 != v2:
+                print(f"  [{i:d}] {v1!r} -> {v2!r}")
+
+    _cmp_list(
+        "scn_prop_names",
+        m1.get("scn_prop_names") or [],
+        m2.get("scn_prop_names") or [],
+    )
+    _cmp_list(
+        "scn_cmd_names",
+        m1.get("scn_cmd_names") or [],
+        m2.get("scn_cmd_names") or [],
+    )
+    _cmp_list(
+        "call_prop_names",
+        m1.get("call_prop_names") or [],
+        m2.get("call_prop_names") or [],
+    )
+    payload_status = None
+    if compare_payload:
+        c1 = scn_payload_hash_bundles(b1)
+        c2 = scn_payload_hash_bundles(b2)
+        if any(c and c.get("status") == "INCOMPLETE" for c in (c1, c2)):
+            payload_status = "INCOMPLETE"
+        elif c1 and c2:
+            full1 = c1.get("full") or {}
+            full2 = c2.get("full") or {}
+            no_text1 = c1.get("no_text") or {}
+            no_text2 = c2.get("no_text") or {}
+            if full1.get("size") == full2.get("size") and full1.get(
+                "sha256"
+            ) == full2.get("sha256"):
+                payload_status = "identical"
+            elif no_text1.get("size") == no_text2.get("size") and no_text1.get(
+                "sha256"
+            ) == no_text2.get("sha256"):
+                payload_status = "text_only"
+            else:
+                payload_status = "real_diff"
+        else:
+            payload_status = "unavailable"
+        print("payload compare (normalized scene runtime semantics): " + payload_status)
+    if disam_to_input_dir:
+        disam_stats = new_disam_stats()
+        out1_dir = os.path.dirname(str(p1)) or "."
+        out2_dir = os.path.dirname(str(p2)) or "."
+        out1 = _write_dat_disassembly(p1, b1, out_dir=out1_dir, stats=disam_stats)
+        out2 = _write_dat_disassembly(p2, b2, out_dir=out2_dir, stats=disam_stats)
+        if out1 or out2:
+            print()
+        if out1:
+            print(f"wrote: {out1}")
+        else:
+            print(f"failed to write: {p1}.txt")
+        if out2:
+            print(f"wrote: {out2}")
+        else:
+            print(f"failed to write: {p2}.txt")
+        write_disam_totals(sys.stdout, disam_stats)
+        if not out1 or not out2:
+            return 1
+    return 1 if payload_status == "INCOMPLETE" else 0

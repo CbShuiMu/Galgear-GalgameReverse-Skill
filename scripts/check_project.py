@@ -165,7 +165,13 @@ def check(root):
     for folder in ['GalgameResourceExtract', 'GalgameResourcePack']:
         skill = root/folder
         for pattern in ['tools/GARbro-cli/GARbro.Console.exe', 'tools/ethornell/ethornell.exe',
-                        'tools/pfs-rs/pfs-rs.exe', 'tools/cricodecs.exe', 'tools/mangetsu/*.exe']:
+                        'tools/pfs-rs/pfs-rs.exe', 'tools/cricodecs/cricodecs.exe', 'tools/mangetsu/*.exe',
+                        'tools/galarc-cli/galarc.exe', 'tools/galarc-cli/LICENSE.txt',
+                        'tools/freemote/PsbDecompile.exe', 'tools/freemote/PsBuild.exe',
+                        'tools/freemote/FreeMote.LICENSE.txt', 'tools/siglus-ssu/siglus-ssu.exe',
+                        'tools/siglus-ssu/LICENSE', 'tools/rpatool/rpatool.py', 'tools/rpatool/LICENSE',
+                        'tools/rldev-seen/rlseen.py', 'tools/rldev-seen/GPL',
+                        'tools/majiro-cli/majiro_cli.py', 'tools/majiro-cli/LICENSE.txt']:
             if not list(skill.glob(pattern)):
                 errors.append(f'{folder}: missing documented tool: {pattern}')
     helpers = [root/folder/'scripts/engine_experience.py'

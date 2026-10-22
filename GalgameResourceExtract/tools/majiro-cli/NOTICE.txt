@@ -1,0 +1,31 @@
+Majiro CLI 1.0 - ARC V3 lowercase CP932 flat-name subset
+
+This package contains no original game content, fonts, game patch logic,
+hardcoded project paths, GUI, downloaded executable, or native dependency.
+Python 3.9 or later is required. The runtime uses the standard library.
+
+MIT sources:
+1. RepressedAlliance/NarciBloom
+   revision 68b1771df55896cb738c5693e2ba861557af8ca2
+   tools/patch_narcissu_font.py, archive(files) function only.
+   The standalone adaptation is source/archive_v3.py. Project paths and
+   patch/font integrations are omitted; the writer still sorts the CRC64
+   hash and keeps names, offsets and payloads in the same order.
+   Original MIT notice: licenses/NarciBloom-MIT.txt.
+2. trigger-segfault/majiro-py
+   revision f7ec450d5b78f0ed6df603b8c0b0ed79748d9cee
+   src/mjotool/crypt.py is retained unchanged in its original internal path
+   under source/majiro-py/. Only the two unsigned integer helpers required
+   by that module are excerpted into _util.py; unrelated terminal/color
+   utilities are omitted. The package initializer omits unrelated imports.
+   Original MIT notice: licenses/majiro-py-MIT.txt.
+
+majiro_cli.py is a GalSkill adaptation dated 2026-10-22, distributed under
+the MIT terms of LICENSE.txt. It adds bounded structural/name/hash checks,
+path and reparse checks, explicit CLI commands and non-overwriting output.
+Source pins, file hashes and synthetic validation limits are in SOURCE.json.
+
+The original helper applies lower() for hashing. The CLI requires names
+already equal to lower(), and never silently renames input resources.
+Only canonical CP932 names are supported. ARC V1/V2 and MJO compilation,
+encryption, image or audio transformations are not supported by this CLI.

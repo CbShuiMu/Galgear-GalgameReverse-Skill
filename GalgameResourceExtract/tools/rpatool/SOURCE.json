@@ -1,0 +1,45 @@
+{
+  "tool": "rpatool",
+  "upstream_version": "0.8",
+  "upstream_repository": "https://github.com/Shizmob/rpatool",
+  "upstream_commit": "74f26d5dfdd645483e02552aa766ca447ad6b191",
+  "upstream_files": {
+    "rpatool": {
+      "url": "https://raw.githubusercontent.com/Shizmob/rpatool/74f26d5dfdd645483e02552aa766ca447ad6b191/rpatool",
+      "sha256": "d343124cebd832f712540cc6468253f7e303979467e11c7490807f42c13963f1"
+    },
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/Shizmob/rpatool/74f26d5dfdd645483e02552aa766ca447ad6b191/LICENSE",
+      "sha256": "24393751f6d4ac5331c31857a277bfb426aad202ec7beb9530edd1877d304c10"
+    }
+  },
+  "license": "WTFPL-2.0",
+  "cli_entrypoint": "rpatool.py",
+  "cli_adapter_version": 1,
+  "runtime": "Python >= 3.9, standard library only",
+  "adapter_changes": [
+    "Keep upstream source unchanged and reuse its RPA v2/v3 writer.",
+    "Replace index reading with bounded zlib decompression and primitive-only pickle parsing; reject globals and persistent objects.",
+    "Read every file chunk with prefix-plus-length semantics from renpy/loader.py at f5c62227489ba60939432f0a33dd7eceb6d83b54.",
+    "Validate chunk bounds, portable member paths, collisions, output conflicts and symbolic links before extraction.",
+    "Use explicit list/extract/create commands, nonzero failures and temporary archive replacement.",
+    "Inspect original paths for links, canonicalize dot segments, then recheck links and reject output archives inside the canonical input directory."
+  ],
+  "supported_read": [
+    "RPA-2.0",
+    "RPA-3.0"
+  ],
+  "supported_write": [
+    "RPA-2.0",
+    "RPA-3.0"
+  ],
+  "limits": {
+    "index_compressed_and_decoded_bytes": 67108864,
+    "entries": 100000,
+    "chunks": 1000000,
+    "default_file_bytes": 1073741824,
+    "default_total_bytes": 4294967296
+  },
+  "verification": "Synthetic CLI v2/v3 roundtrips, multi-chunk/prefix, bounds, traversal, collisions, pickle rejection, size limits and standalone bundle parity; no game runtime validation.",
+  "adapter_sha256": "3c16fe746c6d0f83d47be8d2dd69fab1d4497bedbb1c2190db028f8b92048277"
+}

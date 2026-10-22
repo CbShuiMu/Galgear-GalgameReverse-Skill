@@ -1,0 +1,527 @@
+from __future__ import annotations
+import struct
+import sys
+from array import array
+from dataclasses import dataclass
+from typing import Iterator, List, Tuple
+import siglus_ssu as _runtime
+from .common import read_u32_le_from_file
+from .path_policy import open_read
+
+try:
+    from . import native_accel
+except (ImportError, OSError):
+    native_accel = None
+
+
+def _xor_decrypt_ogg_auto(data: bytes) -> bytes:
+    if len(data) >= 4 and data[:4] == b"OggS":
+        return data
+    if len(data) >= 4:
+        key = data[0] ^ ord("O")
+        if (
+            (data[1] ^ key) == ord("g")
+            and (data[2] ^ key) == ord("g")
+            and (data[3] ^ key) == ord("S")
+        ):
+            return bytes(data).translate(bytes(x ^ key for x in range(256)))
+    return data
+
+
+def decode_owp_to_ogg_bytes(path: str) -> bytes:
+    with open_read(path) as f:
+        b = f.read()
+    if len(b) >= 4 and b[:4] == b"OggS":
+        return b
+    out = bytes(b).translate(bytes(x ^ 0x39 for x in range(256))) if b else b
+    if len(out) < 4 or out[:4] != b"OggS":
+        out2 = _xor_decrypt_ogg_auto(b)
+        if len(out2) >= 4 and out2[:4] == b"OggS":
+            return out2
+        raise ValueError("OWP decode failed: output is not OggS")
+    return out
+
+
+def _iter_ogg_pages_bytes(ogg_bytes: bytes):
+    i = 0
+    n = len(ogg_bytes)
+    while i + 27 <= n:
+        if ogg_bytes[i : i + 4] != b"OggS":
+            break
+        header_type = int(ogg_bytes[i + 5])
+        segment_count = int(ogg_bytes[i + 26])
+        hdr_end = i + 27 + segment_count
+        if hdr_end > n:
+            break
+        segments = ogg_bytes[i + 27 : hdr_end]
+        body_len = int(sum(segments))
+        page_end = hdr_end + body_len
+        if page_end > n:
+            break
+        body = ogg_bytes[hdr_end:page_end]
+        yield header_type, segments, body
+        i = page_end
+
+
+def _ogg_first_packet(ogg_bytes: bytes) -> bytes:
+    buf = bytearray()
+    for header_type, segments, body in _iter_ogg_pages_bytes(ogg_bytes):
+        if (header_type & 0x01) == 0:
+            buf.clear()
+        body_pos = 0
+        for seg_len in segments:
+            seg_len = int(seg_len)
+            if seg_len:
+                buf.extend(body[body_pos : body_pos + seg_len])
+            body_pos += seg_len
+            if seg_len < 255:
+                return bytes(buf)
+    return b""
+
+
+def _ogg_ident_info(ogg_bytes: bytes):
+    packet = _ogg_first_packet(ogg_bytes)
+    if len(packet) >= 16 and packet[:1] == b"\x01" and packet[1:7] == b"vorbis":
+        rate = int.from_bytes(packet[12:16], "little", signed=False)
+        if rate > 0:
+            return rate, 0
+    if len(packet) >= 19 and packet[:8] == b"OpusHead":
+        pre_skip = int.from_bytes(packet[10:12], "little", signed=False)
+        return 48000, pre_skip
+    if len(packet) >= 40 and packet[:8] == b"Speex   ":
+        rate = int.from_bytes(packet[36:40], "little", signed=True)
+        if rate > 0:
+            return rate, 0
+    return None
+
+
+def estimate_ogg_duration_seconds(ogg_bytes: bytes) -> float | None:
+    if len(ogg_bytes) < 4 or ogg_bytes[:4] != b"OggS":
+        return None
+    info = _ogg_ident_info(ogg_bytes)
+    if info is None:
+        return None
+    sample_rate, pre_skip = info
+    sample_count = ogg_calc_smp_cnt(ogg_bytes)
+    return _duration_seconds_from_sample_count(sample_rate, pre_skip, sample_count)
+
+
+def ogg_duration_seconds_from_sample_count(
+    ogg_bytes: bytes, sample_count: int
+) -> float | None:
+    if len(ogg_bytes) < 4 or ogg_bytes[:4] != b"OggS":
+        return None
+    info = _ogg_ident_info(ogg_bytes)
+    if info is None:
+        return None
+    sample_rate, pre_skip = info
+    return _duration_seconds_from_sample_count(sample_rate, pre_skip, sample_count)
+
+
+def _duration_seconds_from_sample_count(
+    sample_rate: int, pre_skip: int, sample_count: int
+) -> float | None:
+    sample_count = int(sample_count)
+    if sample_count <= 0:
+        return None
+    if pre_skip > 0 and sample_count > pre_skip:
+        sample_count -= pre_skip
+    return float(sample_count) / float(sample_rate)
+
+
+def read_ogg_duration_seconds(path: str) -> float | None:
+    with open_read(path) as f:
+        return estimate_ogg_duration_seconds(f.read())
+
+
+def encode_ogg_to_owp_bytes(ogg_bytes: bytes) -> bytes:
+    if len(ogg_bytes) < 4 or ogg_bytes[:4] != b"OggS":
+        raise ValueError("OWP encode failed: input is not OggS")
+    return bytes(ogg_bytes).translate(bytes(x ^ 0x39 for x in range(256)))
+
+
+def ogg_calc_smp_cnt(ogg_bytes: bytes) -> int:
+    if len(ogg_bytes) < 27 or ogg_bytes[:4] != b"OggS":
+        return 0
+    i = 0
+    best = 0
+    got = False
+    n = len(ogg_bytes)
+    while i + 27 <= n:
+        if ogg_bytes[i : i + 4] != b"OggS":
+            break
+        gp = struct.unpack_from("<q", ogg_bytes, i + 6)[0]
+        segs = ogg_bytes[i + 26]
+        hdr_end = i + 27 + segs
+        if hdr_end > n:
+            break
+        seg_table = ogg_bytes[i + 27 : hdr_end]
+        payload_len = sum(seg_table)
+        page_end = hdr_end + payload_len
+        if page_end > n:
+            break
+        if gp != -1:
+            if (not got) or gp > best:
+                best = gp
+                got = True
+        i = page_end
+    if got:
+        return int(best)
+    return 0
+
+
+def encode_oggs_to_ovk_bytes(entries: List[Tuple[int, bytes]]) -> bytes:
+    if not entries:
+        return struct.pack("<I", 0)
+    ordered = sorted(((int(no), ogg) for (no, ogg) in entries), key=lambda x: x[0])
+    seen = set()
+    for no, ogg in ordered:
+        if no in seen:
+            raise ValueError(f"OVK encode failed: duplicate entry_no={no}")
+        seen.add(no)
+        if len(ogg) < 4 or ogg[:4] != b"OggS":
+            raise ValueError(f"OVK encode failed: entry_no={no} is not OggS")
+    cnt = len(ordered)
+    header_size = 4 + _OVK_ENTRY_STRUCT.size * cnt
+    table = bytearray()
+    parts = [struct.pack("<I", cnt), table]
+    off = header_size
+    for no, ogg in ordered:
+        size = len(ogg)
+        smp = ogg_calc_smp_cnt(ogg)
+        table += _OVK_ENTRY_STRUCT.pack(size, off, no, smp)
+        parts.append(ogg)
+        off += size
+    return b"".join(parts)
+
+
+@dataclass(frozen=True)
+class OVKEntry:
+    entry_no: int
+    offset: int
+    size: int
+    sample_count: int = 0
+
+
+_OVK_ENTRY_STRUCT = struct.Struct("<IIii")
+
+
+def read_ovk_table(ovk_path: str) -> List[OVKEntry]:
+    with open_read(ovk_path) as f:
+        cnt = read_u32_le_from_file(f)
+        if cnt == 0:
+            return []
+        table = f.read(_OVK_ENTRY_STRUCT.size * cnt)
+        if len(table) != _OVK_ENTRY_STRUCT.size * cnt:
+            raise EOFError("Unexpected EOF while reading ovk table")
+        out: List[OVKEntry] = []
+        for i in range(cnt):
+            size, offset, no, smp_cnt = _OVK_ENTRY_STRUCT.unpack_from(
+                table, i * _OVK_ENTRY_STRUCT.size
+            )
+            out.append(
+                OVKEntry(
+                    entry_no=int(no),
+                    offset=int(offset),
+                    size=int(size),
+                    sample_count=max(int(smp_cnt), 0),
+                )
+            )
+        return out
+
+
+def extract_ogg_bytes_from_ovk_stream(file_obj, entry: OVKEntry) -> bytes:
+    file_obj.seek(entry.offset)
+    chunk = file_obj.read(entry.size)
+    if len(chunk) != entry.size:
+        raise EOFError("Unexpected EOF while reading ovk chunk")
+    chunk = _xor_decrypt_ogg_auto(chunk)
+    if len(chunk) < 4 or chunk[:4] != b"OggS":
+        raise ValueError("OVK entry is not OggS after decryption attempt")
+    return chunk
+
+
+def iter_ovk_entries(
+    ovk_path: str,
+    entries: List[OVKEntry] | None = None,
+) -> Iterator[Tuple[int, bytes]]:
+    table = read_ovk_table(ovk_path) if entries is None else list(entries)
+    if not table:
+        return
+    with open_read(ovk_path) as f:
+        for entry in table:
+            yield entry.entry_no, extract_ogg_bytes_from_ovk_stream(f, entry)
+
+
+NWA_HEADER_STRUCT = struct.Struct("<HHIiiIIIIIII")
+
+
+@dataclass(frozen=True)
+class NWAHeader:
+    channels: int
+    bits_per_sample: int
+    samples_per_sec: int
+    pack_mod: int
+    zero_mod: int
+    unit_cnt: int
+    original_size: int
+    pack_size: int
+    sample_cnt: int
+    unit_sample_cnt: int
+    last_sample_cnt: int
+    last_sample_pack_size: int
+
+
+class _BitReader:
+    __slots__ = ("_data", "_len", "byte_pos", "bit_pos")
+
+    def __init__(self, data: bytes, byte_pos: int = 0):
+        self._data = data
+        self._len = len(data)
+        self.byte_pos = byte_pos
+        self.bit_pos = 0
+
+    def get(self, nbits: int) -> int:
+        data = self._data
+        bp = self.byte_pos
+        bit = self.bit_pos
+        if bp + 1 < self._len:
+            w = data[bp] | (data[bp + 1] << 8)
+        else:
+            b0 = data[bp] if bp < self._len else 0
+            b1 = 0
+            w = b0 | (b1 << 8)
+        val = (w >> bit) & ((1 << nbits) - 1)
+        bit += nbits
+        bp += bit >> 3
+        bit &= 7
+        self.byte_pos = bp
+        self.bit_pos = bit
+        return val
+
+
+def _int16_le(b: bytes, off: int) -> int:
+    if off + 2 > len(b):
+        return 0
+    return struct.unpack_from("<h", b, off)[0]
+
+
+def _nwa_s16(v: int) -> int:
+    v &= 0xFFFF
+    if v >= 0x8000:
+        v -= 0x10000
+    return v
+
+
+def _nwa_pack_mod(pack_mod: int) -> int:
+    if pack_mod == 0:
+        return 5
+    if pack_mod == 1:
+        return 4
+    if pack_mod == 2:
+        return 3
+    if 3 <= pack_mod <= 5:
+        return 3 + pack_mod
+    raise ValueError(f"Unsupported NWA pack_mod: {pack_mod}")
+
+
+def _nwa_decode_sample(br, header: NWAHeader, mod: int, zero_cnt: int, nowsmp: int):
+    def apply_delta(nbits: int, sign_bit: int, shift: int):
+        nonlocal nowsmp
+        code = br.get(nbits)
+        if code & sign_bit:
+            code &= sign_bit - 1
+            nowsmp -= code << shift
+        else:
+            nowsmp += code << shift
+
+    if zero_cnt:
+        return zero_cnt - 1, nowsmp
+    mod_code = br.get(3)
+    if mod_code < 4:
+        if mod_code == 0:
+            if header.zero_mod:
+                z = br.get(1)
+                if z == 1:
+                    z = br.get(2)
+                    if z == 3:
+                        z = br.get(8)
+                zero_cnt = z
+        elif mod_code == 1:
+            _apply_by_mod(mod, apply_delta, which=1)
+        elif mod_code == 2:
+            _apply_by_mod(mod, apply_delta, which=2)
+        else:
+            _apply_by_mod(mod, apply_delta, which=3)
+    else:
+        if mod_code == 4:
+            _apply_by_mod(mod, apply_delta, which=4)
+        elif mod_code == 5:
+            _apply_by_mod(mod, apply_delta, which=5)
+        elif mod_code == 6:
+            _apply_by_mod(mod, apply_delta, which=6)
+        else:
+            b = br.get(1)
+            if b == 0:
+                _apply_by_mod(mod, apply_delta, which=7)
+            else:
+                nowsmp = 0
+    return zero_cnt, nowsmp
+
+
+def _nwa_unpack_unit_16(data: bytes, src_smp_cnt: int, header: NWAHeader) -> bytes:
+    if header.channels == 1:
+        nowsmp = _int16_le(data, 0)
+        br = _BitReader(data, byte_pos=2)
+        out = array("h", [0]) * src_smp_cnt
+        mod = _nwa_pack_mod(header.pack_mod)
+        zero_cnt = 0
+        for i in range(src_smp_cnt):
+            zero_cnt, nowsmp = _nwa_decode_sample(br, header, mod, zero_cnt, nowsmp)
+            out[i] = _nwa_s16(nowsmp)
+        if sys.byteorder != "little":
+            out.byteswap()
+        return out.tobytes()
+    nowsmp_l = _int16_le(data, 0)
+    nowsmp_r = _int16_le(data, 2)
+    br = _BitReader(data, byte_pos=4)
+    out = array("h", [0]) * src_smp_cnt
+    mod = _nwa_pack_mod(header.pack_mod)
+    zero_cnt = 0
+    for i in range(src_smp_cnt):
+        if (i & 1) == 0:
+            nowsmp = nowsmp_l
+        else:
+            nowsmp = nowsmp_r
+        zero_cnt, nowsmp = _nwa_decode_sample(br, header, mod, zero_cnt, nowsmp)
+        out[i] = _nwa_s16(nowsmp)
+        if (i & 1) == 0:
+            nowsmp_l = nowsmp
+        else:
+            nowsmp_r = nowsmp
+    if sys.byteorder != "little":
+        out.byteswap()
+    return out.tobytes()
+
+
+_NWA_MOD_TABLE = {
+    3: (3, 0x04, 5, (6, 0x20, 11)),
+    4: (4, 0x08, 4, (7, 0x40, 10)),
+    5: (5, 0x10, 3, (8, 0x80, 9)),
+    6: (6, 0x20, 2, (8, 0x80, 9)),
+    7: (7, 0x40, 2, (8, 0x80, 9)),
+}
+_NWA_MOD_DEFAULT = (8, 0x80, 2, (8, 0x80, 9))
+
+
+def _apply_by_mod(mod: int, apply_delta, which: int):
+    nbits, sign_bit, base_shift, fallback = _NWA_MOD_TABLE.get(mod, _NWA_MOD_DEFAULT)
+    if 1 <= which <= 6:
+        apply_delta(nbits, sign_bit, base_shift + which - 1)
+    else:
+        apply_delta(*fallback)
+
+
+def parse_nwa_header(data: bytes) -> NWAHeader:
+    if len(data) < NWA_HEADER_STRUCT.size:
+        raise EOFError("NWA header truncated")
+    fields = NWA_HEADER_STRUCT.unpack_from(data, 0)
+    return NWAHeader(
+        channels=int(fields[0]),
+        bits_per_sample=int(fields[1]),
+        samples_per_sec=int(fields[2]),
+        pack_mod=int(fields[3]),
+        zero_mod=int(fields[4]),
+        unit_cnt=int(fields[5]),
+        original_size=int(fields[6]),
+        pack_size=int(fields[7]),
+        sample_cnt=int(fields[8]),
+        unit_sample_cnt=int(fields[9]),
+        last_sample_cnt=int(fields[10]),
+        last_sample_pack_size=int(fields[11]),
+    )
+
+
+def decode_nwa_to_pcm_bytes(data: bytes) -> Tuple[bytes, NWAHeader]:
+    h = parse_nwa_header(data)
+    if h.bits_per_sample != 16:
+        raise ValueError(f"Unsupported NWA bits_per_sample: {h.bits_per_sample}")
+    if h.channels not in (1, 2):
+        raise ValueError(f"Unsupported NWA channels: {h.channels}")
+    if h.pack_mod == -1:
+        pcm = data[NWA_HEADER_STRUCT.size : NWA_HEADER_STRUCT.size + h.original_size]
+        if len(pcm) != h.original_size:
+            raise EOFError("NWA raw PCM truncated")
+        return pcm, h
+    _nwa_pack_mod(h.pack_mod)
+    unit_cnt = h.unit_cnt
+    total_samples = (
+        0 if unit_cnt == 0 else (unit_cnt - 1) * h.unit_sample_cnt + h.last_sample_cnt
+    )
+    if total_samples * 2 != h.original_size:
+        raise ValueError("NWA sample size mismatch")
+    table_off = NWA_HEADER_STRUCT.size
+    table_size = unit_cnt * 4
+    if len(data) < table_off + table_size:
+        raise EOFError("NWA table truncated")
+    if native_accel is not None and not _runtime._LEGACY_FULL:
+        pcm = native_accel.nwa_decode_pcm(data)
+        if not isinstance(pcm, (bytes, bytearray, memoryview)):
+            raise TypeError("native_accel.nwa_decode_pcm returned non-bytes")
+        pcm_b = bytes(pcm)
+        if len(pcm_b) != h.original_size:
+            raise ValueError(
+                f"native_accel.nwa_decode_pcm size mismatch: got={len(pcm_b)} expected={h.original_size}"
+            )
+        return pcm_b, h
+    offsets = struct.unpack_from(f"<{h.unit_cnt}I", data, table_off)
+    mv = memoryview(data)
+    out = bytearray(h.original_size)
+    dst = 0
+    for unit_no in range(h.unit_cnt):
+        start = int(offsets[unit_no])
+        if unit_no == h.unit_cnt - 1:
+            end = start + h.last_sample_pack_size
+            unit_smp_cnt = h.last_sample_cnt
+        else:
+            end = int(offsets[unit_no + 1])
+            unit_smp_cnt = h.unit_sample_cnt
+        if end < start or end > len(mv):
+            raise ValueError("Invalid NWA unit offsets")
+        chunk = _nwa_unpack_unit_16(mv[start:end], unit_smp_cnt, h)
+        n = len(chunk)
+        out[dst : dst + n] = chunk
+        dst += n
+    return bytes(out), h
+
+
+def _build_wav(
+    pcm: bytes | bytearray | memoryview, channels: int, bits: int, rate: int
+) -> bytes:
+    bytes_per_sample = bits // 8
+    block_align = channels * bytes_per_sample
+    byte_rate = rate * block_align
+    data_size = len(pcm)
+    riff_size = 36 + data_size
+    out = bytearray()
+    out += b"RIFF"
+    out += struct.pack("<I", riff_size)
+    out += b"WAVE"
+    out += b"fmt "
+    out += struct.pack("<I", 16)
+    out += struct.pack("<H", 1)
+    out += struct.pack("<H", channels)
+    out += struct.pack("<I", rate)
+    out += struct.pack("<I", byte_rate)
+    out += struct.pack("<H", block_align)
+    out += struct.pack("<H", bits)
+    out += b"data"
+    out += struct.pack("<I", data_size)
+    return b"".join((out, pcm))
+
+
+def decode_nwa_to_wav_bytes(path: str) -> bytes:
+    with open_read(path) as f:
+        data = f.read()
+    pcm, h = decode_nwa_to_pcm_bytes(data)
+    return _build_wav(pcm, h.channels, h.bits_per_sample, h.samples_per_sec)

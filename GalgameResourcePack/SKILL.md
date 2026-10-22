@@ -47,3 +47,10 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 | GARbro CLI 命令与选项 | [garbro](commands/garbro.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
+| GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |
+| FreeMote CLI：PSB / SCN 与 MDF | [freemote](commands/freemote.md) |
+| Siglus CLI：Scene.pck 与场景 DAT | [siglus-ssu](commands/siglus-ssu.md) |
+| rpatool CLI：RPA v2 / v3 | [rpatool](commands/rpatool.md) |
+| RLdev SEEN：原样归档拆分与重建 | [rldev-seen](commands/rldev-seen.md) |
+| Majiro V3 CLI：哈希索引与原样归档 | [majiro-cli](commands/majiro-cli.md) |
+| SiglusEngine：包级元数据与重建边界 | [siglus](engine/siglus.md) |

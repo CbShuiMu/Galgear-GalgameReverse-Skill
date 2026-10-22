@@ -1,0 +1,48 @@
+{
+  "tool": "majiro-cli",
+  "version": "1.0",
+  "runtime": "Python >=3.9, standard library only",
+  "license": "MIT",
+  "upstream": [
+    {
+      "repository": "https://github.com/RepressedAlliance/NarciBloom",
+      "commit": "68b1771df55896cb738c5693e2ba861557af8ca2",
+      "source": "tools/patch_narcissu_font.py",
+      "used": "archive(files) function excerpt, adapted as source/archive_v3.py",
+      "license": "licenses/NarciBloom-MIT.txt"
+    },
+    {
+      "repository": "https://github.com/trigger-segfault/majiro-py",
+      "commit": "f7ec450d5b78f0ed6df603b8c0b0ed79748d9cee",
+      "source": "src/mjotool/crypt.py and src/mjotool/_util.py",
+      "used": "Original crypt.py unchanged; required unsigned_I/unsigned_Q helper excerpts, minimal initializer; internal module paths preserved",
+      "license": "licenses/majiro-py-MIT.txt"
+    }
+  ],
+  "supported_read": [
+    "canonical flat MajiroArcV3.000 with lowercase, byte-roundtripping CP932 names and matching strictly sorted CRC64 hashes"
+  ],
+  "supported_write": [
+    "same V3 subset; no version conversion"
+  ],
+  "unsupported": [
+    "ARC V1/V2",
+    "uppercase or noncanonical names",
+    "nested names or directories",
+    "CRC64 collisions",
+    "MJO script/media transformation"
+  ],
+  "validation_level": "synthetic",
+  "verification": "Standalone CLI roundtrip, original hash64 and independent recurrence comparison, independent GARbro extraction, empty member and bounds/path/encoding/overwrite refusals. No game runtime validation.",
+  "files": {
+    "LICENSE.txt": "2ea55efb8a7390fa95877cb2e0cf478bcb781119e470e33341639011cde5fdaf",
+    "licenses/majiro-py-MIT.txt": "ac440a701ba915f9d45800439ef089b47ef7d812e29e3c4c34a4640c5ac705a8",
+    "licenses/NarciBloom-MIT.txt": "5064b7f68625c25a504630cc8ab03a5a41a1b634e305587bd2ac05e4dd25cee0",
+    "majiro_cli.py": "789d6e9859e7af6db37317db1fc421844a52cee484b752c052a497cfcd9f25b7",
+    "NOTICE.txt": "c260b87df0b0ab9b391019f2281ba3f9483cc77971d6eb988662faf1dc066048",
+    "source/archive_v3.py": "aa6629d7b7fcc5627a4ceb55736b6dfcd4e83383d7dc5e8c88208bc6dd01e1f6",
+    "source/majiro-py/src/mjotool/__init__.py": "1f798a9683f67b745629602e17ecbc04fccde28a8edc4333b7d4c8131ecbb53f",
+    "source/majiro-py/src/mjotool/_util.py": "039344a76584b673f691e839f783c15adb499ad74dd902af0752939b880f91bf",
+    "source/majiro-py/src/mjotool/crypt.py": "328a00f703624c8781a8c8fd0271c4d551777e1b9723495f690e06322fe60305"
+  }
+}

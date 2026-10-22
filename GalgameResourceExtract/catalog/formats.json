@@ -59,5 +59,238 @@
     "aliases": [
       "psb-scenario"
     ]
+  },
+  {
+    "id": "kirikiri",
+    "extensions": [
+      ".xp3",
+      ".ks",
+      ".tjs"
+    ],
+    "magic_ascii": [
+      "XP3"
+    ],
+    "reference": "engine/kirikiri.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "KiriKiri/KAG：XP3 归档与 KAG/TJS；版本、过滤器和文字编码分别确认。",
+    "aliases": [
+      "krkr",
+      "kag"
+    ]
+  },
+  {
+    "id": "nscripter",
+    "extensions": [
+      ".sar",
+      ".nsa",
+      ".ns2"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/nscripter.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "NScripter：SAR/NSA 与标准 NS2，区分归档压缩和脚本包装。",
+    "aliases": []
+  },
+  {
+    "id": "onscripter",
+    "extensions": [
+      ".sar",
+      ".nsa",
+      ".ns2"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/onscripter.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "ONScripter：按分支核对兼容归档、CP932/UTF-8 与脚本包装。",
+    "aliases": []
+  },
+  {
+    "id": "reallive",
+    "extensions": [
+      ".ovk",
+      ".nwk",
+      ".koe"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/reallive.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "RealLive：SEEN.TXT 原样成员索引与独立语音包，脚本压缩及编译另验。",
+    "aliases": []
+  },
+  {
+    "id": "siglus",
+    "extensions": [
+      ".pck",
+      ".owp"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/siglus.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "SiglusEngine：保留 PCK 包级元数据和场景身份，以原包基线替换 DAT。",
+    "aliases": [
+      "siglus-engine"
+    ]
+  },
+  {
+    "id": "catsystem2",
+    "extensions": [
+      ".int",
+      ".cst",
+      ".fes",
+      ".hg3"
+    ],
+    "magic_ascii": [
+      "CatScene"
+    ],
+    "reference": "engine/catsystem2.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "CatSystem2：INT 归档、CST 脚本与媒体；当前 INT 仅写未加密平面布局。",
+    "aliases": []
+  },
+  {
+    "id": "yuris",
+    "extensions": [
+      ".ypf",
+      ".ybn",
+      ".yst"
+    ],
+    "magic_ascii": [
+      "YPF",
+      "YSTB"
+    ],
+    "reference": "engine/yuris.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "YU-RIS：YPF 版本与 YBN 字节码分别验证；当前写入器不覆盖新版索引。",
+    "aliases": []
+  },
+  {
+    "id": "ethornell",
+    "extensions": [
+      ".arc",
+      "._bp",
+      ".bw",
+      "._bw"
+    ],
+    "magic_ascii": [
+      "BURIKO ARC20",
+      "DSC FORMAT 1.00"
+    ],
+    "reference": "engine/ethornell.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "BGI/Ethornell：ARC20 原样归档及独立 DSC，旧版与 BSE 不在随附写入范围。",
+    "aliases": [
+      "bgi"
+    ]
+  },
+  {
+    "id": "majiro",
+    "extensions": [
+      ".arc",
+      ".mjo"
+    ],
+    "magic_ascii": [
+      "MajiroArcV",
+      "MajiroObj"
+    ],
+    "reference": "engine/majiro.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Majiro：ARC V1 创建与 V3 小写 CP932 平面名称子集，V2 写入仍有缺口；MJO 汇编另验。",
+    "aliases": []
+  },
+  {
+    "id": "renpy",
+    "extensions": [
+      ".rpa",
+      ".rpy",
+      ".rpyc"
+    ],
+    "magic_ascii": [
+      "RPA-2.0",
+      "RPA-3.0",
+      "RENPY RPC2"
+    ],
+    "reference": "engine/renpy.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "RenPy：标准 RPA v2/v3 全片段读取与创建；RPYC 不是普通文本。",
+    "aliases": [
+      "ren-py"
+    ]
+  },
+  {
+    "id": "tyrano",
+    "extensions": [
+      ".ks",
+      ".js"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/tyrano.md",
+    "capabilities": {
+      "archive": "reference_only",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "TyranoScript：主要为散文件；桌面外壳按实际容器处理，没有统一引擎封包。",
+    "aliases": [
+      "tyranoscript",
+      "tyranobuilder"
+    ]
+  },
+  {
+    "id": "artemis",
+    "extensions": [
+      ".pfs"
+    ],
+    "magic_ascii": [
+      "pf6",
+      "pf8"
+    ],
+    "reference": "engine/artemis.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Artemis：PF6/PF8 读取与 PF8 创建，旧格式名称编码须另核对。",
+    "aliases": []
   }
 ]

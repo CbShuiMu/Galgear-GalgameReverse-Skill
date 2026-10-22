@@ -1,0 +1,617 @@
+from __future__ import annotations
+
+import os
+import sys
+from contextlib import contextmanager, suppress
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, as_completed, wait
+import siglus_ssu as _runtime
+from . import const as C
+from .native_ops import find_shuffle_seed_first, is_native_available
+from .path_policy import resolve_read_path
+
+
+def get_max_workers(max_workers: int | None = None) -> int:
+    if max_workers is not None and max_workers > 0:
+        return max_workers
+    try:
+        cpu_count = os.process_cpu_count()
+    except AttributeError:
+        cpu_count = os.cpu_count()
+    cpu_count = int(cpu_count or 4)
+    return max(1, min(cpu_count // 2, 16))
+
+
+def _flush_stdio_before_process_pool() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        with suppress(Exception):
+            stream.flush()
+
+
+@contextmanager
+def _multiprocessing_main():
+    import importlib.util
+
+    main_module = sys.modules["__main__"]
+    old_spec = main_module.__spec__
+    main_module.__spec__ = importlib.util.find_spec("siglus_ssu.__main__")
+    try:
+        yield
+    finally:
+        main_module.__spec__ = old_spec
+
+
+def _init_process(
+    legacy_compile,
+    legacy_full,
+    multiplier,
+    multiplier_explicit,
+    const_profile,
+    initializer,
+    initargs,
+):
+    _runtime._LEGACY_COMPILE = legacy_compile
+    _runtime._LEGACY_FULL = legacy_full
+    _runtime._SCENE_STRING_XOR_MULTIPLIER = multiplier
+    _runtime._SCENE_STRING_XOR_MULTIPLIER_EXPLICIT = multiplier_explicit
+    C.set_profile(const_profile)
+    if initializer is not None:
+        initializer(*initargs)
+
+
+def _new_process_pool(max_workers, initializer, initargs):
+    from concurrent.futures import ProcessPoolExecutor
+
+    return ProcessPoolExecutor(
+        max_workers=max_workers,
+        initializer=_init_process,
+        initargs=(
+            _runtime._LEGACY_COMPILE,
+            _runtime._LEGACY_FULL,
+            _runtime._SCENE_STRING_XOR_MULTIPLIER,
+            _runtime._SCENE_STRING_XOR_MULTIPLIER_EXPLICIT,
+            C.CONST_PROFILE,
+            initializer,
+            initargs,
+        ),
+    )
+
+
+@contextmanager
+def process_pool(max_workers: int, initializer=None, initargs=()):
+    _flush_stdio_before_process_pool()
+    with _multiprocessing_main():
+        with _new_process_pool(max_workers, initializer, initargs) as executor:
+            yield executor
+
+
+def _terminate_process_pool(executor) -> None:
+    terminate_workers = getattr(executor, "terminate_workers", None)
+    if callable(terminate_workers):
+        terminate_workers()
+        return
+    processes = dict(getattr(executor, "_processes", None) or {})
+    executor.shutdown(wait=False, cancel_futures=True)
+    for process in processes.values():
+        try:
+            if process.is_alive():
+                process.terminate()
+        except (ProcessLookupError, ValueError):
+            continue
+
+
+def parallel_process_completed_map(
+    process_fn,
+    items,
+    max_workers: int,
+    *,
+    initializer,
+    initargs,
+    on_result,
+    on_poll,
+):
+    item_list = list(items)
+    workers = min(get_max_workers(max_workers), len(item_list))
+    results = [None] * len(item_list)
+    _flush_stdio_before_process_pool()
+    with _multiprocessing_main():
+        executor = _new_process_pool(workers, initializer, initargs)
+        futures = {}
+        pending = set()
+        next_index = 0
+
+        def submit_next() -> None:
+            nonlocal next_index
+            if next_index >= len(item_list):
+                return
+            item = item_list[next_index]
+            future = executor.submit(process_fn, item)
+            futures[future] = next_index
+            pending.add(future)
+            next_index += 1
+
+        try:
+            for _ in range(workers):
+                submit_next()
+            while pending:
+                on_poll()
+                done, pending = wait(
+                    pending,
+                    timeout=0.05,
+                    return_when=FIRST_COMPLETED,
+                )
+                if not done:
+                    continue
+                for future in done:
+                    pending.discard(future)
+                    index = futures.pop(future)
+                    item = item_list[index]
+                    result = future.result()
+                    results[index] = result
+                    on_result(item, result)
+                    submit_next()
+        except BaseException:
+            for future in pending:
+                future.cancel()
+            _terminate_process_pool(executor)
+            raise
+        else:
+            executor.shutdown()
+    return results
+
+
+def parallel_process_map(process_fn, items):
+    item_list = list(items)
+    if not item_list:
+        return []
+    if len(item_list) <= 1:
+        return [process_fn(item) for item in item_list]
+    from concurrent.futures.process import BrokenProcessPool
+
+    results = []
+    try:
+        workers = min(get_max_workers(None), len(item_list))
+        with process_pool(workers) as executor:
+            for result in executor.map(process_fn, item_list):
+                results.append(result)
+    except (OSError, BrokenProcessPool) as exc:
+        remaining = item_list[len(results) :]
+        sys.stderr.write(
+            f"{_runtime.command_name()}: warning: process pool failed ({type(exc).__name__}: {exc}); retrying {len(remaining)} unfinished items serially\n"
+        )
+        results.extend(process_fn(item) for item in remaining)
+    return results
+
+
+_COMPILE_WORKER_STATE: tuple[str, dict, bool, bool, bool] | None = None
+
+
+def _init_compile_worker(
+    tmp_path: str,
+    ia_data: dict,
+    utf8: bool,
+    debug_outputs: bool,
+    full_compile_stats: bool,
+) -> None:
+    global _COMPILE_WORKER_STATE
+    _COMPILE_WORKER_STATE = (
+        tmp_path,
+        ia_data,
+        utf8,
+        debug_outputs,
+        full_compile_stats,
+    )
+
+
+def _compile_one_process(
+    ss_path: str,
+    display_name: str,
+    source_text: str,
+) -> tuple[str, str | None, dict, dict, dict]:
+    fname = os.path.basename(ss_path)
+    try:
+        if _COMPILE_WORKER_STATE is None:
+            raise RuntimeError("compile worker is not initialized")
+        tmp_path, ia_data, utf8, debug_outputs, full_compile_stats = (
+            _COMPILE_WORKER_STATE
+        )
+        from .BS import compile_one_pipeline
+
+        worker_ctx = {
+            "tmp_path": tmp_path,
+            "utf8": utf8,
+            "debug_charset": "utf-8" if utf8 else "cp932",
+            "debug_outputs": debug_outputs,
+            "stats": {"full_compile_stats": full_compile_stats},
+            "source_texts": {fname: source_text},
+        }
+        res = compile_one_pipeline(
+            worker_ctx,
+            ss_path,
+            ia_data=ia_data,
+            debug_outputs=debug_outputs,
+            tmp_path=tmp_path,
+            log=False,
+            record_time=False,
+        )
+        return (
+            display_name,
+            None,
+            res["scene_macro_counts"],
+            res["global_macro_usage_delta"],
+            res["source_stats"],
+        )
+    except Exception as e:
+        return (display_name, str(e), {}, {}, {})
+
+
+def parallel_compile(
+    ctx: dict,
+    ss_files: list[str],
+    max_workers: int | None = None,
+) -> dict:
+    from .BS import (
+        empty_macro_stat_counts,
+        empty_source_stat_counts,
+        merge_macro_stat_counts,
+        merge_source_stat_counts,
+    )
+    from .common import format_scene_name
+
+    workers = get_max_workers(max_workers)
+    tmp_path = ctx.get("tmp_path") or "."
+    ia_data = ctx.get("ia_data")
+    utf8 = bool(ctx.get("utf8"))
+    debug_outputs = bool(ctx.get("debug_outputs"))
+    source_texts = ctx["source_texts"]
+    os.makedirs(os.path.join(tmp_path, "bs"), exist_ok=True)
+    errors = []
+    completed = 0
+    total = len(ss_files)
+    scene_macro_counts = empty_macro_stat_counts()
+    global_macro_usage_delta = {}
+    source_stats = empty_source_stat_counts()
+    print(f"[PARALLEL] Compiling {total} files with {workers} processes...")
+    with process_pool(
+        workers,
+        initializer=_init_compile_worker,
+        initargs=(
+            tmp_path,
+            ia_data,
+            utf8,
+            debug_outputs,
+            ctx["stats"]["full_compile_stats"],
+        ),
+    ) as executor:
+        futures = [
+            executor.submit(
+                _compile_one_process,
+                ss_path,
+                format_scene_name(ss_path, ctx),
+                source_texts[os.path.basename(ss_path)],
+            )
+            for ss_path in ss_files
+        ]
+        for future in as_completed(futures):
+            display_name, error, macro_counts, usage_delta, scene_source_stats = (
+                future.result()
+            )
+            completed += 1
+            if error is not None:
+                errors.append((display_name, error))
+                print(f"  [{completed}/{total}] FAIL: {display_name}")
+            else:
+                merge_macro_stat_counts(scene_macro_counts, macro_counts)
+                merge_source_stat_counts(source_stats, scene_source_stats)
+                for key, value in usage_delta.items():
+                    global_macro_usage_delta[key] = (
+                        global_macro_usage_delta.get(key, 0) + value
+                    )
+                print(f"  [{completed}/{total}] OK: {display_name}")
+    if errors:
+        for display_name, err in errors:
+            print(f"  ERROR in {display_name}: {err}")
+        raise RuntimeError(str(errors[0][1]))
+    print(f"[PARALLEL] Compilation complete: {total} files")
+    return {
+        "parallel": True,
+        "scene_macro_counts": scene_macro_counts,
+        "global_macro_usage_delta": global_macro_usage_delta,
+        "source_stats": source_stats,
+    }
+
+
+def _lzss_compress_task(
+    args: tuple[str, bytes, str, bytes],
+) -> tuple[str, bytes, bytes, Exception | None]:
+    nm, dat, lz_path, easy_code = args
+    try:
+        from .linker import compress_scene_dat
+
+        lz = compress_scene_dat(dat, lz_path, easy_code)
+        return (nm, dat, lz, None)
+    except Exception as e:
+        return (nm, b"", b"", e)
+
+
+def parallel_lzss_compress(
+    ctx: dict, scn_names: list[str], bs_dir: str
+) -> tuple[list[bytes], list[bytes]]:
+    from .common import format_scene_name, read_bytes
+
+    easy_code = ctx.get("easy_angou_code") or b""
+    results = {}
+    tasks = []
+    for nm in scn_names:
+        dat_path = os.path.join(bs_dir, nm + ".dat")
+        try:
+            dat_path = resolve_read_path(dat_path, kind="file")
+        except (FileNotFoundError, NotADirectoryError):
+            raise FileNotFoundError(f"scene dat not found: {dat_path}")
+        lz_path = os.path.join(bs_dir, nm + ".lzss")
+        dat = read_bytes(dat_path)
+        try:
+            lz_path = resolve_read_path(lz_path, kind="file")
+        except (FileNotFoundError, NotADirectoryError):
+            tasks.append((nm, dat, lz_path, easy_code))
+        else:
+            results[nm] = (dat, read_bytes(lz_path))
+    if not tasks:
+        dat_list = []
+        lzss_list = []
+        for nm in scn_names:
+            dat, lz = results[nm]
+            dat_list.append(dat)
+            lzss_list.append(lz)
+        return (dat_list, lzss_list)
+    workers = get_max_workers(None)
+    errors = []
+    print(f"[PARALLEL] LZSS compressing {len(tasks)} scenes with {workers} workers...")
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_lzss_compress_task, task) for task in tasks]
+        for future in as_completed(futures):
+            nm, dat, lz, error = future.result()
+            if error:
+                errors.append((nm, error))
+            else:
+                results[nm] = (dat, lz)
+                print(f"  LZSS: {format_scene_name(nm + '.ss', ctx)}")
+    if errors:
+        raise RuntimeError(str(errors[0][1]))
+    dat_list = []
+    lzss_list = []
+    for nm in scn_names:
+        dat, lz = results[nm]
+        dat_list.append(dat)
+        lzss_list.append(lz)
+    print("[PARALLEL] LZSS compression complete")
+    return (dat_list, lzss_list)
+
+
+def _source_encrypt_task(
+    args: tuple[str, bytes | None, str, str, dict, bool],
+) -> tuple[str, int, bytes, Exception | None]:
+    rel, raw, src_path, cache_path, source_angou, skip = args
+    try:
+        from .common import read_bytes, write_cached_bytes
+        from . import compiler as _m
+
+        if raw is None:
+            try:
+                src_path = resolve_read_path(src_path, kind="file")
+            except (FileNotFoundError, NotADirectoryError):
+                return (rel, 0, b"", None)
+            raw = read_bytes(src_path)
+        ctx = {"source_angou": source_angou}
+        enc_blob = _m.source_angou_encrypt(raw, rel, ctx)
+        write_cached_bytes(cache_path, enc_blob)
+        size = len(enc_blob) & 0xFFFFFFFF
+        chunk = enc_blob if not skip else b""
+        return (rel, size, chunk, None)
+    except Exception as e:
+        return (rel, 0, b"", e)
+
+
+def parallel_source_encrypt(
+    ctx: dict, rel_list: list[str], scn_path: str, tmp_path: str, skip: bool
+) -> tuple[list[int], list[bytes]]:
+    source_angou = ctx.get("source_angou")
+    if tmp_path:
+        os.makedirs(os.path.join(tmp_path, "os"), exist_ok=True)
+    tasks = []
+    for rel in rel_list:
+        src_path = os.path.join(scn_path, rel.replace("\\", os.sep))
+        cache_path = (
+            os.path.join(tmp_path, "os", rel.replace("\\", os.sep)) if tmp_path else ""
+        )
+        tasks.append(
+            (
+                rel,
+                ctx["source_bytes"].get(rel),
+                src_path,
+                cache_path,
+                source_angou,
+                skip,
+            )
+        )
+    workers = get_max_workers(None)
+    results = {}
+    errors = []
+    print(f"[PARALLEL] Encrypting {len(tasks)} source files with {workers} workers...")
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_source_encrypt_task, task) for task in tasks]
+        for future in as_completed(futures):
+            rel, size, chunk, error = future.result()
+            if error:
+                errors.append((rel, error))
+            elif size > 0:
+                results[rel] = (size, chunk)
+                print(f"  OS: {rel}")
+    if errors:
+        raise RuntimeError(str(errors[0][1]))
+    sizes = []
+    chunks = []
+    for rel in rel_list:
+        if rel in results:
+            size, chunk = results[rel]
+            sizes.append(size)
+            if not skip and chunk:
+                chunks.append(chunk)
+    print(f"[PARALLEL] Source encryption complete: {len(sizes)} files")
+    return (sizes, chunks)
+
+
+def _g00_extract_task(args):
+    path_s, out_s, trim = args
+    from .g00 import extract_one
+
+    return extract_one(path_s, out_s, trim=trim)
+
+
+def parallel_g00_extract(g00_files, out_dir, trim=False):
+    fs = list(g00_files)
+    workers = get_max_workers(None)
+    ok = sk = bad = 0
+    it = iter(fs)
+    futures = set()
+    with process_pool(workers) as ex:
+        for _ in range(workers):
+            try:
+                f = next(it)
+            except StopIteration:
+                break
+            print(f"[*] {f}")
+            futures.add(
+                ex.submit(_g00_extract_task, (str(f), str(out_dir), bool(trim)))
+            )
+        while futures:
+            for fu in as_completed(futures):
+                futures.remove(fu)
+                try:
+                    st, _, _ = fu.result()
+                    if st == "skip":
+                        sk += 1
+                    else:
+                        ok += 1
+                except Exception as e:
+                    bad += 1
+                    print(f"[!] {e}", file=sys.stderr)
+                try:
+                    f = next(it)
+                    print(f"[*] {f}")
+                    futures.add(
+                        ex.submit(_g00_extract_task, (str(f), str(out_dir), bool(trim)))
+                    )
+                except StopIteration:
+                    pass
+                break
+    return ok, sk, bad
+
+
+def _seed_chunk_worker(args):
+    seed_start, count, n, target_pairs = args
+    from .BS import MSVCRand
+
+    target_ofs = [p[0] for p in target_pairs]
+    lens = [p[1] for p in target_pairs]
+    for s in range(seed_start, seed_start + count):
+        rng = MSVCRand(s)
+        a = list(range(n))
+        rng.shuffle(a)
+        ofs = 0
+        ofs_out = [0] * n
+        for orig in a:
+            ofs_out[orig] = ofs
+            ln = lens[orig]
+            if ln > 0:
+                ofs += ln
+        ok = True
+        for i0 in range(n):
+            if ofs_out[i0] != target_ofs[i0]:
+                ok = False
+                break
+        if ok:
+            return s
+    return None
+
+
+def find_shuffle_seed_parallel(target_idx_pairs, seed0=0):
+    import concurrent.futures
+    import time
+    import math
+
+    target = [(int(o), int(ln)) for o, ln in target_idx_pairs]
+    n = len(target)
+    workers = get_max_workers(None)
+    chunk = 200
+    progress_iv = 1.0
+    seed0 = int(seed0) & 0xFFFFFFFF
+    prefix = "[test-shuffle]"
+    if is_native_available():
+        return find_shuffle_seed_first(target, seed0, workers=workers)
+    t0 = time.time()
+    last = t0
+    limit = 2**32
+    total = limit - seed0
+    sys.stderr.write(
+        f"{prefix} seed scan (slow python): workers={workers} chunk={chunk} start={seed0}\n"
+    )
+    sys.stderr.flush()
+    _flush_stdio_before_process_pool()
+
+    def _fmt_eta(sec: float) -> str:
+        if not math.isfinite(sec) or sec <= 0:
+            return "00:00:00"
+        s = int(round(sec))
+        h = s // 3600
+        m = (s % 3600) // 60
+        ss = s % 60
+        return f"{h:02}:{m:02}:{ss:02}"
+
+    def _scan_bits():
+        done = 0
+        nonlocal last
+        with process_pool(workers) as ex:
+            while done < total:
+                futs = []
+                base = seed0 + done
+                scheduled = 0
+                for w in range(workers):
+                    st = base + w * chunk
+                    if st >= limit:
+                        break
+                    count = min(chunk, limit - st)
+                    futs.append(
+                        ex.submit(
+                            _seed_chunk_worker,
+                            (st, count, n, target),
+                        )
+                    )
+                    scheduled += count
+                found = None
+                for fut in concurrent.futures.as_completed(futs):
+                    r = fut.result()
+                    if r is not None:
+                        found = r
+                        break
+                if found is not None:
+                    for fut in futs:
+                        with suppress(Exception):
+                            fut.cancel()
+                    return found
+                done += scheduled
+                now = time.time()
+                if now - last >= progress_iv:
+                    elapsed = now - t0
+                    if elapsed <= 0:
+                        elapsed = 1e-9
+                    rate = done / elapsed
+                    eta = (total - done) / rate if rate > 0 else float("inf")
+                    next_seed = min(seed0 + done, limit - 1)
+                    sys.stderr.write(
+                        f"{prefix} next_seed={next_seed} elapsed={elapsed:.1f}s rate~{rate:.0f}/s ETA={_fmt_eta(eta)}\n"
+                    )
+                    sys.stderr.flush()
+                    last = now
+        return None
+
+    return _scan_bits()

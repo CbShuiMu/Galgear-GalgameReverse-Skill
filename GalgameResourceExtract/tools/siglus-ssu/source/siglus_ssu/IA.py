@@ -1,0 +1,917 @@
+from . import const as C
+from .CA import (
+    CharacterAnalizer,
+    get_form_code_by_name,
+    is_alpha,
+    is_num,
+    is_zen,
+    add_replace_tree,
+)
+from .common import (
+    mark_named_usage,
+    next_else_ifdef_state,
+    next_elseif_ifdef_state,
+    scan_text_comments,
+    to_i32,
+)
+
+
+class IncAnalyzer:
+    def __init__(self, text, parent_form, iad, iad2, source_map=None, *, sidecar=False):
+        self.t = text
+        self.pf = parent_form
+        self.iad = iad
+        self.iad2 = iad2
+        self.el = -1
+        self.es = ""
+        self.ca = CharacterAnalizer(sidecar=sidecar)
+        self.sidecar = bool(sidecar)
+        self.source_id = 0
+        self.input_source_map = (
+            source_map if self.sidecar and isinstance(source_map, list) else []
+        )
+        if self.sidecar:
+            self.iad2.setdefault("decls", [])
+            self.ca.replace_uses = self.iad2.setdefault("replace_uses", [])
+            self.ca.directive_tokens = self.iad2.setdefault("directive_tokens", [])
+
+    def err(self, line, s):
+        if not self.es:
+            self.el = line
+            self.es = s
+
+    def cc(self):
+        result = scan_text_comments(
+            self.t,
+            case_mode="lower",
+            single_quote_mode="string",
+            single_escape_chars='"\\n',
+            double_escape_chars='"\\n',
+            newline_single_message="Found newline inside single quotes.",
+            newline_double_message="Found newline inside double quotes.",
+            unclosed_single_message="Single quote is not closed.",
+            unclosed_double_message="Double quote is not closed.",
+            unclosed_block_message=" Comment (/*) is not closed.",
+            allow_trailing_escape_eof=True,
+            with_map=self.sidecar,
+        )
+        if not result.get("ok"):
+            self.err(result.get("line", 0), result.get("message", ""))
+            return 0
+        self.t = result.get("text", "")
+        if self.sidecar:
+            source_map = result["source_map"]
+            if self.input_source_map:
+                composed = []
+                for point in source_map:
+                    source_index = point[2]
+                    if 0 <= source_index < len(self.input_source_map):
+                        composed.append(self.input_source_map[source_index])
+                    else:
+                        composed.append(point)
+                source_map = composed
+            self.source_map = [
+                (*point[:3], point[3] if len(point) > 3 else self.source_id)
+                if point is not None
+                else None
+                for point in source_map
+            ]
+        else:
+            self.source_map = []
+        return 1
+
+    def _skip(self, i, line):
+        t = self.t
+        n = len(t)
+        while 1:
+            if i >= n:
+                return i, line, 0
+            c = t[i]
+            if c == "\n":
+                i += 1
+                line += 1
+            elif c in " \t":
+                i += 1
+            else:
+                return i, line, 1
+
+    def _get_word_ex(self, i):
+        t = self.t
+        n = len(t)
+        if i >= n or not (is_alpha(t[i]) or is_zen(t[i]) or t[i] in "_@"):
+            return i, "", 0
+        j = i + 1
+        while j < n and (
+            is_alpha(t[j]) or is_num(t[j]) or is_zen(t[j]) or t[j] in "_@"
+        ):
+            j += 1
+        return j, t[i:j], 1
+
+    def _get_word(self, i):
+        t = self.t
+        n = len(t)
+        if i >= n or not (is_alpha(t[i]) or t[i] == "_"):
+            return i, "", 0
+        j = i + 1
+        while j < n and (is_alpha(t[j]) or is_num(t[j]) or t[j] == "_"):
+            j += 1
+        return j, t[i:j], 1
+
+    def _chk(self, i, s):
+        if not self.t.startswith(s, i):
+            return i, 0
+        self.ca.record_directive(self.t, i, i + len(s), self.source_map)
+        return i + len(s), 1
+
+    def _chk_moji(self, i, ch):
+        if i < len(self.t) and self.t[i] == ch:
+            return i + 1, 1
+        return i, 0
+
+    def _get_num(self, i):
+        t = self.t
+        n = len(t)
+        if i >= n or not is_num(t[i]):
+            return i, 0, 0
+        num = 0
+        while i < n and is_num(t[i]):
+            num = to_i32(num * 10 + (ord(t[i]) - 48))
+            i += 1
+        return i, num, 1
+
+    def _get_int(self, i):
+        sign = 1
+        j, ok = self._chk_moji(i, "+")
+        if ok:
+            i = j
+        else:
+            j, ok = self._chk_moji(i, "-")
+            if ok:
+                i = j
+                sign = -1
+        i, v, ok = self._get_num(i)
+        if not ok:
+            return i, 0, 0
+        return i, to_i32(v * sign), 1
+
+    def _get_dq(self, i):
+        i, ok = self._chk_moji(i, '"')
+        if not ok:
+            return i, "", 0
+        r = []
+        t = self.t
+        while 1:
+            if i >= len(t):
+                return i, "", 0
+            c = t[i]
+            i += 1
+            if c == '"':
+                break
+            if c == "\\":
+                if i >= len(t):
+                    return i, "", 0
+                c2 = t[i]
+                i += 1
+                r.append("\n" if c2 == "n" else c2)
+            else:
+                r.append(c)
+        return i, "".join(r), 1
+
+    def _ia_form(self, i, error_line, line):
+        i, line, _ = self._skip(i, line)
+        j, w, ok = self._get_word(i)
+        if ok:
+            i = j
+        fc = get_form_code_by_name(w) if ok else -1
+        if fc == -1:
+            self.err(error_line, "Invalid type.")
+            return None, i, line, 0
+        return fc, i, line, 1
+
+    def _ia_property_name(self, i, line):
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            return None, i, line, 0
+        st = i
+        t = self.t
+        while i < len(t) and t[i] not in " :\t\n":
+            i += 1
+        if i == st:
+            return None, i, line, 0
+        return t[st:i], i, line, 1
+
+    def _ia_command_name(self, i, line):
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            return None, i, line, 0
+        st = i
+        t = self.t
+        while i < len(t) and t[i] not in " (:\t\n":
+            i += 1
+        if i == st:
+            return None, i, line, 0
+        return t[st:i], i, line, 1
+
+    def _ia_declare_property_form(self, i, line):
+        form = C.FM_INT
+        size = 0
+        i, line, _ = self._skip(i, line)
+        j, ok = self._chk_moji(i, ":")
+        if ok:
+            colon = line
+            form, i, line, ok2 = self._ia_form(j, colon, line)
+            if not ok2:
+                return None, None, i, line, 0
+            i, line, _ = self._skip(i, line)
+            k, ok3 = self._chk_moji(i, "[")
+            if ok3:
+                kak = line
+                i = k
+                i, line, _ = self._skip(i, line)
+                i, size, okn = self._get_num(i)
+                if not okn:
+                    self.err(kak, "Array index is not an integer.")
+                    return None, None, i, line, 0
+                i, line, _ = self._skip(i, line)
+                i, okc = self._chk_moji(i, "]")
+                if not okc:
+                    self.err(kak, "Array index is not closed with ].")
+                    return None, None, i, line, 0
+                if form != C.FM_INTLIST and form != C.FM_STRLIST:
+                    self.err(kak, "Only intlist or strlist can be arrays.")
+                    return None, None, i, line, 0
+        return form, size, i, line, 1
+
+    def _ia_declare_form(self, i, line):
+        form = C.FM_INT
+        i, line, _ = self._skip(i, line)
+        if i < len(self.t) and self.t[i] == ":":
+            colon = line
+            form, i, line, ok = self._ia_form(i + 1, colon, line)
+            if not ok:
+                return None, i, line, 0
+        return form, i, line, 1
+
+    def _ia_command_arg(self, i, line):
+        form, i, line, ok = self._ia_form(i, line, line)
+        if not ok:
+            return None, i, line, 0
+        arg = {"form": form, "def_int": 0, "def_str": "", "def_exist": False}
+        i, line, _ = self._skip(i, line)
+        i2, okp = self._chk_moji(i, "(")
+        if okp:
+            i = i2
+            i, line, _ = self._skip(i, line)
+            if form == C.FM_INT:
+                i, v, okv = self._get_int(i)
+                if not okv:
+                    self.err(line, "Invalid default argument for int type.")
+                    return None, i, line, 0
+                arg["def_exist"] = True
+                arg["def_int"] = v
+            elif form == C.FM_STR:
+                i, s, oks = self._get_dq(i)
+                if not oks:
+                    self.err(line, "Invalid default argument for str type.")
+                    return None, i, line, 0
+                arg["def_exist"] = True
+                arg["def_str"] = s
+            i, line, _ = self._skip(i, line)
+            i, okc = self._chk_moji(i, ")")
+            if not okc:
+                return None, i, line, 0
+        return arg, i, line, 1
+
+    def _ia_command_arg_list(self, i, line):
+        al = []
+        i0 = i
+        line0 = line
+        i, line, ok = self._skip(i, line)
+        if not ok or i >= len(self.t) or self.t[i] != "(":
+            return {"arg_list": al}, i0, line0, 1
+        i += 1
+        defx = False
+        while 1:
+            arg, i, line, ok2 = self._ia_command_arg(i, line)
+            if not ok2:
+                self.err(line, "Failed to parse argument in list.")
+                return None, i, line, 0
+            al.append(arg)
+            if defx and not arg["def_exist"]:
+                self.err(line, str(len(al)) + "-th argument requires a default value.")
+                return None, i, line, 0
+            if arg["def_exist"]:
+                defx = True
+            i, line, ok = self._skip(i, line)
+            if not ok:
+                self.err(line, "Argument list '(' is not closed.")
+                return None, i, line, 0
+            if self.t[i] != ",":
+                break
+            i += 1
+        i, line, ok = self._skip(i, line)
+        if not ok or i >= len(self.t) or self.t[i] != ")":
+            self.err(line, "Argument list '(' is not closed.")
+            return None, i, line, 0
+        return {"arg_list": al}, i + 1, line, 1
+
+    def _name_until(self, i, line, stopset):
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            self.err(line, "name missing")
+            return None, i, line
+        self._last_name_line = line
+        st = i
+        t = self.t
+        while i < len(t) and t[i] not in stopset:
+            i += 1
+        s = t[st:i]
+        self._last_name_start = st
+        self._last_name_end = i
+        if s == "":
+            self.err(line, "name missing")
+            return None, i, line
+        return s, i, line
+
+    def _span_from_offsets(self, start, end, line):
+        if (
+            self.sidecar
+            and start >= 0
+            and end > start
+            and isinstance(self.source_map, list)
+        ):
+            points = [
+                self.source_map[pos]
+                for pos in range(start, min(end, len(self.source_map)))
+                if self.source_map[pos] is not None
+            ]
+            if points:
+                lines = {int(point[0]) for point in points}
+                sources = {int(point[3]) for point in points}
+                if len(lines) == 1 and len(sources) == 1:
+                    chars = [int(point[1]) for point in points]
+                    return (
+                        next(iter(lines)),
+                        min(chars),
+                        max(chars) + 1,
+                        next(iter(sources)),
+                    )
+        text = self.t[: max(0, start)]
+        line_start = text.rfind("\n") + 1
+        return (
+            int(line or 1),
+            max(0, start - line_start),
+            max(0, end - line_start),
+            -1,
+        )
+
+    def _record_decl(self, kind, name, line, start, end):
+        if not self.sidecar:
+            return
+        line, start_char, end_char, source_id = self._span_from_offsets(
+            start, end, line
+        )
+        self.iad2["decls"].append(
+            {
+                "kind": kind,
+                "name": name,
+                "line": int(line or 1),
+                "start_char": int(start_char),
+                "end_char": int(end_char),
+                "source_id": source_id,
+            }
+        )
+
+    def _replacement_source(self, rep, kind):
+        if not self.sidecar:
+            return
+        rep["source"] = {
+            "map": self._last_after_source_map,
+            "defaults": [arg.get("source_map", []) for arg in rep["args"]],
+            "declaration": (kind, self.source_id),
+        }
+        self.iad2.setdefault("replacement_bodies", []).append(rep)
+
+    def _macro_arg_list(self, i, line):
+        args = []
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            self.err(line, "Failed to parse argument in list.")
+            return None, i, line
+        if i < len(self.t) and self.t[i] == "(":
+            i += 1
+            while 1:
+                i, line, ok = self._skip(i, line)
+                if not ok:
+                    self.err(line, "Argument list '(' is not closed.")
+                    return None, i, line
+                st = i
+                t = self.t
+                while i < len(t) and t[i] not in " \t\n,()\"'":
+                    i += 1
+                nm = t[st:i]
+                if nm == "":
+                    self.err(line, "Could not find argument name in list.")
+                    return None, i, line
+                i, line, ok = self._skip(i, line)
+                if not ok:
+                    self.err(line, "Could not find closing ')' for argument list.")
+                    return None, i, line
+                dv = ""
+                default_map = []
+                if i < len(t) and t[i] == "(":
+                    i += 1
+                    ds = i
+                    while 1:
+                        if i >= len(t) or t[i] in "\t\n":
+                            self.err(
+                                line,
+                                "Invalid character found while parsing default argument value.",
+                            )
+                            return None, i, line
+                        if t[i] == ")":
+                            dv = t[ds:i]
+                            if self.sidecar:
+                                default_map = self.source_map[ds:i]
+                            i += 1
+                            break
+                        i += 1
+                arg = {"name": nm, "def": dv}
+                if self.sidecar:
+                    arg["source_map"] = default_map
+                args.append(arg)
+                i, line, ok = self._skip(i, line)
+                if not ok:
+                    self.err(line, "Argument list '(' is not closed.")
+                    return None, i, line
+                if self.t[i] != ",":
+                    break
+                i += 1
+            i, line, ok = self._skip(i, line)
+            if not ok or self.t[i] != ")":
+                self.err(line, "Argument list '(' is not closed.")
+                return None, i, line
+            i += 1
+        return args, i, line
+
+    def _after(self, i, line):
+        t = self.t
+        n = len(t)
+        after = []
+        after_source_map = []
+        ifs = [0] * 16
+        d = 0
+        self._last_after_source_map = []
+
+        def source_at(pos):
+            return self.source_map[pos] if 0 <= pos < len(self.source_map) else None
+
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            return "", i, line, 1
+        while i < n:
+            if t.startswith("##", i):
+                after.append("#")
+                if self.sidecar:
+                    after_source_map.append(source_at(i))
+                i += 2
+                continue
+            if t.startswith("#ifdef", i):
+                self.ca.record_directive(t, i, i + 6, self.source_map)
+                i += 6
+                i, line, ok = self._skip(i, line)
+                if not ok:
+                    self.err(line, "Missing word after #ifdef.")
+                    return None, i, line, 0
+                i, w, ok2 = self._get_word_ex(i)
+                if not ok2:
+                    self.err(line, "Missing word after #ifdef.")
+                    return None, i, line, 0
+                d += 1
+                if d >= 16:
+                    self.err(line, "if depth overflow")
+                    return None, i, line, 0
+                mark_named_usage(self.iad, w)
+                if self.sidecar:
+                    self.iad2.setdefault("condition_names", []).append(w)
+                ifs[d] = 1 if w in self.iad["name_set"] else 2
+                continue
+            if t.startswith("#elseifdef", i):
+                self.ca.record_directive(t, i, i + 10, self.source_map)
+                i += 10
+                if ifs[d] > 0:
+                    i, line, ok = self._skip(i, line)
+                    if not ok:
+                        self.err(line, "Missing word after #elseifdef.")
+                        return None, i, line, 0
+                    i, w, ok2 = self._get_word_ex(i)
+                    if not ok2:
+                        self.err(line, "Missing word after #elseifdef.")
+                        return None, i, line, 0
+                    mark_named_usage(self.iad, w)
+                    if self.sidecar:
+                        self.iad2.setdefault("condition_names", []).append(w)
+                    ifs[d] = next_elseif_ifdef_state(ifs[d], w in self.iad["name_set"])
+                    continue
+                self.err(line, "#elseifdef does not have a matching #if.")
+                return None, i, line, 0
+            if t.startswith("#else", i):
+                self.ca.record_directive(t, i, i + 5, self.source_map)
+                i += 5
+                if ifs[d] > 0:
+                    ifs[d] = next_else_ifdef_state(ifs[d])
+                    continue
+                self.err(line, "#else does not have a matching #if.")
+                return None, i, line, 0
+            if t.startswith("#endif", i):
+                self.ca.record_directive(t, i, i + 6, self.source_map)
+                i += 6
+                if ifs[d] > 0:
+                    d -= 1
+                    continue
+                self.err(line, "#endif does not have a matching #if.")
+                return None, i, line, 0
+            c = t[i]
+            if c == "\n":
+                after.append(" ")
+                if self.sidecar:
+                    after_source_map.append(source_at(i))
+                line += 1
+                i += 1
+                continue
+            if ifs[d] in (2, 3):
+                i += 1
+                continue
+            if c == "#":
+                break
+            after.append(c)
+            if self.sidecar:
+                after_source_map.append(source_at(i))
+            i += 1
+        s = "".join(after)
+        j = len(s) - 1
+        while j >= 0 and s[j] in " \t":
+            j -= 1
+        if j >= 0:
+            s = s[: j + 1]
+            if self.sidecar:
+                after_source_map = after_source_map[: j + 1]
+        else:
+            after_source_map = []
+        self._last_after_source_map = after_source_map if self.sidecar else []
+        return s, i, line, 1
+
+    def _prop_cmd_text(self, i, line, name_stopset):
+        self._last_after_source_map = []
+        i2, line2, ok = self._skip(i, line)
+        if not ok:
+            return (
+                "",
+                i2,
+                line2,
+                line,
+                {
+                    "line": line,
+                    "start_char": 0,
+                    "end_char": 0,
+                    "source_id": -1,
+                },
+            )
+        name_line = line2
+        st = i2
+        t = self.t
+        n = len(t)
+        name_end = st
+        while name_end < n and t[name_end] not in name_stopset:
+            name_end += 1
+        if self.sidecar:
+            span_line, start_char, end_char, source_id = self._span_from_offsets(
+                st, name_end, name_line
+            )
+        else:
+            span_line, start_char, end_char, source_id = name_line, 0, 0, -1
+        j = i2
+        while j < n and t[j] != "#":
+            if t[j] == "\n":
+                line2 += 1
+            j += 1
+        if self.sidecar:
+            self._last_after_source_map = self.source_map[st:j]
+        return (
+            t[st:j],
+            j,
+            line2,
+            name_line,
+            {
+                "line": span_line,
+                "start_char": start_char,
+                "end_char": end_char,
+                "source_id": source_id,
+            },
+        )
+
+    def _decl_type(self, i, line):
+        i, line, ok = self._skip(i, line)
+        if not ok:
+            self.err(line, "Invalid declaration. For labels, change '#' to '##'.")
+            return None, i, line
+        for k, v in (
+            ("#replace", "replace"),
+            ("#define_s", "define_s"),
+            ("#define", "define"),
+            ("#macro", "macro"),
+            ("#property", "property"),
+            ("#command", "command"),
+            ("#expand", "expand"),
+        ):
+            j, ok = self._chk(i, k)
+            if ok:
+                return v, j, line
+        self.err(line, "Invalid declaration. For labels, change '#' to '##'.")
+        return None, i, line
+
+    def _declare(self, i, line):
+        i0 = i
+        tp, i, line = self._decl_type(i, line)
+        if tp is None:
+            return i, line, 0
+        if tp in ("replace", "define", "define_s"):
+            nm, i, line = self._name_until(
+                i, line, set("\t \n") if tp != "define_s" else set("\t\n")
+            )
+            if nm is None:
+                return i, line, 0
+            name_line = self._last_name_line
+            after, i, line, ok = self._after(i, line)
+            if not ok:
+                return i, line, 0
+            if nm in self.iad["name_set"]:
+                self.err(line, nm + " is declared twice.")
+                return i, line, 0
+            self.iad["name_set"].add(nm)
+            rep = {
+                "type": ("replace" if tp == "replace" else "define"),
+                "decl_type": tp,
+                "name": nm,
+                "after": after,
+                "args": [],
+                "used_count": 0,
+            }
+            self._replacement_source(
+                rep,
+                "replace" if tp == "replace" else "define",
+            )
+            add_replace_tree(self.iad["replace_tree"], nm, rep)
+            self.iad["macro_defs"].append(rep)
+            self.iad["macro_map"][nm] = rep
+            self._record_decl(
+                "replace" if tp == "replace" else "define",
+                nm,
+                name_line,
+                self._last_name_start,
+                self._last_name_end,
+            )
+            return i, line, 1
+        if tp == "macro":
+            nm, i, line = self._name_until(i, line, set(" \t\n("))
+            if nm is None:
+                return i, line, 0
+            name_line = self._last_name_line
+            args, i, line = self._macro_arg_list(i, line)
+            if args is None:
+                return i, line, 0
+            after, i, line, ok = self._after(i, line)
+            if not ok:
+                return i, line, 0
+            if not nm.startswith("@"):
+                self.err(line, "#macro name must start with '@'.")
+                return i, line, 0
+            if nm in self.iad["name_set"]:
+                self.err(line, nm + " is declared twice.")
+                return i, line, 0
+            self.iad["name_set"].add(nm)
+            rep = {
+                "type": "macro",
+                "decl_type": "macro",
+                "name": nm,
+                "after": after,
+                "args": args,
+                "used_count": 0,
+            }
+            self._replacement_source(
+                rep,
+                "macro",
+            )
+            add_replace_tree(self.iad["replace_tree"], nm, rep)
+            self.iad["macro_defs"].append(rep)
+            self.iad["macro_map"][nm] = rep
+            self._record_decl(
+                "macro",
+                nm,
+                name_line,
+                self._last_name_start,
+                self._last_name_end,
+            )
+            return i, line, 1
+        if tp == "property":
+            txt, i, line, name_line, span = self._prop_cmd_text(i, line, set(" :\t\n"))
+            self.iad2["pt"].append(txt)
+            self.iad2["pl"].append(name_line)
+            if self.sidecar:
+                self.iad2.setdefault("ps", []).append(span)
+                self.iad2.setdefault("pm", []).append(self._last_after_source_map)
+            return i, line, 1
+        if tp == "command":
+            txt, i, line, name_line, span = self._prop_cmd_text(i, line, set(" (:\t\n"))
+            self.iad2["ct"].append(txt)
+            self.iad2["cl"].append(name_line)
+            if self.sidecar:
+                self.iad2.setdefault("cs", []).append(span)
+                self.iad2.setdefault("cm", []).append(self._last_after_source_map)
+            return i, line, 1
+        after, i2, line2, ok = self._after(i, line)
+        if not ok:
+            return i2, line2, 0
+        ca = self.ca
+        source_map = self._last_after_source_map if self.sidecar else None
+        t = ca.analize_line(after, self.iad, source_map)
+        if t is None:
+            self.err(line2, ca.get_error_str())
+            return i2, line2, 0
+        self.t = self.t[:i0] + t + self.t[i2:]
+        if self.sidecar:
+            self.source_map[i0:i2] = source_map
+        return i0, line2, 1
+
+    def step1(self):
+        if not self.cc():
+            return 0
+        i = 0
+        line = 1
+        loop = 0
+        rest_min = len(self.t)
+        while 1:
+            i, line, ok = self._skip(i, line)
+            if not ok:
+                break
+            i, line, ok2 = self._declare(i, line)
+            if not ok2:
+                return 0
+            rest = len(self.t) - i
+            if rest >= rest_min:
+                loop += 1
+                if loop > 10000:
+                    self.err(
+                        line,
+                        "Include expansion exceeded 10000 consecutive declarations "
+                        "without a new minimum remaining-text length; "
+                        "check for cyclic #expand directives.",
+                    )
+                    return 0
+            else:
+                rest_min = rest
+                loop = 0
+        return 1
+
+    def step2(self):
+        for idx, (txt, ln) in enumerate(zip(self.iad2["pt"], self.iad2["pl"])):
+            ca = self.ca
+            source_map = list(self.iad2["pm"][idx]) if self.sidecar else None
+            t = ca.analize_line(txt, self.iad, source_map)
+            if t is None:
+                self.err(ln, ca.get_error_str())
+                return 0
+            self.t = t
+            i = 0
+            line = ln
+            name, i, line, ok = self._ia_property_name(i, line)
+            if not ok:
+                return 0
+            form, size, i, line, ok = self._ia_declare_property_form(i, line)
+            if not ok:
+                return 0
+            if name in self.iad["name_set"]:
+                self.err(line, name + " is declared twice.")
+                return 0
+            self.iad["name_set"].add(name)
+            if form == C.FM_VOID:
+                self.err(line, "Property of type void cannot be declared.")
+                return 0
+            pid = self.iad["property_cnt"]
+            self.iad["property_cnt"] = pid + 1
+            self.iad["property_list"].append(
+                {"id": pid, "form": form, "size": size, "name": name}
+            )
+            ft = self.iad["form_table"]
+            ft.add(
+                self.pf,
+                {
+                    "type": C.ET_PROPERTY,
+                    "code": C.create_elm_code(C.ELM_OWNER_USER_PROP, 0, int(pid)),
+                    "name": name,
+                    "form": form,
+                    "size": int(size or 0),
+                    "arg_map": {},
+                    "origin": "inc",
+                },
+            )
+            if self.pf == C.FM_GLOBAL:
+                self.iad["inc_property_cnt"] += 1
+            if self.sidecar:
+                span = (
+                    self.iad2.get("ps", [])[idx]
+                    if idx < len(self.iad2.get("ps", []))
+                    else {}
+                )
+                self.iad2["decls"].append(
+                    {
+                        "kind": "property",
+                        "name": name,
+                        "line": int(span.get("line", ln) or ln),
+                        "start_char": int(span.get("start_char", 0) or 0),
+                        "end_char": int(span.get("end_char", 0) or 0),
+                        "source_id": int(span.get("source_id", -1)),
+                    }
+                )
+        for idx, (txt, ln) in enumerate(zip(self.iad2["ct"], self.iad2["cl"])):
+            org_line = ln
+            ca = self.ca
+            source_map = list(self.iad2["cm"][idx]) if self.sidecar else None
+            t = ca.analize_line(txt, self.iad, source_map)
+            if t is None:
+                self.err(org_line, ca.get_error_str())
+                return 0
+            self.t = t
+            i = 0
+            line = ln
+            name, i, line, ok = self._ia_command_name(i, line)
+            if not ok:
+                return 0
+            arg_list, i, line, ok = self._ia_command_arg_list(i, line)
+            if not ok:
+                return 0
+            form, i, line, ok = self._ia_declare_form(i, line)
+            if not ok:
+                return 0
+            if name in self.iad["name_set"]:
+                self.err(org_line, name + " is declared twice.")
+                return 0
+            self.iad["name_set"].add(name)
+            cid = self.iad["command_cnt"]
+            self.iad["command_cnt"] = cid + 1
+            self.iad["command_list"].append(
+                {
+                    "id": cid,
+                    "form": form,
+                    "name": name,
+                    "arg_list": arg_list,
+                    "is_defined": False,
+                }
+            )
+            ft = self.iad["form_table"]
+            al0 = []
+            for ii, a in enumerate((arg_list or {}).get("arg_list", [])):
+                al0.append(
+                    {
+                        "id": int(a.get("id", ii) or ii),
+                        "name": a.get("name", "") or "",
+                        "form": a.get("form", C.FM_INT),
+                        "def_int": int(a.get("def_int", 0) or 0),
+                        "def_str": a.get("def_str", "") or "",
+                        "def_exist": bool(a.get("def_exist", False)),
+                    }
+                )
+            am = {0: {"arg_list": al0}}
+            if any(x.get("name") for x in al0):
+                am[-1] = {"arg_list": [x for x in al0 if x.get("name")]}
+            ft.add(
+                self.pf,
+                {
+                    "type": C.ET_COMMAND,
+                    "code": C.create_elm_code(C.ELM_OWNER_USER_CMD, 0, int(cid)),
+                    "name": name,
+                    "form": form,
+                    "size": 0,
+                    "arg_map": am,
+                    "origin": "inc",
+                },
+            )
+            if self.pf == C.FM_GLOBAL:
+                self.iad["inc_command_cnt"] += 1
+            if self.sidecar:
+                span = (
+                    self.iad2.get("cs", [])[idx]
+                    if idx < len(self.iad2.get("cs", []))
+                    else {}
+                )
+                self.iad2["decls"].append(
+                    {
+                        "kind": "command",
+                        "name": name,
+                        "line": int(span.get("line", org_line) or org_line),
+                        "start_char": int(span.get("start_char", 0) or 0),
+                        "end_char": int(span.get("end_char", 0) or 0),
+                        "source_id": int(span.get("source_id", -1)),
+                    }
+                )
+        return 1

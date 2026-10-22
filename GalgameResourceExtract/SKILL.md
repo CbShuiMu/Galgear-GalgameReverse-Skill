@@ -56,6 +56,24 @@ description: 按用户需求识别 GalGame 引擎、定位归档并解包脚本�
 | GARbro CLI 命令与选项 | [garbro](commands/garbro.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
+| GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |
+| FreeMote CLI：PSB / SCN 与 MDF | [freemote](commands/freemote.md) |
+| Siglus CLI：Scene.pck 与场景 DAT | [siglus-ssu](commands/siglus-ssu.md) |
+| rpatool CLI：RPA v2 / v3 | [rpatool](commands/rpatool.md) |
+| RLdev SEEN：原样归档拆分与重建 | [rldev-seen](commands/rldev-seen.md) |
+| Majiro V3 CLI：哈希索引与原样归档 | [majiro-cli](commands/majiro-cli.md) |
 | Emote / PSB：场景资源 | [emote](engine/emote.md) |
 | Entis GLS / Cotopha：NOA、CSX 与 Cotomi 存档 | [entis-gls](engine/entis-gls.md) |
 | WillPlus / AdvHD：翻译表与说话人 | [willplus](engine/willplus.md) |
+| KiriKiri / KAG：XP3、文本与 TJS | [kirikiri](engine/kirikiri.md) |
+| NScripter：SAR / NSA / NS2 | [nscripter](engine/nscripter.md) |
+| ONScripter：兼容归档与脚本编码 | [onscripter](engine/onscripter.md) |
+| RealLive：SEEN 与独立语音归档 | [reallive](engine/reallive.md) |
+| SiglusEngine：场景归档与 DAT | [siglus](engine/siglus.md) |
+| CatSystem2：INT、CST 与媒体 | [catsystem2](engine/catsystem2.md) |
+| YU-RIS：YPF 与 YBN | [yuris](engine/yuris.md) |
+| BGI / Ethornell：ARC、DSC 与脚本 | [ethornell](engine/ethornell.md) |
+| Majiro：ARC 与 MJO | [majiro](engine/majiro.md) |
+| Ren'Py：RPA 与 RPY / RPYC | [renpy](engine/renpy.md) |
+| TyranoScript：散文件与桌面外壳 | [tyrano](engine/tyrano.md) |
+| Artemis：PF6 / PF8 与脚本 | [artemis](engine/artemis.md) |

@@ -1,0 +1,1177 @@
+import copy
+from . import const as C
+from .common import normalize_atom
+
+
+def _form_name(f):
+    if isinstance(f, str):
+        return f
+    try:
+        fv = int(f)
+    except (TypeError, ValueError):
+        return f
+    for k, v in C._FORM_CODE.items():
+        if int(v) == fv:
+            return k
+    return f
+
+
+def _form_code(f):
+    if isinstance(f, int):
+        return f
+    code = C._FORM_CODE.get(_form_name(f))
+    if isinstance(code, int):
+        return code
+    return None
+
+
+def parse_arg_spec(arg_spec):
+    if not arg_spec:
+        return {}
+    arg_map = {}
+    for seg in arg_spec.split(";"):
+        if not seg.strip():
+            continue
+        if ":" not in seg:
+            continue
+        list_id_s, args_str = seg.split(":", 1)
+        try:
+            list_id = int(list_id_s.strip())
+        except (TypeError, ValueError):
+            continue
+        al = []
+        for tok in args_str.split(","):
+            tok = tok.strip()
+            if not tok:
+                continue
+            if tok == C.FM___ARGS:
+                al.append({"form": C.FM___ARGS})
+                continue
+            if tok == C.FM___ARGSREF:
+                al.append({"form": C.FM___ARGSREF})
+                continue
+            parts = tok.split("=")
+            if len(parts) == 3:
+                try:
+                    aid = int(parts[0])
+                except (TypeError, ValueError):
+                    aid = len(al)
+                nm = parts[1]
+                fm = _form_name(parts[2])
+            elif len(parts) == 2:
+                aid = len(al)
+                nm = parts[0]
+                fm = _form_name(parts[1])
+            else:
+                aid = len(al)
+                nm = ""
+                fm = _form_name(parts[0])
+            al.append(
+                {
+                    "id": aid,
+                    "name": nm,
+                    "form": fm,
+                    "def_int": 0,
+                    "def_str": "",
+                    "def_exist": False,
+                }
+            )
+        arg_map[list_id] = {"arg_list": al}
+    return arg_map
+
+
+class FormTable:
+    def __init__(s):
+        s.form_map_by_name = {}
+        s.form_map_by_code = {}
+
+    @staticmethod
+    def _new_form(fc):
+        name = _form_name(fc)
+        code = _form_code(fc)
+        return {
+            "name": name,
+            "code": code,
+            "element_map_by_name": {},
+            "element_map_by_code": {},
+        }
+
+    def _ensure_form(s, fc):
+        name = _form_name(fc)
+        if not name:
+            return None
+        info = s.form_map_by_name.get(name)
+        if not isinstance(info, dict):
+            info = s._new_form(name)
+            s.form_map_by_name[name] = info
+        code = _form_code(fc)
+        if isinstance(code, int):
+            info["code"] = code
+            s.form_map_by_code[code] = info
+        return info
+
+    def _load_system_forms(s):
+        forms = C._FORM_CODE
+        if isinstance(forms, dict):
+            forms = forms.keys()
+        for it in forms:
+            s._ensure_form(it)
+
+    def _load_system_elements(s):
+        for it in C.SYSTEM_ELEMENT_DEFS:
+            tp, it_parent, it_form, name, owner, group, code, spec = it
+            parent = _form_name(it_parent)
+            form = _form_name(it_form)
+            args = parse_arg_spec(spec)
+            et = (
+                C.ET_PROPERTY
+                if str(tp).upper().endswith("PROPERTY") or tp == C.ET_PROPERTY
+                else (
+                    C.ET_COMMAND
+                    if str(tp).upper().endswith("COMMAND") or tp == C.ET_COMMAND
+                    else None
+                )
+            )
+            if not name or et is None:
+                continue
+            named_args = args.get(-1) or []
+            if isinstance(named_args, dict):
+                named_args = named_args.get("arg_list") or []
+            for arg in named_args:
+                arg["preserve_int_reference"] = (
+                    parent,
+                    name,
+                    arg.get("name"),
+                ) in C.NAMED_INT_REFERENCE_ARGUMENTS
+            info = {
+                "type": et,
+                "code": C.create_elm_code(owner, group, int(code)),
+                "name": name,
+                "form": form or C.FM_INT,
+                "size": 0,
+                "arg_map": args,
+                "origin": "sys",
+            }
+            s.add(parent or C.FM_SCENE, info)
+
+    def create_system_form_table(s):
+        for k in set(C.FORM_SET) | {
+            C.FM_CALL,
+            C.FM_GLOBAL,
+            C.FM_SCENE,
+            C.FM_LABEL,
+            C.FM_LIST,
+            C.FM_INTREF,
+            C.FM_STRREF,
+            C.FM_INTLISTREF,
+            C.FM_STRLISTREF,
+            C.FM___ARGS,
+            C.FM___ARGSREF,
+        }:
+            s._ensure_form(k)
+        s._load_system_forms()
+        s._load_system_elements()
+        s.call_base = copy.deepcopy(s.get_form_by_name(C.FM_CALL))
+
+    def reset_call(s):
+        base = {
+            **s.call_base,
+            "element_map_by_name": dict(s.call_base["element_map_by_name"]),
+            "element_map_by_code": dict(s.call_base["element_map_by_code"]),
+        }
+        s.form_map_by_name[C.FM_CALL] = base
+        if isinstance(base.get("code"), int):
+            s.form_map_by_code[int(base.get("code"))] = base
+
+    def get_form_by_name(s, name):
+        return s.form_map_by_name.get(_form_name(name))
+
+    def get_form_by_code(s, code):
+        fc = _form_code(code)
+        if not isinstance(fc, int):
+            return None
+        return s.form_map_by_code.get(fc)
+
+    def add(s, fc, e):
+        form = s._ensure_form(fc)
+        if not isinstance(form, dict):
+            return
+        bucket = form.get("element_map_by_name") or {}
+        code_bucket = form.get("element_map_by_code") or {}
+        nm = e.get("name")
+        if nm in bucket:
+            if (
+                _form_name(fc) == C.FM_CALL
+                and e.get("origin") == C.FM_CALL
+                and e.get("type") == C.ET_PROPERTY
+            ):
+                return
+        bucket.setdefault(nm, e)
+        form["element_map_by_name"] = bucket
+        code = e.get("code", 0)
+        try:
+            code = int(code or 0)
+        except (TypeError, ValueError):
+            code = None
+        if code is not None:
+            code_bucket.setdefault(code, e)
+        form["element_map_by_code"] = code_bucket
+
+    def get(s, fc, name):
+        form = s.get_form_by_name(fc)
+        if not isinstance(form, dict):
+            return None
+        return (form.get("element_map_by_name") or {}).get(name)
+
+    def get_element_by_code(s, fc, code):
+        form = s.get_form_by_code(fc)
+        if not isinstance(form, dict):
+            form = s.get_form_by_name(fc)
+        if not isinstance(form, dict):
+            return None
+        try:
+            code = int(code)
+        except (TypeError, ValueError):
+            return None
+        return (form.get("element_map_by_code") or {}).get(code)
+
+    def find(s, name):
+        for fc in (C.FM_CALL, C.FM_SCENE, C.FM_GLOBAL):
+            e = s.get(fc, name)
+            if e:
+                return e, fc
+        return None, None
+
+
+class MA:
+    def __init__(s, piad, plad, psad):
+        s.piad = piad
+        s.plad = plad
+        s.psad = psad
+        s.last = {
+            "type": "TNMSERR_MA_NONE",
+            "atom": {"id": 0, "line": 0, "type": C.LA_T["NONE"], "opt": 0, "subopt": 0},
+        }
+        s.ft = s.piad["form_table"]
+        s.bindings = {} if "atom_span_list" in plad else None
+
+    def record_binding(s, atom, parent, info):
+        if s.bindings is None:
+            return
+        origin = info.get("origin")
+        if origin == "sys":
+            kind = "element"
+            identity = f"{parent}:{info['code']}"
+        elif info["type"] == C.ET_COMMAND:
+            kind = "command" if parent == C.FM_GLOBAL else "local_command"
+            identity = info["name"]
+        elif parent == C.FM_CALL:
+            kind = "call_property"
+            identity = str(info["binding_id"])
+        else:
+            kind = "property" if parent == C.FM_GLOBAL else "local_property"
+            identity = info["name"]
+        s.bindings[atom["id"]] = (kind, identity, False, False)
+
+    def error(s, t, a=None, **kw):
+        s.last = {
+            "type": t,
+            "atom": normalize_atom(a) if a is not None else s.last.get("atom"),
+        }
+        if kw:
+            s.last.update(kw)
+        return 0
+
+    def _atoms(s, x, r):
+        if isinstance(x, dict):
+            a = x.get("atom")
+            if isinstance(a, dict) and "id" in a:
+                r.append(a)
+            for v in x.values():
+                s._atoms(v, r)
+        elif isinstance(x, list):
+            for v in x:
+                s._atoms(v, r)
+
+    def first_atom(s, x):
+        r = []
+        s._atoms(x, r)
+        return (
+            min(r, key=lambda z: z.get("id", 0))
+            if r
+            else {"id": 0, "line": 0, "type": C.LA_T["NONE"], "opt": 0, "subopt": 0}
+        )
+
+    def last_atom(s, x):
+        r = []
+        s._atoms(x, r)
+        return (
+            max(r, key=lambda z: z.get("id", 0))
+            if r
+            else {"id": 0, "line": 0, "type": C.LA_T["NONE"], "opt": 0, "subopt": 0}
+        )
+
+    def analize(s):
+        s.psad["command_in"] = 0
+        if not s.ma_ss((s.psad or {}).get("root")):
+            return 0, s.psad
+        if s.bindings is not None:
+            s.psad["bindings"] = s.bindings
+        return 1, s.psad
+
+    def ma_ss(s, ss):
+        for sen in (ss or {}).get("sentense_list", []):
+            if not s.ma_sentence(sen):
+                return 0
+        if isinstance(ss, dict):
+            ss["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_block(s, b):
+        for sen in (b or {}).get("sentense_list", []):
+            if not s.ma_sentence(sen):
+                return 0
+        s.ft.reset_call()
+        s.psad["cur_call_prop_cnt"] = 0
+        if isinstance(b, dict):
+            b["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_sentence(s, sen):
+        if not isinstance(sen, dict):
+            return 0
+        sel = [False]
+        t = sen.get("node_type")
+        if t == C.NT_S_LABEL:
+            ok = s.ma_label(sen.get("label"))
+        elif t == C.NT_S_Z_LABEL:
+            ok = s.ma_label(sen.get("z_label"))
+        elif t == C.NT_S_DEF_PROP:
+            ok = s.ma_def_prop(sen.get("def_prop"))
+        elif t == C.NT_S_DEF_CMD:
+            ok = s.ma_def_cmd(sen.get("def_cmd"))
+        elif t == C.NT_S_GOTO:
+            ok = s.ma_goto(sen.get("Goto"))
+        elif t == C.NT_S_RETURN:
+            ok = s.ma_return(sen.get("Return"), sel)
+        elif t == C.NT_S_IF:
+            ok = s.ma_if(sen.get("If"))
+        elif t == C.NT_S_FOR:
+            ok = s.ma_for(sen.get("For"))
+        elif t == C.NT_S_WHILE:
+            ok = s.ma_while(sen.get("While"))
+        elif t == C.NT_S_CONTINUE:
+            ok = s.ma_label(sen.get("Continue"))
+        elif t == C.NT_S_BREAK:
+            ok = s.ma_label(sen.get("Break"))
+        elif t == C.NT_S_SWITCH:
+            ok = s.ma_switch(sen.get("Switch"))
+        elif t == C.NT_S_ASSIGN:
+            ok = s.ma_assign(sen.get("assign"), sel)
+        elif t == C.NT_S_COMMAND:
+            ok = s.ma_command(sen.get("command"), sel)
+        elif t == C.NT_S_TEXT:
+            ok = s.ma_label(sen.get("text"))
+        elif t == C.NT_S_NAME:
+            ok = s.ma_name(sen.get("name"))
+        elif t == C.NT_S_EOF:
+            ok = s.ma_label(sen.get("eof"))
+        else:
+            return 0
+        if not ok:
+            return 0
+        sen["node_form"] = C.FM_VOID
+        sen["is_include_sel"] = bool(sel[0])
+        return 1
+
+    @staticmethod
+    def ma_label(n):
+        if isinstance(n, dict):
+            n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_def_prop(s, n, parameter=False):
+        if s.psad.get("command_in", 0) == 0 and not C.ALLOW_PROPERTY_OUT_OF_COMMAND:
+            return s.error(
+                "TNMSERR_MA_PROPERTY_OUT_OF_COMMAND",
+                (n or {}).get("Property", {}).get("atom"),
+            )
+        if n.get("form") and not s.ma_form(n.get("form")):
+            return 0
+        if isinstance(n, dict):
+            n["node_form"] = C.FM_VOID
+        u = s.plad.get("unknown_list", [])
+        name = u[n.get("name", {}).get("atom", {}).get("opt", 0)] if u else ""
+        sz = 0
+        e = {
+            "type": C.ET_PROPERTY,
+            "code": C.create_elm_code(
+                C.ELM_OWNER_CALL_PROP, 0, int(s.psad.get("cur_call_prop_cnt", 0))
+            ),
+            "name": name,
+            "form": n.get("form_code", C.FM_INT),
+            "size": sz,
+            "arg_map": {},
+            "origin": C.FM_CALL,
+        }
+        if s.bindings is not None:
+            e["binding_id"] = int(s.psad.get("total_call_prop_cnt", 0))
+        s.ft.add(C.FM_CALL, e)
+        n["prop_id"] = int(s.psad.get("total_call_prop_cnt", 0))
+        if s.bindings is not None:
+            s.bindings[n["name"]["atom"]["id"]] = (
+                "call_property",
+                str(n["prop_id"]),
+                True,
+                parameter,
+            )
+        s.psad["call_prop_name_list"].append(name)
+        s.psad["cur_call_prop_cnt"] = int(s.psad.get("cur_call_prop_cnt", 0)) + 1
+        s.psad["total_call_prop_cnt"] = int(s.psad.get("total_call_prop_cnt", 0)) + 1
+        return 1
+
+    def ma_def_cmd(s, n):
+        s.psad["command_in"] = 1
+        if s.bindings is not None:
+            cid = int(n["cmd_id"])
+            atom = n["name"]["atom"]
+            name = s.plad["unknown_list"][atom["opt"]]
+            kind = "command" if cid < s.piad["inc_command_cnt"] else "local_command"
+            s.bindings[atom["id"]] = (kind, name, True, False)
+        for p in (n or {}).get("prop_list", []):
+            if not s.ma_def_prop(p, True):
+                return 0
+        if not s.ma_block((n or {}).get("block")):
+            return 0
+        s.psad["command_in"] = 0
+        if isinstance(n, dict):
+            n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_goto(s, n):
+        if not isinstance(n, dict):
+            return 0
+        if n.get("node_type") != C.NT_GOTO_GOTO:
+            sel = [False]
+            if not s.ma_goto_exp(n, sel):
+                return 0
+            if sel[0]:
+                return s.error(
+                    "TNMSERR_MA_SEL_CANNOT_USE_IN_GOTO",
+                    (n.get("Goto") or {}).get("atom"),
+                )
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_goto_exp(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        al = n.get("arg_list")
+        if al is not None:
+            if not s.ma_arg_list(al, sel):
+                return 0
+        nt = n.get("node_type")
+        if nt == C.NT_GOTO_GOTO:
+            n["node_form"] = C.FM_VOID
+        elif nt == C.NT_GOTO_GOSUB:
+            n["node_form"] = C.FM_INT
+        elif nt == C.NT_GOTO_GOSUBSTR:
+            n["node_form"] = C.FM_STR
+        else:
+            return 0
+        return 1
+
+    def ma_return(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if n.get("node_type") == C.NT_RETURN_WITH_ARG:
+            if not s.ma_exp(n.get("exp"), sel):
+                return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_if(s, n):
+        if not isinstance(n, dict):
+            return 0
+        for sub in n.get("sub", []):
+            If = (sub.get("If") or {}).get("atom", {})
+            if If.get("type") in (C.LA_T["IF"], C.LA_T["ELSEIF"]):
+                sel = [False]
+                if not s.ma_exp(sub.get("cond"), sel):
+                    return 0
+                cf = (sub.get("cond") or {}).get("node_form")
+                if cf not in (C.FM_INT, C.FM_INTREF):
+                    return s.error("TNMSERR_MA_IF_COND_IS_NOT_INT", If)
+                if sel[0]:
+                    return s.error("TNMSERR_MA_SEL_CANNOT_USE_IN_COND", If)
+            for sen in sub.get("block", []):
+                if not s.ma_sentence(sen):
+                    return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_for(s, n):
+        if not isinstance(n, dict):
+            return 0
+        for sen in n.get("init", []):
+            if not s.ma_sentence(sen):
+                return 0
+        sel = [False]
+        if not s.ma_exp(n.get("cond"), sel):
+            return 0
+        if sel[0]:
+            return s.error(
+                "TNMSERR_MA_SEL_CANNOT_USE_IN_COND", (n.get("For") or {}).get("atom")
+            )
+        if (n.get("cond") or {}).get("node_form") not in (C.FM_INT, C.FM_INTREF):
+            return s.error(
+                "TNMSERR_MA_FOR_COND_IS_NOT_INT", (n.get("For") or {}).get("atom")
+            )
+        for sen in n.get("loop", []):
+            if not s.ma_sentence(sen):
+                return 0
+        for sen in n.get("block", []):
+            if not s.ma_sentence(sen):
+                return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_while(s, n):
+        if not isinstance(n, dict):
+            return 0
+        sel = [False]
+        if not s.ma_exp(n.get("cond"), sel):
+            return 0
+        if sel[0]:
+            return s.error(
+                "TNMSERR_MA_SEL_CANNOT_USE_IN_COND", (n.get("While") or {}).get("atom")
+            )
+        if (n.get("cond") or {}).get("node_form") not in (C.FM_INT, C.FM_INTREF):
+            return s.error(
+                "TNMSERR_MA_WHILE_COND_IS_NOT_INT", (n.get("While") or {}).get("atom")
+            )
+        for sen in n.get("block", []):
+            if not s.ma_sentence(sen):
+                return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_switch(s, n):
+        if not isinstance(n, dict):
+            return 0
+        sel = [False]
+        if not s.ma_exp(n.get("cond"), sel):
+            return 0
+        if sel[0]:
+            return s.error(
+                "TNMSERR_MA_SEL_CANNOT_USE_IN_COND", (n.get("Switch") or {}).get("atom")
+            )
+        for sub in n.get("case", []):
+            sel2 = [False]
+            if not s.ma_exp(sub.get("value"), sel2):
+                return 0
+            if sel2[0]:
+                return s.error(
+                    "TNMSERR_MA_SEL_CANNOT_USE_IN_COND",
+                    (sub.get("Case") or {}).get("atom"),
+                )
+            cf = (n.get("cond") or {}).get("node_form")
+            vf = (sub.get("value") or {}).get("node_form")
+            if cf in (C.FM_INT, C.FM_INTREF):
+                if vf not in (C.FM_INT, C.FM_INTREF):
+                    return s.error(
+                        "TNMSERR_MA_CASE_TYPE_MISMATCH",
+                        (sub.get("Case") or {}).get("atom"),
+                    )
+            elif cf in (C.FM_STR, C.FM_STRREF):
+                if vf not in (C.FM_STR, C.FM_STRREF):
+                    return s.error(
+                        "TNMSERR_MA_CASE_TYPE_MISMATCH",
+                        (sub.get("Case") or {}).get("atom"),
+                    )
+            else:
+                return s.error(
+                    "TNMSERR_MA_CASE_TYPE_MISMATCH", (sub.get("Case") or {}).get("atom")
+                )
+            for sen in sub.get("block", []):
+                if not s.ma_sentence(sen):
+                    return 0
+        if n.get("Default"):
+            for sen in (n.get("Default") or {}).get("block", []):
+                if not s.ma_sentence(sen):
+                    return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_assign(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_left(n.get("left")):
+            return 0
+        if not s.ma_exp(n.get("right"), sel):
+            return 0
+        lf = (n.get("left") or {}).get("node_form")
+        rf = (n.get("right") or {}).get("node_form")
+        ef = rf
+        if (n.get("equal") or {}).get("atom", {}).get("opt", C.OP_NONE) != C.OP_NONE:
+            ef = s.check_operate_2(
+                lf, rf, (n.get("equal") or {}).get("atom", {}).get("opt")
+            )
+        n["equal_form"] = ef
+        if lf == C.FM_INTREF:
+            if ef not in (C.FM_INT, C.FM_INTREF):
+                return s.error(
+                    "TNMSERR_MA_ASSIGN_TYPE_NO_MATCH",
+                    (n.get("equal") or {}).get("atom"),
+                )
+            n["set_flag"] = False
+            n["al_id"] = 1
+        elif lf == C.FM_STRREF:
+            if ef not in (C.FM_STR, C.FM_STRREF):
+                return s.error(
+                    "TNMSERR_MA_ASSIGN_TYPE_NO_MATCH",
+                    (n.get("equal") or {}).get("atom"),
+                )
+            n["set_flag"] = False
+            n["al_id"] = 1
+        elif lf in (C.FM_VOID, C.FM_INT, C.FM_STR):
+            return s.error(
+                "TNMSERR_MA_ASSIGN_LEFT_NEED_REFERENCE",
+                (n.get("equal") or {}).get("atom"),
+            )
+        else:
+            if lf != ef:
+                return s.error(
+                    "TNMSERR_MA_ASSIGN_TYPE_NO_MATCH",
+                    (n.get("equal") or {}).get("atom"),
+                )
+            n["set_flag"] = True
+            n["al_id"] = 1
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_command(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_elm_exp(n.get("command"), sel):
+            return 0
+        if (n.get("command") or {}).get("element_type") != C.ET_COMMAND:
+            return s.error(
+                "TNMSERR_MA_ELEMENT_IS_PROPERTY",
+                s.last_atom((n.get("command") or {}).get("elm_list")),
+            )
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_exp(s, n, sel):
+        if not s.ma_exp_sub(n, sel):
+            if not isinstance(n, dict):
+                return 0
+            if s.last.get("type") != "TNMSERR_MA_ELEMENT_UNKNOWN":
+                return 0
+            if n.get("node_type") != C.NT_EXP_SIMPLE:
+                return 0
+            smp = n.get("smp_exp") or {}
+            if smp.get("node_type") != C.NT_SMP_ELM_EXP:
+                return 0
+            elm_exp = smp.get("elm_exp") or {}
+            els = (elm_exp.get("elm_list") or {}).get("element") or []
+            if len(els) != 1:
+                return 0
+            e0 = els[0]
+            if (e0.get("arg_list") or {}).get("arg"):
+                return 0
+            name_atom = (
+                ((e0.get("name") or {}).get("atom") or {})
+                if isinstance(e0, dict)
+                else {}
+            )
+            unk = s.plad.get("unknown_list", [])
+            try:
+                idx = int(name_atom.get("opt", 0))
+            except (TypeError, ValueError):
+                return 0
+            if idx < 0 or idx >= len(unk):
+                return 0
+            element_name = unk[idx]
+            if any(ch in element_name for ch in ("@", "$")):
+                return 0
+            str_list = s.plad.setdefault("str_list", [])
+            atom = {
+                "id": name_atom.get("id", 0),
+                "line": name_atom.get("line", 0),
+                "type": C.LA_T["VAL_STR"],
+                "opt": len(str_list),
+                "subopt": name_atom.get("subopt", 0),
+            }
+            str_list.append(element_name)
+            lit = {"node_form": C.FM_STR, "atom": atom}
+            smp_new = {
+                "node_form": C.FM_STR,
+                "node_type": C.NT_SMP_LITERAL,
+                "Literal": lit,
+                "open": None,
+                "close": None,
+                "exp": None,
+                "Goto": None,
+                "elm_exp": None,
+                "exp_list": None,
+            }
+            n["node_type"] = C.NT_EXP_SIMPLE
+            n["smp_exp"] = smp_new
+            n["tmp_form"] = C.FM_STR
+            n["node_form"] = C.FM_STR
+            s.last = {"type": "TNMSERR_MA_NONE", "atom": normalize_atom(atom)}
+            return 1
+        return 1
+
+    def ma_exp_sub(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        nt = n.get("node_type")
+        if nt == C.NT_EXP_SIMPLE:
+            if not s.ma_smp_exp(n.get("smp_exp"), sel):
+                return 0
+            n["node_form"] = (n.get("smp_exp") or {}).get("node_form")
+            n["tmp_form"] = n["node_form"]
+            return 1
+        if nt == C.NT_EXP_OPR1:
+            if not s.ma_exp(n.get("exp_1"), sel):
+                return 0
+            n["node_form"] = s.check_operate_1(
+                (n.get("exp_1") or {}).get("node_form"),
+            )
+            n["tmp_form"] = n["node_form"]
+            if n["node_form"] == C.FM_VOID:
+                return s.error(
+                    "TNMSERR_MA_EXP_TYPE_NO_MATCH", (n.get("opr") or {}).get("atom")
+                )
+            return 1
+        if nt == C.NT_EXP_OPR2:
+            if not s.ma_exp(n.get("exp_1"), sel) or not s.ma_exp(n.get("exp_2"), sel):
+                return 0
+            n["node_form"] = s.check_operate_2(
+                (n.get("exp_1") or {}).get("node_form"),
+                (n.get("exp_2") or {}).get("node_form"),
+                (n.get("opr") or {}).get("atom", {}).get("opt"),
+            )
+            n["tmp_form"] = n["node_form"]
+            if n["node_form"] == C.FM_VOID:
+                return s.error(
+                    "TNMSERR_MA_EXP_TYPE_NO_MATCH", (n.get("opr") or {}).get("atom")
+                )
+            return 1
+        return 0
+
+    def ma_exp_list(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        fl = n.setdefault("form_list", [])
+        for e in n.get("exp", []):
+            if not s.ma_exp(e, sel):
+                return 0
+            fl.append((e or {}).get("node_form"))
+        n["node_form"] = C.FM_LIST
+        return 1
+
+    def ma_smp_exp(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        nt = n.get("node_type")
+        if nt == C.NT_SMP_KAKKO:
+            if not s.ma_exp(n.get("exp"), sel):
+                return 0
+            n["node_form"] = (n.get("exp") or {}).get("node_form")
+            return 1
+        if nt == C.NT_SMP_EXP_LIST:
+            if not s.ma_exp_list(n.get("exp_list"), sel):
+                return 0
+            n["node_form"] = (n.get("exp_list") or {}).get("node_form")
+            return 1
+        if nt == C.NT_SMP_GOTO:
+            if not s.ma_goto_exp(n.get("Goto"), sel):
+                return 0
+            n["node_form"] = (n.get("Goto") or {}).get("node_form")
+            return 1
+        if nt == C.NT_SMP_ELM_EXP:
+            if not s.ma_elm_exp(n.get("elm_exp"), sel):
+                return 0
+            n["node_form"] = (n.get("elm_exp") or {}).get("node_form")
+            return 1
+        if nt == C.NT_SMP_LITERAL:
+            if not s.ma_literal(n.get("Literal")):
+                return 0
+            n["node_form"] = (n.get("Literal") or {}).get("node_form")
+            return 1
+        return 0
+
+    def ma_left(s, n):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_elm_list(n.get("elm_list"), None):
+            return 0
+        n["element_type"] = (n.get("elm_list") or {}).get("element_type")
+        n["node_form"] = (n.get("elm_list") or {}).get("node_form")
+        return 1
+
+    def ma_elm_exp(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_elm_list(n.get("elm_list"), sel):
+            return 0
+        n["element_type"] = (n.get("elm_list") or {}).get("element_type")
+        n["node_form"] = (n.get("elm_list") or {}).get("node_form")
+        return 1
+
+    def ma_elm_list(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        u = s.plad.get("unknown_list", [])
+        els = n.get("element") or [{}]
+        e0 = els[0]
+        elm_chain = []
+        for i, el in enumerate(els):
+            if not isinstance(el, dict):
+                elm_chain.append("")
+                continue
+            el["_elm_pos"] = i
+            if el.get("node_type") == C.NT_ELM_ELEMENT:
+                atom = (el.get("name") or {}).get("atom") or {}
+                try:
+                    opt = int(atom.get("opt", 0) or 0)
+                except (TypeError, ValueError):
+                    opt = -1
+                elm_chain.append(u[opt] if 0 <= opt < len(u) else "")
+                continue
+            if el.get("node_type") == C.NT_ELM_ARRAY:
+                elm_chain.append("array")
+                continue
+            elm_chain.append("")
+        for el in els:
+            if isinstance(el, dict):
+                el["_elm_chain"] = elm_chain
+        name = u[(e0.get("name") or {}).get("atom", {}).get("opt", 0)] if u else ""
+        info, pf = s.ft.find(name)
+        if not info:
+            is_cmd = isinstance(e0, dict) and e0.get("arg_list") is not None
+            return s.error(
+                "TNMSERR_MA_ELEMENT_UNKNOWN",
+                (e0.get("name") or {}).get("atom"),
+                qname=(str(C.FM_GLOBAL) + "." + str(name)) if name else str(name),
+                parent_form=C.FM_GLOBAL,
+                element_name=name,
+                elm_chain=elm_chain,
+                unknown_pos=0,
+                expected_type=(C.ET_COMMAND if is_cmd else C.ET_PROPERTY),
+            )
+        else:
+            n["parent_form_code"] = pf
+            parent = pf
+            for el in els:
+                if not s.ma_element(parent, el, sel):
+                    return 0
+                n["node_form"] = el.get("node_form")
+                n["element_type"] = el.get("element_type")
+                parent = n["node_form"]
+        if n.get("element_type") == C.ET_PROPERTY:
+            f = n.get("node_form")
+            if f == C.FM_INT:
+                n["node_form"] = C.FM_INTREF
+            elif f == C.FM_STR:
+                n["node_form"] = C.FM_STRREF
+            elif f == C.FM_INTLIST:
+                n["node_form"] = C.FM_INTLISTREF
+            elif f == C.FM_STRLIST:
+                n["node_form"] = C.FM_STRLISTREF
+        return 1
+
+    def ma_element(s, parent, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if n.get("node_type") == C.NT_ELM_ELEMENT:
+            u = s.plad.get("unknown_list", [])
+            name = u[(n.get("name") or {}).get("atom", {}).get("opt", 0)] if u else ""
+            info = s.ft.get(parent, name)
+            if not info:
+                return s.error(
+                    "TNMSERR_MA_ELEMENT_UNKNOWN",
+                    (n.get("name") or {}).get("atom"),
+                    qname=(str(parent) + "." + str(name)) if parent else str(name),
+                    parent_form=parent,
+                    element_name=name,
+                    elm_chain=n.get("_elm_chain"),
+                    unknown_pos=n.get("_elm_pos", 0),
+                    expected_type=(
+                        C.ET_COMMAND if n.get("arg_list") is not None else C.ET_PROPERTY
+                    ),
+                )
+            n["node_form"] = info.get("form")
+            n["element_code"] = info.get("code", 0)
+            n["element_type"] = info.get("type", 0)
+            n["element_parent_form"] = parent
+            s.record_binding(n["name"]["atom"], parent, info)
+            if n["element_type"] == C.ET_COMMAND:
+                isel = [False]
+                if not s.ma_arg_list(n.get("arg_list"), isel):
+                    return 0
+                if isel[0]:
+                    return s.error(
+                        "TNMSERR_MA_SEL_CANNOT_USE_IN_ARG",
+                        (n.get("name") or {}).get("atom"),
+                    )
+                aid = s.check_arg_list(n, info, n.get("arg_list"))
+                if aid < 0:
+                    return s.error(
+                        "TNMSERR_MA_ARG_TYPE_NO_MATCH",
+                        (n.get("name") or {}).get("atom"),
+                    )
+                n["arg_list_id"] = aid
+                if sel is not None and C.is_global_sel_command(
+                    parent, n.get("element_code", 0)
+                ):
+                    sel[0] = True
+            return 1
+        if n.get("node_type") == C.NT_ELM_ARRAY:
+            isel = [False]
+            info = s.ft.get(parent, "array")
+            if not info:
+                return s.error(
+                    "TNMSERR_MA_ELEMENT_ILLEGAL_ARRAY",
+                    (n.get("open_b") or {}).get("atom"),
+                )
+            n["node_form"] = info.get("form")
+            n["element_code"] = info.get("code", 0)
+            n["element_type"] = info.get("type", 0)
+            n["element_parent_form"] = parent
+            if not s.ma_exp(n.get("exp"), isel):
+                return 0
+            if isel[0]:
+                return s.error(
+                    "TNMSERR_MA_SEL_CANNOT_USE_IN_INDEX", s.first_atom(n.get("exp"))
+                )
+            if (n.get("exp") or {}).get("node_form") not in (C.FM_INT, C.FM_INTREF):
+                return s.error("TNMSERR_MA_INDEX_NOT_INT", s.first_atom(n.get("exp")))
+            return 1
+        return 0
+
+    def ma_form(s, n):
+        if not isinstance(n, dict):
+            return 0
+        if n.get("index"):
+            if not s.ma_exp(n.get("index"), None):
+                return 0
+            if (n.get("index") or {}).get("node_form") != C.FM_INT:
+                return s.error(
+                    "TNMSERR_MA_DEF_PROP_NOT_INT", (n.get("open_b") or {}).get("atom")
+                )
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_arg_list(s, n, sel):
+        if not isinstance(n, dict):
+            n = {"arg": [], "named_arg_cnt": 0}
+        for a in n.get("arg", []):
+            if not s.ma_arg(a, sel):
+                return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    def ma_arg(s, n, sel):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_exp(n.get("exp"), sel):
+            return 0
+        n["node_form"] = (n.get("exp") or {}).get("node_form")
+        return 1
+
+    def check_arg_list(s, element, info, real):
+        real = real if isinstance(real, dict) else {"arg": [], "named_arg_cnt": 0}
+        amap = (info or {}).get("arg_map", {})
+        for k in sorted(amap.keys()):
+            if k == -1:
+                continue
+            if s.check_no_named_arg_list(amap[k], real):
+                if not s.check_named_arg_list(element, info, real):
+                    return -1
+                return k
+        return -1
+
+    @staticmethod
+    def check_no_named_arg_list(temp, real):
+        if not isinstance(real, dict):
+            return 0
+        args = real.get("arg", [])
+        na = int(real.get("named_arg_cnt", 0))
+        forms = [((a.get("exp") or {}).get("tmp_form")) for a in args]
+        re = len(forms) - na
+        tl = (temp.get("arg_list") if isinstance(temp, dict) else temp) or []
+        ti = 0
+        ri = 0
+        while 1:
+            if ti == len(tl):
+                if ri == re:
+                    break
+                return 0
+            t = tl[ti]
+            tf = t.get("form")
+            if tf == C.FM___ARGS:
+                for j in range(ri, re):
+                    if forms[j] == C.FM_INTREF:
+                        forms[j] = C.FM_INT
+                    elif forms[j] == C.FM_STRREF:
+                        forms[j] = C.FM_STR
+                break
+            if tf == C.FM___ARGSREF:
+                for j in range(ri, re):
+                    if forms[j] == C.FM_INT:
+                        forms[j] = C.FM_INTREF
+                    elif forms[j] == C.FM_STR:
+                        forms[j] = C.FM_STRREF
+                break
+            if ri == re:
+                if t.get("def_exist"):
+                    break
+                return 0
+            rf = forms[ri]
+            if tf != rf:
+                if tf == C.FM_INT and rf == C.FM_INTREF:
+                    forms[ri] = C.FM_INT
+                elif tf == C.FM_STR and rf == C.FM_STRREF:
+                    forms[ri] = C.FM_STR
+                else:
+                    return 0
+            ti += 1
+            ri += 1
+        for i, a in enumerate(args):
+            ex = a.get("exp")
+            if isinstance(ex, dict):
+                ex["tmp_form"] = forms[i]
+        return 1
+
+    def check_named_arg_list(s, element, info, real):
+        na = int((real or {}).get("named_arg_cnt", 0))
+        if na == 0:
+            return 1
+        amap = (info or {}).get("arg_map", {})
+        if -1 not in amap:
+            return s.error(
+                "TNMSERR_MA_CMD_NO_NAMED_ARG_LIST",
+                (element or {}).get("name", {}).get("atom"),
+            )
+        tmp = (
+            amap[-1].get("arg_list") if isinstance(amap[-1], dict) else amap[-1]
+        ) or []
+        args = real.get("arg", [])
+        named = args[len(args) - na :]
+        u = s.plad.get("unknown_list", [])
+        forms = [((a.get("exp") or {}).get("tmp_form")) for a in named]
+        for i, a in enumerate(named):
+            nm = u[(a.get("name") or {}).get("atom", {}).get("opt", 0)] if u else ""
+            no = -1
+            for j, t in enumerate(tmp):
+                if nm == t.get("name"):
+                    no = j
+                    break
+            if no < 0:
+                return s.error(
+                    "TNMSERR_MA_CMD_ILLEGAL_NAMED_ARG",
+                    (a.get("name") or {}).get("atom"),
+                )
+            tf = tmp[no].get("form")
+            rf = forms[i]
+            if rf != tf:
+                if tf == C.FM_INT and rf == C.FM_INTREF:
+                    if not tmp[no].get("preserve_int_reference", False):
+                        forms[i] = C.FM_INT
+                elif tf == C.FM_STR and rf == C.FM_STRREF:
+                    forms[i] = C.FM_STR
+                else:
+                    return s.error(
+                        "TNMSERR_MA_ARG_TYPE_NO_MATCH",
+                        (a.get("name") or {}).get("atom"),
+                    )
+            a["name_id"] = int(tmp[no].get("id", 0) or 0)
+        for i, a in enumerate(named):
+            ex = a.get("exp")
+            if isinstance(ex, dict):
+                ex["tmp_form"] = forms[i]
+        return 1
+
+    def ma_name(s, n):
+        if not isinstance(n, dict):
+            return 0
+        if not s.ma_literal(n.get("name")):
+            return 0
+        n["node_form"] = C.FM_VOID
+        return 1
+
+    @staticmethod
+    def ma_literal(n):
+        if not isinstance(n, dict):
+            return 0
+        tp = (n.get("atom") or {}).get("type")
+        n["node_form"] = (
+            C.FM_INT
+            if tp == C.LA_T["VAL_INT"]
+            else (
+                C.FM_STR
+                if tp == C.LA_T["VAL_STR"]
+                else (C.FM_LABEL if tp == C.LA_T["LABEL"] else C.FM_VOID)
+            )
+        )
+        return 1
+
+    @staticmethod
+    def check_operate_1(rf):
+        return C.FM_INT if rf in (C.FM_INT, C.FM_INTREF) else C.FM_VOID
+
+    @staticmethod
+    def check_operate_2(lf, rf, op):
+        if lf in (C.FM_INT, C.FM_INTREF) and rf in (C.FM_INT, C.FM_INTREF):
+            return (
+                C.FM_INT
+                if op
+                in (
+                    C.OP_PLUS,
+                    C.OP_MINUS,
+                    C.OP_MULTIPLE,
+                    C.OP_DIVIDE,
+                    C.OP_AMARI,
+                    C.OP_EQUAL,
+                    C.OP_NOT_EQUAL,
+                    C.OP_GREATER,
+                    C.OP_GREATER_EQUAL,
+                    C.OP_LESS,
+                    C.OP_LESS_EQUAL,
+                    C.OP_LOGICAL_AND,
+                    C.OP_LOGICAL_OR,
+                    C.OP_AND,
+                    C.OP_OR,
+                    C.OP_HAT,
+                    C.OP_SL,
+                    C.OP_SR,
+                    C.OP_SR3,
+                )
+                else C.FM_VOID
+            )
+        if lf in (C.FM_STR, C.FM_STRREF) and rf in (C.FM_STR, C.FM_STRREF):
+            return (
+                C.FM_STR
+                if op == C.OP_PLUS
+                else (
+                    C.FM_INT
+                    if op
+                    in (
+                        C.OP_EQUAL,
+                        C.OP_NOT_EQUAL,
+                        C.OP_GREATER,
+                        C.OP_GREATER_EQUAL,
+                        C.OP_LESS,
+                        C.OP_LESS_EQUAL,
+                    )
+                    else C.FM_VOID
+                )
+            )
+        if lf in (C.FM_STR, C.FM_STRREF) and rf in (C.FM_INT, C.FM_INTREF):
+            return C.FM_STR if op == C.OP_MULTIPLE else C.FM_VOID
+        return C.FM_VOID

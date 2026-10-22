@@ -1,0 +1,26 @@
+GalArc CLI subset 1.0
+
+Upstream: https://github.com/lunaswd/GalArc
+Pinned revision: ee1f7cda6123821fe7e5dbe456322a7cd49e95b5
+Retrieved: 2026-10-22
+License: GNU GPL version 3 or later (see LICENSE.txt).
+Upstream copyright notices, including detached64's Utility notices, are retained.
+
+The upstream NScripter/NS2.cs, EntisGLS/NOA.cs, Utility/Utils.cs and
+Utility/ArcEncoding.cs are included unchanged in source/ and used by this build.
+The source/Headless.cs and source/Program.cs files are GalSkill adaptations
+dated 2026-10-22, distributed under the same GPL-3.0-or-later terms.
+Headless.cs replaces the GUI progress logger, global encoding configuration,
+and the required CString helper. Program.cs adds argument parsing, structural
+preflight, byte-preserving strict CP932 names, path checks before and after
+dot-component normalization, output staging, and nonzero errors.
+
+Only unencrypted raw NS2 and canonical flat raw NOA are included. NOA creation
+requires --raw and does not preserve timestamps or extra metadata. No GUI files,
+unrelated formats, icons, or game data are distributed. This CLI does not
+perform automatic conversion from compressed/encrypted NOA to raw NOA.
+
+Runtime: Windows with .NET Framework 4.8 or later. No third-party runtime DLL,
+Python, .NET SDK, GUI, or network access is required to run the executable.
+Build: powershell -NoProfile -File source/build.ps1
+All corresponding build source is included alongside the executable.

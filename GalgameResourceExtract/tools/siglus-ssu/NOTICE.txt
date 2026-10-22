@@ -1,0 +1,28 @@
+SiglusSceneScriptUtility 0.5.7 and GalSkill baseline adapter v2
+
+Upstream: https://github.com/Jirehlov/SiglusSceneScriptUtility
+Commit: 85700715aed8695a95183bb973f981a61ae9d9c7
+Official PyPI wheel: siglus_ssu-0.5.7-py3-none-any.whl
+Wheel SHA-256: c4f45ac11f1650c00d284a477bda23c6c9be58b0eb3db32d3f7c544da72c8509
+Download URL, Python runtime source and binary hash: VERSION.json
+
+The 40 upstream Python source files are unmodified and match the pinned commit.
+Upstream license: Unlicense OR 0BSD; see LICENSE.
+GalSkill archive_cli.py, entry.py and build.py: 0BSD.
+The upstream tool is already a CLI. No GUI, development cache, Rust build tree,
+or game data is distributed here. Python source and licenses are retained.
+
+siglus-ssu.exe is a self-contained Windows x64 console application built with
+official CPython 3.12.10, PyInstaller 6.21.0 and hooks-contrib 2026.9.
+Runtime licenses are in PYTHON-LICENSE.txt and licenses/.
+Optional Pillow, psutil and Rust native acceleration are not included.
+
+Usage, limitations, verification and build instructions are maintained in
+the skill's commands/siglus-ssu.md. The adapter only replaces existing scene
+DAT files and preserves metadata from the original PCK. Modified DAT files
+with embedded original source, unknown layouts, links and existing outputs
+are refused. Only synthetic archive verification has been performed.
+
+Build with a clean official Windows Python 3.12 installation:
+python -m pip install PyInstaller==6.21.0 pyinstaller-hooks-contrib==2026.9
+python build.py --output C:\Temp\siglus-cli-build

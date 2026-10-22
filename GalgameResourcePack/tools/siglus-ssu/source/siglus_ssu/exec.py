@@ -1,0 +1,74 @@
+import os
+import sys
+import subprocess
+import datetime
+from .common import split_end_of_options, first_option_token
+from .path_policy import resolve_read_path
+
+
+def _strip_outer_quotes(value):
+    text = str(value)
+    if len(text) >= 2 and (
+        (text[0] == text[-1] == '"') or (text[0] == text[-1] == "'")
+    ):
+        return text[1:-1]
+    return text
+
+
+def main(argv):
+    args = list(argv)
+    args, positional_args = split_end_of_options(args)
+    unknown_option = first_option_token(args)
+    if unknown_option is not None:
+        sys.stderr.write(f"Unknown option: {unknown_option}\n")
+        return 2
+    if positional_args is not None:
+        args.extend(positional_args)
+    if len(args) != 3:
+        return 2
+    engine_path, ss_name, zlabel = args
+    engine_path = _strip_outer_quotes(engine_path)
+    try:
+        engine_path = resolve_read_path(engine_path, kind="file")
+    except (FileNotFoundError, NotADirectoryError):
+        sys.stderr.write(f"Engine not found: {engine_path}\n")
+        return 1
+    ss_name = _strip_outer_quotes(ss_name)
+    zlabel = _strip_outer_quotes(zlabel)
+    if os.path.basename(ss_name) != ss_name:
+        sys.stderr.write(f"Invalid scene name: {ss_name}\n")
+        return 2
+    label = str(zlabel).strip()
+    label = label.removeprefix("#")
+    if label.lower().startswith("z"):
+        label = label[1:]
+    label = label.strip()
+    try:
+        label_i = int(label, 10)
+    except ValueError:
+        label_i = None
+    if label_i is None or label_i < 0:
+        sys.stderr.write(f"Invalid zlabel: {zlabel}\n")
+        return 2
+    label = str(label_i)
+    ss = ss_name
+    if ss.lower().endswith(".ss"):
+        ss = ss[:-3]
+    engine_dir = os.path.dirname(os.path.abspath(engine_path))
+    work_dir = os.path.join(
+        engine_dir, "work_" + datetime.datetime.now().strftime("%Y%m%d")
+    )
+    os.makedirs(work_dir, exist_ok=True)
+    cmd = [
+        engine_path,
+        f"/work_dir={work_dir}",
+        f"/start={ss}",
+        f"/z_no={label}",
+        "/end_start",
+    ]
+    try:
+        subprocess.Popen(cmd, cwd=engine_dir)
+    except (OSError, ValueError) as e:
+        sys.stderr.write(f"Failed to launch engine: {e}\n")
+        return 1
+    return 0

@@ -1,6 +1,6 @@
 # pfs-rs CLI 调用约定
 
-用于 Artemis PF8/PFS 归档。入口为相对于本技能目录的 `tools/pfs-rs/pfs-rs.exe`；Windows x64，无 Rust、Python、GUI 或安装步骤。参数通过独立 argv 传递。
+用于 Artemis PF6 / PF8 归档读取与 PF8 创建。入口为相对于本技能目录的 `tools/pfs-rs/pfs-rs.exe`；Windows x64，无 Rust、Python、GUI 或安装步骤。所引上游版本为 `0.2.5` / 提交 `800affa45430be8de372652dd2bd108e7abec774`；参数通过独立 argv 传递。
 
 ```text
 pfs-rs.exe --help
@@ -20,5 +20,6 @@ pfs-rs.exe create INPUT_DIR/ --no-smart-detect -o OUTPUT.pfs
 - `--strip-components` 只有参数入口，当前实现不生效，不使用。
 - 成功返回 0，运行失败返回非零；stdout/stderr 都可能有日志。核对退出码与实际输出路径。
 - 归档层工具不负责解析 Artemis 脚本或生成对白映射。创建后重新提取，比较条目相对路径与 SHA-256。
+- 读取可识别 PF6 / PF8，创建只写 PF8。所引实现对名称先尝试 UTF-8，再尝试 Shift-JIS；写入使用 UTF-8。旧 PF6、非 UTF-8 名称或要求保持原名称字节的归档，不能据此宣称完成原格式重建，需另选匹配写入器。
 
 分发时保留 `tools/pfs-rs/pfs-rs.exe` 及其 `licenses/` 目录。

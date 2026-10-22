@@ -17,6 +17,7 @@
 | Entis GLS／Cotopha | `.csx`：`Cotopha Image file` 二进制脚本；版本间可用内联字符串或 `conststr` 表 | 常见 `.mio` 等；以文件头和调用为准 | `.noa` 等 Entis 归档，也有散文件 | 先核验分层、16 字节段头和完整字符串索引；见[NOA、CSX 与 Cotomi 存档参考](../engine/entis-gls.md)。同名资源加载优先级须在当前安装验证 |
 | Ren’Py | `.rpy`：源码；`.rpyc`：编译脚本 | 常见 `.ogg`、`.opus`、`.mp3`、`.wav`，也支持 `.flac` 等 | `.rpa`，或 `game/` 下的散文件 | 语音通常由 `voice` 语句或自动语音机制引用；[音频文档](https://www.renpy.org/doc/html/audio.html) |
 | TyranoScript／TyranoBuilder | `.ks`：剧情脚本；`.js`：逻辑及插件 | `.mp3`、`.ogg`、`.m4a`、`.wav` | 通常在 `data/scenario/`、`data/sound/` 等目录；桌面版可能另行封装 | 实际音频支持取决于浏览器或桌面运行环境；[官方标签参考](https://tyrano.jp/tag/v5) |
+| Artemis | AST / ASB 等脚本，按版本与实际资源确认 | 以成员文件头与脚本引用为准 | `.pfs`，常见 PF6 / PF8 | 随附 pfs-rs 读取 PF6 / PF8、仅创建 PF8；见[引擎资料](../engine/artemis.md) |
 
 ## 使用说明
 
@@ -26,3 +27,5 @@
 - 表中的音频格式不代表文件一定用于配音；语音、BGM 和音效常共用格式，需要结合目录和脚本调用判断。
 
 具体引擎资料通过 [格式索引](formats.json) 路由。索引中的 `reference_only` 仅表示有分析资料；`external_cli` 表示需要工具核对当前归档，不是所有版本已验证可用。脚本语义和语音关联单独验证。
+
+现有 15 份引擎页已从 [SKILL.md](../SKILL.md#按需查阅) 直接链接。工具表以当前随附版本为准；新增归档 CLI 的合成测试不构成真实游戏支持案例，也不表示已补齐任意压缩、加密、脚本或媒体写入能力。

@@ -1,0 +1,2072 @@
+import csv
+import struct
+import io
+from contextlib import redirect_stdout
+import os
+import sys
+import time
+import tempfile
+from . import const as C
+from .native_ops import lzss_unpack, smd5_digest, xor_cycle_inplace
+from . import compiler
+from .word_count import count_text_units
+from .common import (
+    hx,
+    dn,
+    I32_PAIR_STRUCT,
+    read_struct_list,
+    max_pair_end,
+    decode_utf16le_strings,
+    decode_text_auto,
+    add_gap_sections,
+    print_sections,
+    diff_kv,
+    build_sections,
+    build_source_angou_layout,
+    read_bytes,
+    write_bytes,
+    parse_i32_header,
+    parse_i32_header_checked,
+    parse_code,
+    is_named_filename,
+    find_named_path,
+    ANGOU_DAT_NAME,
+    read_u32_le,
+    decode_angou_first_line,
+    read_angou_first_line,
+    looks_like_siglus_dat,
+    looks_like_siglus_pck,
+    new_disam_stats,
+    write_disam_totals,
+    iter_exe_el_sources,
+    format_exe_el_source,
+)
+from .path_policy import (
+    FilenameCaseCollisionError,
+    resolve_read_path,
+    windows_filename_key,
+)
+
+MAX_SCENE_LIST = 2000
+
+
+def _parse_flix_pck(blob: bytes) -> dict:
+    if (not blob) or len(blob) < 0x20:
+        return {}
+    ver, cnt, data_rel, idx_rel = struct.unpack_from("<4I", blob, 0)
+    if int(ver) != 1:
+        return {}
+    cnt = int(cnt)
+    if cnt <= 0 or cnt > 200000:
+        return {}
+    base = 0x20
+    idx_abs = base + int(idx_rel)
+    data_abs = base + int(data_rel)
+    if data_abs < idx_abs or data_abs > len(blob):
+        return {}
+    if idx_abs + cnt * 16 != data_abs:
+        return {}
+    name_tbl_end = base + cnt * 4
+    if name_tbl_end > idx_abs:
+        return {}
+    lens = list(struct.unpack_from("<" + "I" * cnt, blob, base))
+    for ln in lens:
+        ln = int(ln) & 0xFFFFFFFF
+        if (ln & 1) != 0 or ln > 0x20000:
+            return {}
+    pos = name_tbl_end
+    names = []
+    for ln in lens:
+        ln = int(ln) & 0xFFFFFFFF
+        if pos + ln > idx_abs:
+            return {}
+        b = blob[pos : pos + ln]
+        nm = b.decode("utf-16le", "surrogatepass")
+        names.append(nm)
+        pos += ln
+    if pos < idx_abs:
+        tail = blob[pos:idx_abs]
+        if len(tail) % 2 != 0:
+            return {}
+        if tail and any(
+            tail[i] != 0 or tail[i + 1] != 0 for i in range(0, len(tail), 2)
+        ):
+            return {}
+    entries = []
+    for i in range(cnt):
+        off, sz = struct.unpack_from("<QQ", blob, idx_abs + i * 16)
+        off = int(off)
+        sz = int(sz)
+        if off < data_abs or off + sz > len(blob):
+            return {}
+        entries.append((off, sz))
+    for i in range(1, len(entries)):
+        if entries[i][0] < entries[i - 1][0]:
+            return {}
+    return {
+        "version": 1,
+        "cnt": cnt,
+        "data_rel": int(data_rel),
+        "idx_rel": int(idx_rel),
+        "base": base,
+        "idx_abs": idx_abs,
+        "data_abs": data_abs,
+        "names": names,
+        "entries": entries,
+    }
+
+
+def _looks_like_flix_pck(blob) -> bool:
+    return bool(_parse_flix_pck(blob))
+
+
+def looks_like_pck(blob):
+    return looks_like_siglus_pck(blob) or _looks_like_flix_pck(blob)
+
+
+def _pck_sections(blob, preview=False):
+    n = len(blob)
+
+    def _validate_header_size(hs, n, default):
+        if hs != 0 and (hs < default or hs > n):
+            return default
+        return hs
+
+    h, hs, used, secs, sec, sec_fixed = build_sections(
+        blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE, _validate_header_size
+    )
+    sec(0, hs, "H", "pack_header")
+    sec_fixed(
+        h.get("inc_prop_list_ofs", 0), h.get("inc_prop_cnt", 0), 8, "P", "inc_prop_list"
+    )
+    sec_fixed(
+        h.get("inc_prop_name_index_list_ofs", 0),
+        h.get("inc_prop_name_index_cnt", 0),
+        8,
+        "p",
+        "inc_prop_name_index_list",
+    )
+    sec_fixed(
+        h.get("inc_cmd_list_ofs", 0), h.get("inc_cmd_cnt", 0), 8, "C", "inc_cmd_list"
+    )
+    sec_fixed(
+        h.get("inc_cmd_name_index_list_ofs", 0),
+        h.get("inc_cmd_name_index_cnt", 0),
+        8,
+        "c",
+        "inc_cmd_name_index_list",
+    )
+    sec_fixed(
+        h.get("scn_name_index_list_ofs", 0),
+        h.get("scn_name_index_cnt", 0),
+        8,
+        "N",
+        "scn_name_index_list",
+    )
+    sec_fixed(
+        h.get("scn_data_index_list_ofs", 0),
+        h.get("scn_data_index_cnt", 0),
+        8,
+        "I",
+        "scn_data_index_list",
+    )
+    inc_prop_name_idx = read_struct_list(
+        blob,
+        h.get("inc_prop_name_index_list_ofs", 0),
+        h.get("inc_prop_name_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    inc_cmd_name_idx = read_struct_list(
+        blob,
+        h.get("inc_cmd_name_index_list_ofs", 0),
+        h.get("inc_cmd_name_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    scn_name_idx = read_struct_list(
+        blob,
+        h.get("scn_name_index_list_ofs", 0),
+        h.get("scn_name_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    ipp_end = h.get("inc_prop_name_list_ofs", 0) + max_pair_end(inc_prop_name_idx) * 2
+    icn_end = h.get("inc_cmd_name_list_ofs", 0) + max_pair_end(inc_cmd_name_idx) * 2
+    sn_end = h.get("scn_name_list_ofs", 0) + max_pair_end(scn_name_idx) * 2
+    if h.get("inc_prop_name_list_ofs", 0) > 0 and ipp_end > h.get(
+        "inc_prop_name_list_ofs", 0
+    ):
+        sec(h.get("inc_prop_name_list_ofs", 0), ipp_end, "s", "inc_prop_name_list")
+    if h.get("inc_cmd_name_list_ofs", 0) > 0 and icn_end > h.get(
+        "inc_cmd_name_list_ofs", 0
+    ):
+        sec(h.get("inc_cmd_name_list_ofs", 0), icn_end, "n", "inc_cmd_name_list")
+    if h.get("scn_name_list_ofs", 0) > 0 and sn_end > h.get("scn_name_list_ofs", 0):
+        sec(h.get("scn_name_list_ofs", 0), sn_end, "S", "scn_name_list")
+    scn_data_idx = read_struct_list(
+        blob,
+        h.get("scn_data_index_list_ofs", 0),
+        h.get("scn_data_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    scn_data_end = h.get("scn_data_list_ofs", 0) + max_pair_end(scn_data_idx)
+    if h.get("scn_data_list_ofs", 0) > 0 and scn_data_end > h.get(
+        "scn_data_list_ofs", 0
+    ):
+        sec(h.get("scn_data_list_ofs", 0), scn_data_end, "L", "scn_data_list")
+    scn_names = (
+        decode_utf16le_strings(
+            blob,
+            scn_name_idx,
+            h.get("scn_name_list_ofs", 0),
+            sn_end,
+            errors="surrogatepass",
+            strip_null=False,
+            on_error="append_default",
+            allow_empty_blob=True,
+        )
+        if scn_name_idx
+        else []
+    )
+    item_cnt = (
+        min(len(scn_data_idx), len(scn_names)) if scn_names else len(scn_data_idx)
+    )
+    if item_cnt and (preview or item_cnt <= MAX_SCENE_LIST):
+        for i in range(item_cnt):
+            o, s = scn_data_idx[i]
+            if o < 0 or s <= 0:
+                continue
+            a = h.get("scn_data_list_ofs", 0) + o
+            b = a + s
+            nm = (
+                scn_names[i]
+                if i < len(scn_names) and scn_names[i]
+                else (f"scene#{i:d}")
+            )
+            sec(a, b, "D", nm + ".dat")
+    tail_start = scn_data_end if scn_data_end > 0 else 0
+    os_hsz = int(h.get("original_source_header_size", 0) or 0)
+    if os_hsz > 0 and tail_start >= 0 and tail_start + os_hsz <= n:
+        sec(tail_start, tail_start + os_hsz, "O", "original_source_header (encrypted)")
+        tail_start += os_hsz
+    source_entries = []
+    source_error = ""
+    if preview:
+        try:
+            source_entries = _pck_original_source_entries(blob, h)
+        except ValueError as exc:
+            source_error = str(exc)
+    if tail_start < n:
+        if source_entries:
+            last = tail_start
+            for nm, a, b, _raw in source_entries:
+                if a > last:
+                    sec(last, a, "U", "unknown data")
+                sec(a, b, "T", nm)
+                last = b
+            if last < n:
+                sec(last, n, "U", "unknown data")
+        else:
+            sec(tail_start, n, "U", "unknown data" if preview else "original_sources")
+    add_gap_sections(secs, used, n)
+    meta = {
+        "header": h,
+        "scn_names": scn_names,
+        "inc_prop_names": (
+            decode_utf16le_strings(
+                blob,
+                inc_prop_name_idx,
+                h.get("inc_prop_name_list_ofs", 0),
+                ipp_end,
+                errors="surrogatepass",
+                strip_null=False,
+                on_error="append_default",
+                allow_empty_blob=True,
+            )
+            if inc_prop_name_idx
+            else []
+        ),
+        "inc_cmd_names": (
+            decode_utf16le_strings(
+                blob,
+                inc_cmd_name_idx,
+                h.get("inc_cmd_name_list_ofs", 0),
+                icn_end,
+                errors="surrogatepass",
+                strip_null=False,
+                on_error="append_default",
+                allow_empty_blob=True,
+            )
+            if inc_cmd_name_idx
+            else []
+        ),
+        "item_cnt": item_cnt,
+        "scene_script_ids": _scene_script_id_map(source_entries) if preview else {},
+        "original_source_count": len(source_entries),
+        "original_source_error": source_error,
+        "original_source_entries": source_entries
+        if preview and not source_error
+        else None,
+    }
+    return secs, meta
+
+
+def _flix_pck_sections(blob, info):
+    n = len(blob)
+    cnt = info["cnt"]
+    base = info["base"]
+    idx_abs = info["idx_abs"]
+    data_abs = info["data_abs"]
+    names = info["names"]
+    entries = info["entries"]
+    h = {
+        "header_size": base,
+        "version": info["version"],
+        "file_cnt": cnt,
+        "data_start_rel": info["data_rel"],
+        "index_table_rel": info["idx_rel"],
+    }
+    secs = []
+    used = []
+
+    def sec(a, b, sym, name):
+        if b <= a:
+            return
+        secs.append((a, b, sym, name))
+        used.append((a, b))
+
+    sec(0, base, "H", "flix_pack_header")
+    sec(base, base + cnt * 4, "L", "name_len_list")
+    sec(base + cnt * 4, idx_abs, "S", "name_list")
+    sec(idx_abs, data_abs, "I", "index_table")
+    for i in range(cnt):
+        off, sz = entries[i]
+        nm = names[i] or f"file#{i:d}"
+        sec(off, off + sz, "D", nm)
+    add_gap_sections(secs, used, n)
+    meta = {"header": h, "file_names": names, "item_cnt": cnt}
+    return secs, meta
+
+
+def _pck_original_source_entries(blob, h, only_name=""):
+    out = []
+    os_hsz = int(h.get("original_source_header_size", 0) or 0)
+    if os_hsz == 0:
+        return out
+    if os_hsz < 0:
+        raise ValueError("original-source (OS) header size is invalid")
+    scn_data_idx = read_struct_list(
+        blob,
+        h.get("scn_data_index_list_ofs", 0),
+        h.get("scn_data_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    base = int(h.get("scn_data_list_ofs", 0))
+    if (
+        len(scn_data_idx) != h.get("scn_data_index_cnt", 0)
+        or base < 0
+        or base > len(blob)
+        or any(a < 0 or b < 0 or base + a + b > len(blob) for a, b in scn_data_idx)
+    ):
+        raise ValueError(
+            "cannot locate original-source (OS) section: invalid scene data index"
+        )
+    pos = base + max_pair_end(scn_data_idx)
+    if pos == len(blob):
+        raise ValueError("original-source (OS) section is declared but missing")
+    if pos + os_hsz > len(blob):
+        raise ValueError("original-source (OS) header is truncated")
+    ctx = {"source_angou": C.SOURCE_ANGOU}
+    try:
+        size_bytes, _ = source_angou_decrypt(blob[pos : pos + os_hsz], ctx)
+    except (ValueError, RuntimeError, struct.error) as exc:
+        raise ValueError(
+            f"original-source (OS) header cannot be decoded: {exc}"
+        ) from exc
+    if len(size_bytes) % 4:
+        raise ValueError("original-source (OS) size table is invalid")
+    sizes = struct.unpack("<" + "I" * (len(size_bytes) // 4), size_bytes)
+    pos += os_hsz
+    if any(sz == 0 for sz in sizes):
+        raise ValueError("original-source (OS) size table contains an empty chunk")
+    if sum(sizes) > len(blob) - pos:
+        raise ValueError("original-source (OS) data is truncated")
+    for index, sz in enumerate(sizes):
+        try:
+            raw, nm = source_angou_decrypt(
+                blob[pos : pos + sz], ctx, only_name=only_name
+            )
+        except (ValueError, RuntimeError, struct.error) as exc:
+            raise ValueError(
+                f"original-source (OS) chunk {index:d} at {pos:#x} cannot be decoded: {exc}"
+            ) from exc
+        if not only_name or is_named_filename(os.path.basename(nm), only_name):
+            out.append((nm, pos, pos + sz, raw))
+        pos += sz
+    return out
+
+
+def _pck_original_source_rows(entries):
+    return [(nm, a, b, len(raw), raw) for nm, a, b, raw in entries]
+
+
+def _read_scene_script_id(raw):
+    try:
+        line = bytes(raw or b"")[:1024].splitlines()[0]
+    except Exception:
+        return None
+    prefix = compiler.SCENE_SCRIPT_ID_PREFIX
+    if (not line.startswith(prefix)) or len(line) < len(prefix) + 4:
+        return None
+    value = line[len(prefix) : len(prefix) + 4]
+    if len(value) != 4 or any(b < 48 or b > 57 for b in value):
+        return None
+    return int(value)
+
+
+def _scene_script_id_keys(name):
+    out = []
+    for item in (str(name or ""), os.path.basename(str(name or ""))):
+        if not item:
+            continue
+        _stem, ext = os.path.splitext(item)
+        if ext.casefold() == ".ss" and item not in out:
+            out.append(item)
+    return out
+
+
+def _scene_script_id_map(source_entries):
+    out = {}
+    for name, _a, _b, raw in source_entries or []:
+        keys = _scene_script_id_keys(name)
+        if not keys:
+            continue
+        sid = _read_scene_script_id(raw)
+        if sid is None:
+            continue
+        for key in keys:
+            out.setdefault(("exact", key), sid)
+            folded = ("filename", windows_filename_key(key))
+            if folded in out and out[folded] != sid:
+                out[folded] = None
+            else:
+                out.setdefault(folded, sid)
+    return out
+
+
+def _scene_script_id_get(mapping, name):
+    if not isinstance(mapping, dict):
+        return None
+    keys = _scene_script_id_keys(name)
+    for key in keys:
+        exact = ("exact", key)
+        if exact in mapping:
+            return mapping[exact]
+    for key in keys:
+        folded = ("filename", windows_filename_key(key))
+        if folded in mapping:
+            return mapping[folded]
+    return None
+
+
+def _scene_script_id_text(sid):
+    return "%04d" % int(sid) if sid is not None else "-"
+
+
+def _scene_script_id_pair(left, right):
+    if left == right:
+        return _scene_script_id_text(left)
+    return _scene_script_id_text(left) + "/" + _scene_script_id_text(right)
+
+
+def _iter_pck_original_source_items(blob: bytes, hdr=None, only_name=""):
+    if not looks_like_siglus_pck(blob):
+        return
+    if not hdr:
+        hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    if not hdr:
+        return
+    for name, _a, _b, raw in _pck_original_source_entries(
+        blob, hdr, only_name=only_name
+    ):
+        yield {"name": name, "raw": raw}
+
+
+def iter_pck_angou_dat_items(blob: bytes, hdr=None, source_entries=None):
+    if source_entries is None:
+        try:
+            cands = list(
+                _iter_pck_original_source_items(blob, hdr=hdr, only_name=ANGOU_DAT_NAME)
+            )
+        except ValueError:
+            return
+    else:
+        cands = [
+            {"name": name, "raw": raw}
+            for name, _a, _b, raw in source_entries
+            if is_named_filename(os.path.basename(name), ANGOU_DAT_NAME)
+        ]
+    cands.sort(key=lambda item: (len(item["name"]), item["name"].casefold()))
+    yield from cands
+
+
+def _pck_angou_content(
+    blob: bytes, input_pck: str = "", hdr=None, source_entries=None
+) -> str:
+    for item in iter_pck_angou_dat_items(blob, hdr=hdr, source_entries=source_entries):
+        line = decode_angou_first_line(item["raw"])
+        if line:
+            return line
+    if input_pck:
+        try:
+            path = find_named_path(
+                os.path.dirname(os.path.abspath(input_pck)),
+                ANGOU_DAT_NAME,
+            )
+        except Exception:
+            path = ""
+        if path:
+            line = read_angou_first_line(path)
+            if line:
+                return line
+    return ""
+
+
+def _read_pck_scene_lists(blob: bytes, hdr=None):
+    if not looks_like_siglus_pck(blob):
+        return ([], [])
+    if not hdr:
+        hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    if not hdr:
+        return ([], [])
+    scn_name_idx = read_struct_list(
+        blob,
+        hdr.get("scn_name_index_list_ofs", 0),
+        hdr.get("scn_name_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    scn_name_blob_len = max([a + b for a, b in scn_name_idx], default=0) * 2
+    scn_names = decode_utf16le_strings(
+        blob,
+        scn_name_idx,
+        hdr.get("scn_name_list_ofs", 0),
+        hdr.get("scn_name_list_ofs", 0) + scn_name_blob_len,
+        errors="surrogatepass",
+        strip_null=False,
+        on_error="append_default",
+        min_blob_ofs=1,
+        allow_empty_blob=True,
+        strict_blob_end=True,
+    )
+    scn_data_idx = read_struct_list(
+        blob,
+        hdr.get("scn_data_index_list_ofs", 0),
+        hdr.get("scn_data_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    scn_data = _read_blobs(
+        blob,
+        scn_data_idx,
+        hdr.get("scn_data_list_ofs", 0),
+        max([a + b for a, b in scn_data_idx], default=0),
+    )
+    if len(scn_names) != len(scn_data):
+        n = min(len(scn_names), len(scn_data))
+        scn_names = scn_names[:n]
+        scn_data = scn_data[:n]
+    return (scn_names, scn_data)
+
+
+def _resolve_pck_scene_exe_el(
+    blob: bytes,
+    input_pck: str = "",
+    hdr=None,
+    scn_data=None,
+    explicit_angou: str = "",
+    trace_key: bool = False,
+    source_entries=None,
+):
+    try:
+        if not hdr:
+            hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+        if int((hdr or {}).get("scn_data_exe_angou_mod", 0) or 0) == 0:
+            return b""
+    except Exception:
+        return b""
+    base_dir = os.path.dirname(os.path.abspath(input_pck)) if input_pck else ""
+    try:
+        sources = iter_exe_el_sources(
+            explicit_angou=explicit_angou,
+            input_path=input_pck,
+            base_dir=base_dir,
+            input_blob=blob,
+            input_source_entries=source_entries,
+        )
+    except Exception:
+        return b""
+    while True:
+        try:
+            src = next(sources)
+        except StopIteration:
+            break
+        except ValueError:
+            if explicit_angou:
+                raise
+            return b""
+        except Exception:
+            return b""
+        exe_el = src["exe_el"]
+        if trace_key:
+            sys.stderr.write(f"key source try: {format_exe_el_source(src)}\n")
+        if scn_data:
+            for scn_blob in scn_data:
+                out_dat = _decode_scene_blob(
+                    scn_blob,
+                    hdr,
+                    exe_el,
+                    require_exe=True,
+                )
+                if out_dat and looks_like_siglus_dat(out_dat):
+                    if trace_key:
+                        sys.stderr.write(
+                            f"key source accepted: {format_exe_el_source(src)}\n"
+                        )
+                    return exe_el
+            if trace_key:
+                sys.stderr.write(
+                    f"key source rejected, falling back: {format_exe_el_source(src)}\n"
+                )
+            continue
+        if trace_key:
+            sys.stderr.write(f"key source accepted: {format_exe_el_source(src)}\n")
+        return exe_el
+    return b""
+
+
+def require_pck_scene_exe_el(
+    blob: bytes,
+    input_pck: str = "",
+    hdr=None,
+    scn_data=None,
+    explicit_angou: str = "",
+    source_entries=None,
+):
+    if not hdr:
+        hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    if int((hdr or {}).get("scn_data_exe_angou_mod", 0) or 0) == 0:
+        return b""
+    if scn_data is None:
+        _, scn_data = _read_pck_scene_lists(blob, hdr=hdr)
+    exe_el = _resolve_pck_scene_exe_el(
+        blob,
+        input_pck=input_pck,
+        hdr=hdr,
+        scn_data=scn_data,
+        explicit_angou=explicit_angou,
+        trace_key=True,
+        source_entries=source_entries,
+    )
+    if exe_el:
+        return exe_el
+    label = str(input_pck or "input PCK")
+    raise RuntimeError(
+        f"{label}: encrypted scene data requires a valid exe_el key source"
+    )
+
+
+def iter_pck_scene_dat_items(
+    blob: bytes,
+    input_pck: str = "",
+    hdr=None,
+    require_exe: bool = False,
+    explicit_angou: str = "",
+    trace_key: bool = False,
+    scene_exe_el=None,
+    scene_lists=None,
+    source_entries=None,
+):
+    if not looks_like_siglus_pck(blob):
+        return
+    if not hdr:
+        hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    if not hdr:
+        return
+    scn_names, scn_data = (
+        _read_pck_scene_lists(blob, hdr=hdr) if scene_lists is None else scene_lists
+    )
+    pack_context = _build_disam_pack_context(blob, hdr=hdr, scene_names=scn_names)
+    if scene_exe_el is None:
+        exe_el = _resolve_pck_scene_exe_el(
+            blob,
+            input_pck=input_pck,
+            hdr=hdr,
+            scn_data=scn_data,
+            explicit_angou=explicit_angou,
+            trace_key=trace_key,
+            source_entries=source_entries,
+        )
+    else:
+        exe_el = bytes(scene_exe_el)
+    for scn_no, (nm, scn_blob) in enumerate(zip(scn_names, scn_data)):
+        if not nm:
+            continue
+        rel = _safe_relpath(nm + ".dat") or (nm + ".dat")
+        out_dat = _decode_scene_blob(
+            scn_blob,
+            hdr,
+            exe_el,
+            require_exe=require_exe,
+        )
+        yield {
+            "scene_no": scn_no,
+            "scene_name": nm,
+            "relpath": rel,
+            "blob": out_dat,
+            "pack_context": pack_context,
+        }
+
+
+def _collect_pck_read_flag_stats(
+    blob: bytes,
+    input_pck: str = "",
+    hdr=None,
+    explicit_angou: str = "",
+    source_entries=None,
+):
+    stats = {
+        "read_flags": 0,
+        "read_flags_scenes": 0,
+        "top5_read_flags_scenes": [],
+        "available_scene_files": 0,
+        "unavailable_scene_files": 0,
+    }
+    scene_counts = []
+    for item in (
+        iter_pck_scene_dat_items(
+            blob,
+            input_pck=input_pck,
+            hdr=hdr,
+            require_exe=True,
+            explicit_angou=explicit_angou,
+            trace_key=True,
+            source_entries=source_entries,
+        )
+        or []
+    ):
+        nm = str(item.get("scene_name") or "")
+        scn_blob = item.get("blob")
+        if not isinstance(scn_blob, (bytes, bytearray)):
+            stats["unavailable_scene_files"] += 1
+            continue
+        scn_blob = bytes(scn_blob)
+        if not looks_like_siglus_dat(scn_blob):
+            stats["unavailable_scene_files"] += 1
+            continue
+        scn_hdr = parse_i32_header_checked(
+            scn_blob,
+            C.SCN_HDR_FIELDS,
+            C.SCN_HDR_SIZE,
+        )
+        if not scn_hdr:
+            stats["unavailable_scene_files"] += 1
+            continue
+        stats["available_scene_files"] += 1
+        cnt = int((scn_hdr or {}).get("read_flag_cnt", 0) or 0)
+        stats["read_flags"] += cnt
+        if cnt > 0:
+            stats["read_flags_scenes"] += 1
+            scene_counts.append((nm, cnt))
+    scene_counts.sort(key=lambda item: (-item[1], item[0].casefold(), item[0]))
+    stats["top5_read_flags_scenes"] = scene_counts[:5]
+    return stats
+
+
+def _pck_word_csv_name(input_pck: str) -> str:
+    stem = os.path.splitext(os.path.basename(str(input_pck or "")))[0]
+    if not stem:
+        stem = "Scene"
+    return stem + ".word.csv"
+
+
+def _pck_word_csv_path(input_pck: str, output_csv: str = "") -> str:
+    input_pck = os.path.abspath(input_pck)
+    if not output_csv:
+        return os.path.join(os.path.dirname(input_pck), _pck_word_csv_name(input_pck))
+    output_csv = str(output_csv)
+    if os.path.isdir(output_csv) or output_csv.endswith(("\\", "/")):
+        return os.path.join(os.path.abspath(output_csv), _pck_word_csv_name(input_pck))
+    return os.path.abspath(output_csv)
+
+
+def _write_pck_word_csv(csv_path: str, rows) -> None:
+    os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
+    with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f, lineterminator="\r\n")
+        w.writerow(
+            ["type", "path", "status", "dialogue_lines", "dialogue_count", "error"]
+        )
+        for row in rows or []:
+            w.writerow(
+                [
+                    str((row or {}).get("type") or ""),
+                    str((row or {}).get("path") or ""),
+                    str((row or {}).get("status") or ""),
+                    (row or {}).get("lines"),
+                    (row or {}).get("count"),
+                    str((row or {}).get("error") or ""),
+                ]
+            )
+
+
+def _pck_cd_word_rows(
+    blob: bytes,
+    input_pck: str = "",
+    hdr=None,
+    explicit_angou: str = "",
+    scene_exe_el=None,
+    scene_lists=None,
+) -> dict:
+    from . import dat as _dat
+
+    stats = {
+        "rows": [],
+        "scene_files": 0,
+        "parsed_scene_files": 0,
+        "cd_text_dialogue_lines": 0,
+        "cd_text_dialogue_count": 0,
+    }
+    for item in (
+        iter_pck_scene_dat_items(
+            blob,
+            input_pck=input_pck,
+            hdr=hdr,
+            explicit_angou=explicit_angou,
+            require_exe=True,
+            scene_exe_el=scene_exe_el,
+            scene_lists=scene_lists,
+        )
+        or []
+    ):
+        stats["scene_files"] += 1
+        row = {
+            "type": "dat",
+            "path": str(item.get("relpath") or ""),
+            "status": "ok",
+            "lines": 0,
+            "count": 0,
+        }
+        scn_blob = item.get("blob")
+        if not scn_blob:
+            row.update(
+                status="failed",
+                lines=None,
+                count=None,
+                error="scene data could not be decoded",
+            )
+            stats["rows"].append(row)
+            continue
+        bundle = _dat.dat_disassembly_bundle(
+            scn_blob,
+            item.get("relpath"),
+            pack_context=item.get("pack_context"),
+            scene_no=item.get("scene_no"),
+            scene_name=item.get("scene_name"),
+        )
+        if not bundle:
+            row.update(
+                status="failed",
+                lines=None,
+                count=None,
+                error="scene data could not be parsed",
+            )
+            stats["rows"].append(row)
+            continue
+        stats["parsed_scene_files"] += 1
+        for ev in bundle.get("trace") or []:
+            if str((ev or {}).get("op") or "") != "CD_TEXT":
+                continue
+            txt = (ev or {}).get("text")
+            if txt is None:
+                continue
+            try:
+                txt = str(txt)
+            except Exception:
+                continue
+            if txt == "":
+                continue
+            row["lines"] += 1
+            row["count"] += count_text_units(txt)
+        stats["cd_text_dialogue_lines"] += int(row.get("lines", 0) or 0)
+        stats["cd_text_dialogue_count"] += int(row.get("count", 0) or 0)
+        stats["rows"].append(row)
+    return stats
+
+
+def _pck_ss_word_rows(blob: bytes, hdr=None) -> dict:
+    from . import textmap as _textmap
+
+    stats = {
+        "rows": [],
+        "ss_source_files": 0,
+        "ss_failed_files": 0,
+        "ss_dialogue_lines": 0,
+        "ss_dialogue_count": 0,
+    }
+    sources = list(_iter_pck_original_source_items(blob, hdr=hdr) or [])
+    if not sources:
+        return stats
+    with tempfile.TemporaryDirectory(prefix="siglus_ssu_textmap_") as tmpdir:
+        tmpdir = os.path.realpath(tmpdir)
+        ss_paths = []
+        seen_ss_paths = set()
+        for item in sources:
+            raw = bytes(item.get("raw") or b"")
+            name = str(item.get("name") or "")
+            rel = _safe_relpath(name)
+            if not rel:
+                rel = "unknown.bin"
+            rel_display = rel.replace("\\", "/")
+            try:
+                out_path = os.path.realpath(os.path.join(tmpdir, rel))
+                inside_tmpdir = (
+                    os.path.commonpath((tmpdir, os.path.dirname(out_path))) == tmpdir
+                )
+            except ValueError:
+                inside_tmpdir = False
+            if not inside_tmpdir:
+                raise OSError(f"invalid original-source path: {name!r}")
+            os.makedirs(os.path.dirname(out_path) or tmpdir, exist_ok=True)
+            if os.path.exists(out_path):
+                try:
+                    if read_bytes(out_path) != raw:
+                        out_path = _unique_outpath(
+                            os.path.dirname(out_path) or tmpdir,
+                            os.path.basename(rel) or rel,
+                        )
+                        rel_display = os.path.relpath(out_path, tmpdir).replace(
+                            "\\", "/"
+                        )
+                        write_bytes(out_path, raw)
+                except FilenameCaseCollisionError:
+                    raise
+                except Exception:
+                    out_path = _unique_outpath(
+                        os.path.dirname(out_path) or tmpdir,
+                        os.path.basename(rel) or rel,
+                    )
+                    rel_display = os.path.relpath(out_path, tmpdir).replace("\\", "/")
+                    write_bytes(out_path, raw)
+            else:
+                write_bytes(out_path, raw)
+            if os.path.splitext(out_path)[1].lower() == ".ss":
+                key = (os.path.abspath(out_path), rel_display)
+                if key not in seen_ss_paths:
+                    seen_ss_paths.add(key)
+                    ss_paths.append((out_path, rel_display, raw))
+        if not ss_paths:
+            return stats
+        iad_cache = {}
+        for ss_path, rel_display, raw in sorted(
+            ss_paths, key=lambda p: str(p[1]).casefold()
+        ):
+            stats["ss_source_files"] += 1
+            row = {
+                "type": "ss",
+                "path": rel_display,
+                "status": "ok",
+                "lines": 0,
+                "count": 0,
+            }
+            try:
+                text, encoding, _ = decode_text_auto(raw, stop_at_dos_eof=True)
+                ctx = {
+                    "scn_path": os.path.dirname(os.path.abspath(ss_path)),
+                    "utf8": bool(str(encoding or "").startswith("utf-8")),
+                }
+                key = (ctx["scn_path"], ctx["utf8"])
+                iad_base = iad_cache.get(key)
+                if iad_base is None:
+                    with redirect_stdout(io.StringIO()):
+                        iad_base = _textmap.BS.build_ia_data(ctx)
+                    iad_cache[key] = iad_base
+                tokens, iad = _textmap.collect_tokens(text, ctx, iad_base=iad_base)
+                entries = _textmap.locate_tokens(text, tokens, iad)
+                for entry in entries:
+                    if int(entry.get("kind", 0) or 0) != 1:
+                        continue
+                    txt = str(entry.get("text") or "")
+                    if not txt:
+                        continue
+                    row["lines"] += 1
+                    row["count"] += count_text_units(txt)
+            except FilenameCaseCollisionError:
+                raise
+            except Exception as exc:
+                row.update(
+                    status="failed",
+                    lines=None,
+                    count=None,
+                    error=str(exc) or type(exc).__name__,
+                )
+                stats["ss_failed_files"] += 1
+            stats["ss_dialogue_lines"] += int(row.get("lines", 0) or 0)
+            stats["ss_dialogue_count"] += int(row.get("count", 0) or 0)
+            stats["rows"].append(row)
+    return stats
+
+
+def pck_word_count(
+    input_pck: str, output_csv: str = "", explicit_angou: str = ""
+) -> int:
+    try:
+        input_pck = resolve_read_path(input_pck, kind="file")
+    except (FileNotFoundError, NotADirectoryError):
+        sys.stderr.write(f"not found: {input_pck}\n")
+        return 2
+    blob = read_bytes(input_pck)
+    if _looks_like_flix_pck(blob) and (not looks_like_siglus_pck(blob)):
+        print("unsupported --word input: flix .pck is not supported")
+        return 1
+    if not looks_like_siglus_pck(blob):
+        print("unsupported --word input: only Siglus .pck is supported")
+        return 1
+    hdr = parse_i32_header(blob, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    scene_lists = _read_pck_scene_lists(blob, hdr=hdr)
+    try:
+        scene_exe_el = require_pck_scene_exe_el(
+            blob,
+            input_pck=input_pck,
+            hdr=hdr,
+            scn_data=scene_lists[1],
+            explicit_angou=explicit_angou,
+        )
+    except RuntimeError as exc:
+        sys.stderr.write(str(exc) + "\n")
+        return 1
+    dat_stats = _pck_cd_word_rows(
+        blob,
+        input_pck=input_pck,
+        hdr=hdr,
+        explicit_angou=explicit_angou,
+        scene_exe_el=scene_exe_el,
+        scene_lists=scene_lists,
+    )
+    ss_error = ""
+    try:
+        ss_stats = _pck_ss_word_rows(blob, hdr=hdr)
+    except ValueError as exc:
+        ss_error = str(exc) or type(exc).__name__
+        ss_stats = {
+            "rows": [
+                {
+                    "type": "ss",
+                    "path": "",
+                    "status": "unavailable",
+                    "lines": None,
+                    "count": None,
+                    "error": ss_error,
+                }
+            ]
+        }
+    rows = list(dat_stats.get("rows") or []) + list(ss_stats.get("rows") or [])
+    csv_path = _pck_word_csv_path(input_pck, output_csv)
+    _write_pck_word_csv(csv_path, rows)
+    failed_rows = [row for row in rows if row["status"] != "ok"]
+    for row in failed_rows:
+        label = row["path"] or "original sources"
+        sys.stderr.write(f"analyze: {row['type']} {label}: {row['error']}\n")
+    if failed_rows:
+        sys.stderr.write(
+            f"analyze: word count is incomplete; available results written to {csv_path}\n"
+        )
+    dat_status = (
+        "partial"
+        if dat_stats["parsed_scene_files"] != dat_stats["scene_files"]
+        else "complete"
+    )
+    if ss_error:
+        ss_status = "unavailable"
+    elif not hdr.get("original_source_header_size"):
+        ss_status = "not_embedded"
+    elif ss_stats["ss_failed_files"]:
+        ss_status = "partial"
+    else:
+        ss_status = "complete"
+    print("==== Word Count ====")
+    print(f"file: {input_pck}")
+    print(f"csv: {csv_path}")
+    for kind, stats in (("dat", dat_stats), ("ss", ss_stats)):
+        print()
+        print(f"{kind}:")
+        if stats.get("rows"):
+            for row in stats["rows"]:
+                lines = row["lines"] if row["lines"] is not None else "N/A"
+                count = row["count"] if row["count"] is not None else "N/A"
+                label = row["path"] or "original sources"
+                print(f"  [{row['status']}] {label}  lines={lines} count={count}")
+        else:
+            print(
+                "  (not embedded)"
+                if kind == "ss" and ss_status == "not_embedded"
+                else "  (none)"
+            )
+    print()
+    print("totals:")
+    print(f"  dat_status={dat_status}")
+    print(f"  dat_files={int(dat_stats.get('scene_files', 0) or 0):d}")
+    print(f"  parsed_dat_files={int(dat_stats.get('parsed_scene_files', 0) or 0):d}")
+    print(
+        f"  dat_dialogue_lines={int(dat_stats.get('cd_text_dialogue_lines', 0) or 0):d}"
+    )
+    print(
+        f"  dat_dialogue_count={int(dat_stats.get('cd_text_dialogue_count', 0) or 0):d}"
+    )
+    print(f"  ss_status={ss_status}")
+    for label, key in (
+        ("ss_files", "ss_source_files"),
+        ("ss_failed_files", "ss_failed_files"),
+        ("ss_dialogue_lines", "ss_dialogue_lines"),
+        ("ss_dialogue_count", "ss_dialogue_count"),
+    ):
+        value = (
+            "N/A"
+            if ss_error
+            or (ss_status == "not_embedded" and key.startswith("ss_dialogue_"))
+            else int(ss_stats.get(key, 0) or 0)
+        )
+        print(f"  {label}={value}")
+    return 1 if failed_rows else 0
+
+
+def pck(blob: bytes, input_pck: str = "", explicit_angou: str = "") -> int:
+    flix_info = _parse_flix_pck(blob)
+    if flix_info and (not looks_like_siglus_pck(blob)):
+        secs, meta = _flix_pck_sections(blob, flix_info)
+        h = meta["header"]
+        print("header:")
+        print(f"  header_size={h['header_size']:d}")
+        print(f"  version={h['version']:d}")
+        print(f"  data_start_rel={h['data_start_rel']:d}")
+        print(f"  index_table_rel={h['index_table_rel']:d}")
+        print("counts:")
+        print(f"  files={h['file_cnt']:d}")
+        fn = meta["file_names"]
+        pv = fn[: C.MAX_LIST_PREVIEW]
+        print(
+            f"file_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(fn) > len(pv) else '')}"
+        )
+        if meta["item_cnt"] > MAX_SCENE_LIST:
+            print(
+                f"note: entries={meta['item_cnt']:d} (listing omitted; limit={MAX_SCENE_LIST:d})"
+            )
+        print()
+        print_sections(secs, len(blob))
+        return 0
+    if len(blob) < C.PACK_HDR_SIZE:
+        print("too small for pck header")
+        return 1
+    secs, meta = _pck_sections(blob, preview=True)
+    h = meta.get("header") or {}
+    print("header:")
+    print(f"  header_size={h.get('header_size', 0):d}")
+    print(f"  scn_data_exe_angou_mod={h.get('scn_data_exe_angou_mod', 0):d}")
+    print(f"  original_source_header_size={h.get('original_source_header_size', 0):d}")
+    source_error = meta["original_source_error"]
+    if source_error:
+        print("original_sources: unavailable")
+        sys.stderr.write(f"analyze: {source_error}\n")
+    elif h.get("original_source_header_size", 0) == 0:
+        print("original_sources: not embedded")
+    else:
+        print(f"original_sources: {meta['original_source_count']:d} files")
+    print("counts:")
+    print(
+        f"  inc_prop={h.get('inc_prop_cnt', 0):d}  inc_cmd={h.get('inc_cmd_cnt', 0):d}"
+    )
+    print(
+        f"  scn_name={h.get('scn_name_cnt', 0):d}  scn_data_index={h.get('scn_data_index_cnt', 0):d}  scn_data_cnt={h.get('scn_data_cnt', 0):d}"
+    )
+    sn = meta.get("scn_names") or []
+    if sn:
+        pv = sn[: C.MAX_LIST_PREVIEW]
+        print(
+            f"scene_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(sn) > len(pv) else '')}"
+        )
+    ip = meta.get("inc_prop_names") or []
+    if ip:
+        pv = ip[: C.MAX_LIST_PREVIEW]
+        print(
+            f"inc_prop_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(ip) > len(pv) else '')}"
+        )
+    ic = meta.get("inc_cmd_names") or []
+    if ic:
+        pv = ic[: C.MAX_LIST_PREVIEW]
+        print(
+            f"inc_cmd_names (preview): {', '.join([repr(s) for s in pv]) + (' ...' if len(ic) > len(pv) else '')}"
+        )
+    read_flag_stats = _collect_pck_read_flag_stats(
+        blob,
+        input_pck=input_pck,
+        hdr=h,
+        explicit_angou=explicit_angou,
+        source_entries=meta["original_source_entries"],
+    )
+    read_flags = int((read_flag_stats or {}).get("read_flags", 0) or 0)
+    read_flags_scenes = int((read_flag_stats or {}).get("read_flags_scenes", 0) or 0)
+    top5_read_flags_scenes = list(
+        (read_flag_stats or {}).get("top5_read_flags_scenes") or []
+    )
+    available_scene_files = int(
+        (read_flag_stats or {}).get("available_scene_files", 0) or 0
+    )
+    unavailable_scene_files = int(
+        (read_flag_stats or {}).get("unavailable_scene_files", 0) or 0
+    )
+    if unavailable_scene_files > 0 and available_scene_files <= 0:
+        print("read_flags: n/a (unavailable)")
+        print("read_flags_scenes: n/a (unavailable)")
+        print("top5_read_flags_scenes: n/a (unavailable)")
+    else:
+        print(f"read_flags: {read_flags:d}")
+        print(f"read_flags_scenes: {read_flags_scenes:d}")
+        if top5_read_flags_scenes:
+            print(
+                "top5_read_flags_scenes: "
+                + ", ".join(
+                    f"{name}({int(count or 0)})"
+                    for name, count in top5_read_flags_scenes
+                )
+            )
+        else:
+            print("top5_read_flags_scenes: none")
+    if unavailable_scene_files > 0:
+        print(
+            f"note: read_flag stats skipped for {unavailable_scene_files:d} unavailable scene_data item(s)"
+        )
+    if meta.get("item_cnt", 0) > MAX_SCENE_LIST:
+        print(
+            f"note: scene_data entries={meta.get('item_cnt', 0):d} (listing omitted; limit={MAX_SCENE_LIST:d})"
+        )
+    print()
+    print_sections(secs, len(blob), meta.get("scene_script_ids") or {})
+    angou = _pck_angou_content(
+        blob,
+        input_pck=input_pck,
+        hdr=h,
+        source_entries=meta["original_source_entries"],
+    )
+    if angou:
+        print()
+        print(f"=== {ANGOU_DAT_NAME} ===")
+        print(angou)
+    return 1 if source_error else 0
+
+
+def _payload_compare_scene_task(args):
+    (
+        row_index,
+        raw1,
+        raw2,
+        h1,
+        h2,
+        exe_el1,
+        exe_el2,
+        pack_ctx1,
+        pack_ctx2,
+        scene_name,
+    ) = args
+    try:
+        from . import dat as DAT
+
+        blob1 = _decode_scene_blob(raw1, h1, exe_el1, require_exe=True)
+        same_encoding = (h1 or {}).get("scn_data_exe_angou_mod", 0) == (h2 or {}).get(
+            "scn_data_exe_angou_mod", 0
+        ) and exe_el1 == exe_el2
+        blob2 = (
+            blob1
+            if raw1 == raw2 and same_encoding
+            else _decode_scene_blob(raw2, h2, exe_el2, require_exe=True)
+        )
+        same_payload = blob1 == blob2 and pack_ctx1 == pack_ctx2
+        c1 = (
+            DAT.scn_payload_hash_bundles(
+                blob1,
+                pack_context=pack_ctx1,
+                scene_name=scene_name,
+                hashes=not same_payload,
+            )
+            if blob1
+            else None
+        )
+        if same_payload:
+            c2 = c1
+        elif blob2:
+            c2 = DAT.scn_payload_hash_bundles(
+                blob2,
+                pack_context=pack_ctx2,
+                scene_name=scene_name,
+            )
+        else:
+            c2 = None
+        if any(c and c.get("status") == "INCOMPLETE" for c in (c1, c2)):
+            return int(row_index), "INCOMPLETE"
+        if not c1 or not c2:
+            return int(row_index), "-"
+        if same_payload:
+            return int(row_index), "same"
+        full1 = c1.get("full") or {}
+        full2 = c2.get("full") or {}
+        if full1.get("size") == full2.get("size") and full1.get("sha256") == full2.get(
+            "sha256"
+        ):
+            return int(row_index), "same"
+        no_text1 = c1.get("no_text") or {}
+        no_text2 = c2.get("no_text") or {}
+        if no_text1.get("size") == no_text2.get("size") and no_text1.get(
+            "sha256"
+        ) == no_text2.get("sha256"):
+            return int(row_index), "text_only"
+        return int(row_index), "real_diff"
+    except Exception:
+        return int(row_index), "-"
+
+
+def compare_pck(
+    p1: str,
+    p2: str,
+    b1: bytes,
+    b2: bytes,
+    compare_payload=False,
+    explicit_angou: str = "",
+) -> int:
+    m1 = _pck_sections(b1, preview=False)[1]
+    m2 = _pck_sections(b2, preview=False)[1]
+    h1 = m1.get("header") or {}
+    h2 = m2.get("header") or {}
+    diffs = [
+        diff_kv(k, h1.get(k), h2.get(k))
+        for k in C.PACK_HDR_FIELDS
+        if h1.get(k) != h2.get(k)
+    ]
+    if diffs:
+        print("Header differences:")
+        for d in diffs:
+            print("  " + d)
+    else:
+        print("Header: identical")
+    idx1 = read_struct_list(
+        b1,
+        h1.get("scn_data_index_list_ofs", 0),
+        h1.get("scn_data_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    idx2 = read_struct_list(
+        b2,
+        h2.get("scn_data_index_list_ofs", 0),
+        h2.get("scn_data_index_cnt", 0),
+        I32_PAIR_STRUCT,
+    )
+    names1, data1 = _read_pck_scene_lists(b1, hdr=h1)
+    names2, data2 = _read_pck_scene_lists(b2, hdr=h2)
+
+    def _scene_map(names, idx, base_ofs, blob):
+        m = {}
+        for i, (o, s) in enumerate(idx):
+            if o < 0 or s <= 0:
+                return None
+            a = base_ofs + o
+            b = a + s
+            if a < 0 or b > len(blob):
+                return None
+            nm = (names[i] if names and i < len(names) else (f"scene#{i:d}")) or (
+                f"scene#{i:d}"
+            )
+            m.setdefault(nm, []).append((a, b))
+        return m
+
+    sm1 = _scene_map(names1, idx1, h1.get("scn_data_list_ofs", 0), b1)
+    sm2 = _scene_map(names2, idx2, h2.get("scn_data_list_ofs", 0), b2)
+    for path, header, idx, scenes in (
+        (p1, h1, idx1, sm1),
+        (p2, h2, idx2, sm2),
+    ):
+        if scenes is None or len(idx) != header.get("scn_data_index_cnt", 0):
+            sys.stderr.write(f"analyze: INCOMPLETE scene_data directory: {path}\n")
+            return 1
+    source_entries = []
+    source_failed = False
+    for path, blob, header in ((p1, b1, h1), (p2, b2, h2)):
+        try:
+            source_entries.append(_pck_original_source_entries(blob, header))
+        except ValueError as exc:
+            sys.stderr.write(f"analyze: {path}: {exc}\n")
+            source_entries.append([])
+            source_failed = True
+    source_entries1, source_entries2 = source_entries
+    sid1 = _scene_script_id_map(source_entries1)
+    sid2 = _scene_script_id_map(source_entries2)
+    show_ids = bool(sid1 or sid2)
+
+    def _id_sort_key(name):
+        sid = _scene_script_id_get(sid1, name)
+        if sid is None:
+            sid = _scene_script_id_get(sid2, name)
+        if sid is None:
+            return (0, str(name).casefold(), str(name))
+        return (1, int(sid), str(name).casefold(), str(name))
+
+    exe_el1 = b""
+    exe_el2 = b""
+    pack_ctx1 = None
+    pack_ctx2 = None
+    if compare_payload:
+        try:
+            exe_el1 = require_pck_scene_exe_el(
+                b1,
+                input_pck=str(p1 or ""),
+                hdr=h1,
+                scn_data=data1,
+                explicit_angou=explicit_angou,
+                source_entries=source_entries1 if not source_failed else None,
+            )
+            exe_el2 = require_pck_scene_exe_el(
+                b2,
+                input_pck=str(p2 or ""),
+                hdr=h2,
+                scn_data=data2,
+                explicit_angou=explicit_angou,
+                source_entries=source_entries2 if not source_failed else None,
+            )
+        except RuntimeError as exc:
+            sys.stderr.write(str(exc) + "\n")
+            return 1
+        pack_ctx1 = _build_disam_pack_context(b1, hdr=h1, scene_names=names1)
+        pack_ctx2 = _build_disam_pack_context(b2, hdr=h2, scene_names=names2)
+
+    def _iter_scene_pairs(left, right, scene_keys):
+        for key in scene_keys:
+            left_items = left.get(key, [])
+            right_items = right.get(key, [])
+            for idx in range(max(len(left_items), len(right_items))):
+                yield (
+                    key,
+                    idx,
+                    left_items[idx] if idx < len(left_items) else None,
+                    right_items[idx] if idx < len(right_items) else None,
+                )
+
+    keys = sorted(set(sm1.keys()) | set(sm2.keys()), key=_id_sort_key)
+    same_pack_context = pack_ctx1 == pack_ctx2
+    rows = []
+    payload_cmp_counts = {
+        "same": 0,
+        "text_only": 0,
+        "real_diff": 0,
+        "-": 0,
+        "INCOMPLETE": 0,
+    }
+    payload_jobs = []
+    identical_rows = set()
+    for k, i, r1, r2 in _iter_scene_pairs(sm1, sm2, keys):
+        row_sid1 = _scene_script_id_get(sid1, k)
+        row_sid2 = _scene_script_id_get(sid2, k)
+        same_data = bool(
+            r1
+            and r2
+            and (r1[1] - r1[0]) == (r2[1] - r2[0])
+            and b1[r1[0] : r1[1]] == b2[r2[0] : r2[1]]
+        )
+        identical = same_data and row_sid1 == row_sid2 and same_pack_context
+        if identical and not compare_payload:
+            continue
+        s1z = (r1[1] - r1[0]) if r1 else 0
+        s2z = (r2[1] - r2[0]) if r2 else 0
+        st1 = hx(r1[0]) if r1 else "-"
+        st2 = hx(r2[0]) if r2 else "-"
+        l1x = hx(r1[1] - 1) if r1 else "-"
+        l2x = hx(r2[1] - 1) if r2 else "-"
+        nm = k if i == 0 else f"{k}#{i:d}"
+        sid_text = _scene_script_id_pair(row_sid1, row_sid2)
+        if compare_payload:
+            if identical:
+                identical_rows.add(len(rows))
+            payload_jobs.append(
+                (
+                    len(rows),
+                    b1[int(r1[0]) : int(r1[1])] if r1 else None,
+                    b2[int(r2[0]) : int(r2[1])] if r2 else None,
+                    h1,
+                    h2,
+                    exe_el1,
+                    exe_el2,
+                    pack_ctx1,
+                    pack_ctx2,
+                    k,
+                )
+            )
+            rows.append((nm, st1, l1x, s1z, st2, l2x, s2z, sid_text, "-"))
+        else:
+            rows.append((nm, st1, l1x, s1z, st2, l2x, s2z, sid_text))
+    if compare_payload and payload_jobs:
+        from .parallel import parallel_process_map
+
+        for row_index, payload_cmp in parallel_process_map(
+            _payload_compare_scene_task, payload_jobs
+        ):
+            payload_cmp = payload_cmp if payload_cmp in payload_cmp_counts else "-"
+            if payload_cmp == "same" and row_index in identical_rows:
+                rows[int(row_index)] = None
+                continue
+            row = list(rows[int(row_index)])
+            row[-1] = payload_cmp
+            rows[int(row_index)] = tuple(row)
+            payload_cmp_counts[payload_cmp] += 1
+        rows = [row for row in rows if row is not None]
+    os1 = _pck_original_source_rows(source_entries1)
+    os2 = _pck_original_source_rows(source_entries2)
+
+    def _os_map(lst):
+        m = {}
+        for nm, a, b, sz, sh in lst:
+            m.setdefault(nm, []).append((a, b, sz, sh))
+        return m
+
+    om1 = _os_map(os1)
+    om2 = _os_map(os2)
+    okeys = sorted(set(om1.keys()) | set(om2.keys()), key=_id_sort_key)
+    orows = []
+    for k, i, r1, r2 in _iter_scene_pairs(om1, om2, okeys):
+        row_sid1 = _scene_script_id_get(sid1, k)
+        row_sid2 = _scene_script_id_get(sid2, k)
+        if r1 and r2 and r1[2] == r2[2] and r1[3] == r2[3] and row_sid1 == row_sid2:
+            continue
+        s1z = r1[2] if r1 else 0
+        s2z = r2[2] if r2 else 0
+        a1 = hx(r1[0]) if r1 else "-"
+        l1x = hx(r1[1] - 1) if r1 else "-"
+        a2 = hx(r2[0]) if r2 else "-"
+        l2x = hx(r2[1] - 1) if r2 else "-"
+        nm = k if i == 0 else f"{k}#{i:d}"
+        sid_text = _scene_script_id_pair(row_sid1, row_sid2)
+        if compare_payload:
+            orows.append((nm, a1, l1x, s1z, a2, l2x, s2z, sid_text, "-"))
+        else:
+            orows.append((nm, a1, l1x, s1z, a2, l2x, s2z, sid_text))
+
+    def _row_sort_key(row):
+        parts = []
+        for part in row[7].split("/"):
+            if part == "-":
+                continue
+            parts.append(int(part))
+        name = row[0]
+        if not parts:
+            return (0, name.casefold(), name)
+        return (1, min(parts), name.casefold(), name)
+
+    if show_ids:
+        rows = sorted(rows, key=_row_sort_key)
+        orows = sorted(orows, key=_row_sort_key)
+    allrows = rows + orows
+    if not allrows:
+        if show_ids:
+            print("Sections: identical by (name,size,bytes,id)")
+        else:
+            print("Sections: identical by (name,size,bytes)")
+        if (not os1) and (not os2):
+            print()
+            print(
+                "Original sources: unavailable"
+                if source_failed
+                else "Original sources: none"
+            )
+    else:
+        print()
+        print("Section differences:")
+        if compare_payload:
+            if show_ids:
+                print(
+                    "START1      LAST1       SIZE1       START2      LAST2       SIZE2       ID         PAYLOAD     %-*s"
+                    % (C.NAME_W, "NAME")
+                )
+                print(
+                    f"----------  ----------  ----------  ----------  ----------  ----------  ---------  ----------  {'-' * C.NAME_W}"
+                )
+                for nm, a1, l1x, s1z, a2, l2x, s2z, sid_text, payload_cmp in allrows[
+                    :5000
+                ]:
+                    print(
+                        "%-10s  %-10s  %10d  %-10s  %-10s  %10d  %-9s  %-10s  %-*s"
+                        % (
+                            a1,
+                            l1x,
+                            s1z,
+                            a2,
+                            l2x,
+                            s2z,
+                            sid_text,
+                            payload_cmp,
+                            C.NAME_W,
+                            dn(nm),
+                        )
+                    )
+            else:
+                print(
+                    "START1      LAST1       SIZE1       START2      LAST2       SIZE2       PAYLOAD     %-*s"
+                    % (C.NAME_W, "NAME")
+                )
+                print(
+                    f"----------  ----------  ----------  ----------  ----------  ----------  ----------  {'-' * C.NAME_W}"
+                )
+                for nm, a1, l1x, s1z, a2, l2x, s2z, _sid_text, payload_cmp in allrows[
+                    :5000
+                ]:
+                    print(
+                        "%-10s  %-10s  %10d  %-10s  %-10s  %10d  %-10s  %-*s"
+                        % (
+                            a1,
+                            l1x,
+                            s1z,
+                            a2,
+                            l2x,
+                            s2z,
+                            payload_cmp,
+                            C.NAME_W,
+                            dn(nm),
+                        )
+                    )
+        else:
+            if show_ids:
+                print(
+                    "START1      LAST1       SIZE1       START2      LAST2       SIZE2       ID         %-*s"
+                    % (C.NAME_W, "NAME")
+                )
+                print(
+                    f"----------  ----------  ----------  ----------  ----------  ----------  ---------  {'-' * C.NAME_W}"
+                )
+                for nm, a1, l1x, s1z, a2, l2x, s2z, sid_text in allrows[:5000]:
+                    print(
+                        "%-10s  %-10s  %10d  %-10s  %-10s  %10d  %-9s  %-*s"
+                        % (a1, l1x, s1z, a2, l2x, s2z, sid_text, C.NAME_W, dn(nm))
+                    )
+            else:
+                print(
+                    "START1      LAST1       SIZE1       START2      LAST2       SIZE2       %-*s"
+                    % (C.NAME_W, "NAME")
+                )
+                print(
+                    f"----------  ----------  ----------  ----------  ----------  ----------  {'-' * C.NAME_W}"
+                )
+                for nm, a1, l1x, s1z, a2, l2x, s2z, _sid_text in allrows[:5000]:
+                    print(
+                        "%-10s  %-10s  %10d  %-10s  %-10s  %10d  %-*s"
+                        % (a1, l1x, s1z, a2, l2x, s2z, C.NAME_W, dn(nm))
+                    )
+        if len(allrows) > 5000:
+            print(f"... ({len(allrows) - 5000:d} rows omitted)")
+        if compare_payload and rows:
+            print()
+            print(
+                "scene_data payload: same=%d text_only=%d real_diff=%d unavailable=%d INCOMPLETE=%d"
+                % (
+                    int(payload_cmp_counts.get("same", 0) or 0),
+                    int(payload_cmp_counts.get("text_only", 0) or 0),
+                    int(payload_cmp_counts.get("real_diff", 0) or 0),
+                    int(payload_cmp_counts.get("-", 0) or 0),
+                    int(payload_cmp_counts.get("INCOMPLETE", 0) or 0),
+                )
+            )
+    return 1 if source_failed or payload_cmp_counts["INCOMPLETE"] else 0
+
+
+def _decode_scene_blob(blob, hdr, exe_el=b"", require_exe=False):
+    if not isinstance(blob, (bytes, bytearray)) or not blob:
+        return None
+    try:
+        exe_mod = int((hdr or {}).get("scn_data_exe_angou_mod", 0) or 0)
+    except Exception:
+        return None
+    b = bytes(blob)
+    if exe_mod != 0:
+        if not exe_el:
+            if require_exe:
+                return None
+        else:
+            try:
+                _b = bytearray(b)
+                xor_cycle_inplace(_b, exe_el, 0)
+                b = bytes(_b)
+            except Exception:
+                return None
+    easy_code = C.EASY_ANGOU_CODE
+    lz = b""
+    cand = b""
+    if easy_code:
+        try:
+            _b = bytearray(b)
+            xor_cycle_inplace(_b, easy_code, 0)
+            cand = bytes(_b)
+        except Exception:
+            cand = b""
+    if cand and looks_like_lzss(cand):
+        lz = cand
+    elif looks_like_lzss(b):
+        lz = b
+    if lz:
+        try:
+            return lzss_unpack(lz)
+        except Exception:
+            return b if looks_like_siglus_dat(b) else None
+    return b
+
+
+def looks_like_lzss(blob: bytes) -> bool:
+    if not blob or len(blob) < 8:
+        return False
+    pack_sz, org_sz = struct.unpack_from("<II", blob, 0)
+    if pack_sz != len(blob):
+        return False
+    if org_sz <= 0:
+        return False
+    if org_sz > 0x40000000:
+        return False
+    return True
+
+
+def _safe_relpath(name: str) -> str:
+    s = str(name or "")
+    s = s.replace("/", "\\")
+    if len(s) >= 2 and s[1] == ":":
+        s = s[2:]
+    parts = []
+    for p in s.split("\\"):
+        if not p or p == ".":
+            continue
+        if p == "..":
+            continue
+        parts.append(p)
+    return os.path.join(*parts) if parts else ""
+
+
+def _create_extract_dir(output_dir: str) -> str:
+    os.makedirs(output_dir, exist_ok=True)
+    timestamp_ns = time.time_ns()
+    while True:
+        timestamp, nanoseconds = divmod(timestamp_ns, 1_000_000_000)
+        out_dir = os.path.join(
+            output_dir,
+            "output_"
+            + time.strftime("%Y%m%d_%H%M%S", time.localtime(timestamp))
+            + f"_{nanoseconds:09d}",
+        )
+        try:
+            os.mkdir(out_dir)
+            return out_dir
+        except FileExistsError:
+            timestamp_ns += 1
+
+
+def _unique_outpath(out_dir: str, name: str) -> str:
+    s = os.path.basename(str(name or ""))
+    if not s:
+        s = "unknown.bin"
+    root, ext = os.path.splitext(s)
+    p = os.path.join(out_dir, s)
+    i = 1
+    while os.path.exists(p):
+        p = os.path.join(out_dir, f"{root}_{i:d}{ext}")
+        i += 1
+    return p
+
+
+def _read_blobs(dat: bytes, idx_pairs, blob_ofs: int, blob_bytes: int):
+    out = []
+    if blob_ofs <= 0 or blob_ofs + blob_bytes > len(dat):
+        return out
+    for b_ofs, b_len in idx_pairs:
+        bo = int(b_ofs)
+        bl = int(b_len)
+        if bo < 0 or bl < 0 or bo + bl > blob_bytes:
+            out.append(b"")
+            continue
+        start = blob_ofs + bo
+        out.append(dat[start : start + bl])
+    return out
+
+
+def source_angou_decrypt(enc: bytes, ctx: dict, *, only_name=""):
+    sa = ctx.get("source_angou")
+    if not sa:
+        raise RuntimeError("source_angou: missing ctx.source_angou")
+    eg = parse_code(sa.get("easy_code"))
+    mg = parse_code(sa.get("mask_code"))
+    gg = parse_code(sa.get("gomi_code"))
+    lg = parse_code(sa.get("last_code"))
+    ng = parse_code(sa.get("name_code"))
+    hs = int(sa.get("header_size") or 0)
+    if not all([eg, mg, gg, lg, ng]) or hs < 72:
+        raise RuntimeError("source_angou: missing codes/params")
+    if len(enc) < hs + 4:
+        raise ValueError("source_angou: truncated header")
+    last_index = int(sa.get("last_index", 0))
+    dec = bytearray(enc[: hs + 4] if only_name else enc)
+    xor_cycle_inplace(dec, lg, last_index)
+    ver = struct.unpack_from("<I", dec, 0)[0]
+    if ver != 1:
+        raise ValueError(f"source_angou: unsupported version {ver:d}")
+    smd5_code = dec[4:hs]
+    name_len = struct.unpack_from("<I", dec, hs)[0]
+    p = hs + 4
+    if name_len == 0 or name_len % 2:
+        raise ValueError("source_angou: invalid filename length")
+    if name_len > len(enc) - p:
+        raise ValueError("source_angou: truncated filename")
+    if only_name:
+        nameb = bytearray(enc[p : p + name_len])
+        xor_cycle_inplace(nameb, lg, last_index + p)
+    else:
+        nameb = dec[p : p + name_len]
+    xor_cycle_inplace(nameb, ng, int(sa.get("name_index", 0)))
+    name = nameb.decode("utf-16le", "surrogatepass")
+    p += name_len
+    lzsz = read_u32_le(smd5_code, 64, default=0)
+    if lzsz > len(enc) - p or 0 < lzsz < 8:
+        raise ValueError("source_angou: invalid compressed size")
+    mw, mh, mask, mapw, maph, mapt, bh = build_source_angou_layout(
+        smd5_code, sa, mg, lzsz
+    )
+    if mapt * 2 > len(enc) - p:
+        raise ValueError("source_angou: truncated payload")
+    if mapt * 2 != len(enc) - p:
+        raise ValueError("source_angou: unexpected trailing data")
+    if only_name and not is_named_filename(os.path.basename(name), only_name):
+        return (b"", name)
+    if only_name:
+        dec = bytearray(enc[p : p + mapt * 2])
+        xor_cycle_inplace(dec, lg, last_index + p)
+        p = 0
+    dec_mv = memoryview(dec)
+    dp1 = bytes(dec_mv[p : p + mapt])
+    dp2 = bytes(dec_mv[p + mapt : p + mapt * 2])
+    lzb = bytearray(mapt * 2)
+    repx = int(sa.get("tile_repx", 0))
+    repy = int(sa.get("tile_repy", 0))
+    lim = int(sa.get("tile_limit", 0))
+    lzb_mv = memoryview(lzb)
+    sp1 = lzb_mv[0:mapt]
+    sp2 = lzb_mv[bh : bh + mapt]
+    compiler.tile_copy(sp1, dp1, mapw, maph, mask, mw, mh, repx, repy, 0, lim)
+    compiler.tile_copy(sp1, dp2, mapw, maph, mask, mw, mh, repx, repy, 1, lim)
+    compiler.tile_copy(sp2, dp2, mapw, maph, mask, mw, mh, repx, repy, 0, lim)
+    compiler.tile_copy(sp2, dp1, mapw, maph, mask, mw, mh, repx, repy, 1, lim)
+    packed = bytes(lzb[:lzsz])
+    if smd5_digest(packed) != smd5_code[:16]:
+        packed = dp1[:bh] + dp2[: lzsz - bh]
+        if smd5_digest(packed) != smd5_code[:16]:
+            raise ValueError("source_angou: checksum mismatch for both source layouts")
+    lz = bytearray(packed)
+    xor_cycle_inplace(lz, eg, int(sa.get("easy_index", 0)))
+    if lz and read_u32_le(lz, 0) != lzsz:
+        raise ValueError("source_angou: compressed size does not match LZSS header")
+    try:
+        raw = lzss_unpack(bytes(lz))
+    except ValueError as exc:
+        raise ValueError(f"source_angou: invalid compressed data: {exc}") from exc
+    return (raw, name)
+
+
+def iter_exe_el_candidates(
+    os_dir: str, explicit_angou: str = "", with_sources: bool = False
+):
+    for src in iter_exe_el_sources(
+        explicit_angou=explicit_angou,
+        base_dir=os_dir,
+    ):
+        yield src if with_sources else src["exe_el"]
+
+
+def _build_disam_pack_context(blob: bytes, *, hdr, scene_names):
+    try:
+        _, meta = _pck_sections(blob, preview=False)
+        inc_prop_list = read_struct_list(
+            blob, hdr["inc_prop_list_ofs"], hdr["inc_prop_cnt"], I32_PAIR_STRUCT
+        )
+        inc_cmd_list = read_struct_list(
+            blob, hdr["inc_cmd_list_ofs"], hdr["inc_cmd_cnt"], I32_PAIR_STRUCT
+        )
+        inc_prop_names = meta["inc_prop_names"]
+        inc_cmd_names = meta["inc_cmd_names"]
+        return {
+            "scene_names": list(scene_names),
+            "inc_property_cnt": hdr["inc_prop_cnt"],
+            "inc_property_defs": [
+                {
+                    "id": i,
+                    "form": it[0],
+                    "size": it[1],
+                    "name": inc_prop_names[i] if i < len(inc_prop_names) else "",
+                }
+                for i, it in enumerate(inc_prop_list)
+            ],
+            "inc_command_cnt": hdr["inc_cmd_cnt"],
+            "inc_command_defs": [
+                {
+                    "id": i,
+                    "name": inc_cmd_names[i] if i < len(inc_cmd_names) else "",
+                    "scn_no": it[0],
+                    "offset": it[1],
+                }
+                for i, it in enumerate(inc_cmd_list)
+            ],
+        }
+    except Exception:
+        return {}
+
+
+def extract_pck(
+    input_pck: str,
+    output_dir: str,
+    dat_txt: bool = False,
+    explicit_angou: str = "",
+    decompile: bool = False,
+) -> int:
+    input_pck = os.path.abspath(input_pck)
+    output_dir = os.path.abspath(output_dir)
+    ok_cnt = 0
+    fail_cnt = 0
+    dat = read_bytes(input_pck)
+    flix_info = _parse_flix_pck(dat)
+    if flix_info and (not looks_like_siglus_pck(dat)):
+        if dat_txt:
+            option = "--decompile" if decompile else "--disam"
+            sys.stderr.write(f"{option} is not supported for Flix .pck containers\n")
+            return 2
+        names = flix_info["names"]
+        entries = flix_info["entries"]
+        out_dir = _create_extract_dir(output_dir)
+        sys.stdout.write(f"Output: {out_dir}\n")
+        for i in range(flix_info["cnt"]):
+            nm = names[i] or f"file_{i:d}.bin"
+            rel = _safe_relpath(nm) or nm
+            out_name = os.path.basename(rel) or rel
+            out_path = _unique_outpath(out_dir, out_name)
+            off, sz = entries[i]
+            write_bytes(out_path, dat[int(off) : int(off) + int(sz)])
+            ok_cnt += 1
+        sys.stdout.write(f"Extracted files: {ok_cnt:d}\n")
+        return 0
+    if not looks_like_siglus_pck(dat):
+        sys.stderr.write("Invalid pck\n")
+        return 1
+    hdr = parse_i32_header(dat, C.PACK_HDR_FIELDS, C.PACK_HDR_SIZE)
+    scene_lists = _read_pck_scene_lists(dat, hdr=hdr)
+    source_items = []
+    source_failed = False
+    if not decompile:
+        try:
+            source_items = list(_iter_pck_original_source_items(dat, hdr=hdr))
+        except ValueError as exc:
+            source_failed = True
+            sys.stderr.write(f"Failed to extract original sources: {exc}\n")
+    try:
+        scene_exe_el = require_pck_scene_exe_el(
+            dat,
+            input_pck=input_pck,
+            hdr=hdr,
+            scn_data=scene_lists[1],
+            explicit_angou=explicit_angou,
+            source_entries=[] if decompile else None,
+        )
+    except RuntimeError as exc:
+        sys.stderr.write(str(exc) + "\n")
+        return 1
+    out_dir = _create_extract_dir(output_dir)
+    bs_dir = out_dir
+    os_dir = out_dir
+    sys.stdout.write(f"Output: {out_dir}\n")
+    if (
+        not decompile
+        and not source_failed
+        and int(hdr.get("original_source_header_size", 0) or 0) != 0
+    ):
+        try:
+            for item in source_items:
+                raw = bytes(item.get("raw") or b"")
+                rel = _safe_relpath(str(item.get("name") or ""))
+                if not rel:
+                    rel = "unknown.bin"
+                out_name = os.path.basename(rel) or rel
+                out_path = _unique_outpath(os_dir, out_name)
+                write_bytes(out_path, raw)
+            sys.stdout.write(f"Extracted original sources: {len(source_items):d}\n")
+        except Exception as e:
+            source_failed = True
+            sys.stderr.write(f"Failed to extract original sources: {e}\n")
+    elif not decompile and not source_failed:
+        sys.stdout.write("Original sources: not embedded\n")
+    D = None
+    disam_stats = None
+    disam_fail_cnt = 0
+    if dat_txt:
+        from . import dat as D
+
+        disam_stats = new_disam_stats()
+
+    def extract_dat_items():
+        nonlocal ok_cnt, fail_cnt
+        for item in iter_pck_scene_dat_items(
+            dat,
+            input_pck=input_pck,
+            hdr=hdr,
+            require_exe=True,
+            explicit_angou=explicit_angou,
+            scene_exe_el=scene_exe_el,
+            scene_lists=scene_lists,
+        ):
+            nm = str(item.get("scene_name") or "")
+            rel = str(
+                item.get("relpath") or (_safe_relpath(nm + ".dat") or (nm + ".dat"))
+            )
+            out_name = os.path.basename(rel) or rel
+            blob = item.get("blob")
+            if not blob:
+                sys.stderr.write(f"Failed: {out_name} (scene decode failed)\n")
+                fail_cnt += 1
+                continue
+            out_dat = bytes(blob)
+            out_path = _unique_outpath(bs_dir, out_name)
+            write_bytes(out_path, out_dat)
+            ok_cnt += 1
+            if D and not D.is_decompiler_excluded_dat(out_path, nm):
+                yield {
+                    "dat_path": out_path,
+                    "blob": out_dat,
+                    "out_dir": os.path.dirname(out_path) or bs_dir,
+                    "pack_context": item.get("pack_context"),
+                    "scene_no": item.get("scene_no"),
+                    "scene_name": item.get("scene_name"),
+                }
+
+    dat_items = extract_dat_items()
+    if D:
+        result = D.process_dat_output_items(
+            dat_items,
+            stats=disam_stats,
+            decompile=decompile,
+        )
+        failed_paths = result["failed_paths"]
+        disam_fail_cnt = len(failed_paths)
+        for dat_path in failed_paths:
+            sys.stderr.write(f"Failed: {os.path.basename(str(dat_path or ''))}\n")
+    else:
+        for _ in dat_items:
+            pass
+    sys.stdout.write(f"Extracted scenes: {ok_cnt:d}\n")
+    if fail_cnt:
+        sys.stderr.write(f"Failed scenes: {fail_cnt:d}\n")
+    if disam_fail_cnt:
+        sys.stderr.write(f"Failed scene outputs: {disam_fail_cnt:d}\n")
+    if dat_txt:
+        sys.stdout.write(
+            f"Disassembly ended unexpectedly: {int(disam_stats.get('ended_unexpectedly', 0) or 0):d}\n"
+        )
+        write_disam_totals(sys.stdout, disam_stats)
+    return 1 if source_failed or fail_cnt or disam_fail_cnt else 0

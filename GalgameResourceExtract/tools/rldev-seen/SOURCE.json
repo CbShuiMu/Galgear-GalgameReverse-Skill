@@ -1,0 +1,17 @@
+{
+  "upstream": "https://github.com/eglaysher/rldev",
+  "commit": "074c8b1aa81f3fe7ce71a36be3408082f3d4fc20",
+  "license": "GPL-2.0-or-later",
+  "adapter": "rlseen 1.0, raw index/member subset ported to Python; does not execute the retained OCaml sources",
+  "validation_level": "synthetic",
+  "runtime": "Python >=3.9, standard library only",
+  "excluded": "GUI, game definitions, per-title keys, compiler and decompression stages are not bundled",
+  "files": {
+    "COPYING": "7631d805648958b83fb6bb6b52d339c2cbbca10032d914701a10ffa016129c15",
+    "GPL": "dffa9644cabd7f7e54057a0aa27edf90cba4c1a8688536dd2dc38442cb5b9053",
+    "rlseen.py": "34c886e9ee7e84af329482423f1781417881d655443c8de4d3e453345c591866",
+    "upstream/src/common/bytecode.ml": "bb9c7a5198c125baeb385a5912d732acdf48b18d8def659bcfc1c46290d1e24d",
+    "upstream/src/kprl/archiver.ml": "2b19c608f52d3b34c793ad312eac09220ed7abbddc72079867eebcb94a30e3a8",
+    "upstream/src/kprl/archiver.mli": "dbcdfc814dc44775217dbdf05a84bcb88b8526c37b2ca4122cd64aaa58131bc3"
+  }
+}

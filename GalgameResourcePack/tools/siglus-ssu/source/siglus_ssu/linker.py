@@ -1,0 +1,359 @@
+import os
+import struct
+import time
+from . import const as C
+from .CA import new_replace_tree
+from .common import (
+    ascii_lower,
+    build_empty_ia_data,
+    log_stage,
+    record_stage_time,
+    set_stage_time,
+    pack_i32_pairs,
+    compile_exe_el,
+    read_bytes,
+    write_bytes,
+    write_cached_bytes,
+    find_named_path,
+    ANGOU_DAT_NAME,
+    KEY_TXT_NAME,
+    parse_i32_header,
+    read_scn_header,
+)
+from .BS import build_ia_data
+from .native_ops import lzss_pack, xor_cycle_inplace
+from .path_policy import resolve_read_path
+
+
+def _make_original_source_rel_list(ctx):
+    names = sorted(ctx["source_bytes"], key=ascii_lower)
+    out = [
+        name
+        for name in names
+        if ascii_lower(name).startswith("gameexe")
+        and ascii_lower(name).endswith(".ini")
+    ]
+    scn_path = ctx["scn_path"]
+    p = find_named_path(scn_path, ANGOU_DAT_NAME)
+    if p:
+        out.append(os.path.relpath(p, scn_path).replace("/", "\\"))
+    if not ctx["exe_angou_str"]:
+        kp = find_named_path(scn_path, KEY_TXT_NAME)
+        if kp:
+            out.append(os.path.relpath(kp, scn_path).replace("/", "\\"))
+    out += [name for name in names if ascii_lower(name).endswith(".inc")]
+    out += [name for name in names if ascii_lower(name).endswith(".ss")]
+    return out
+
+
+def _parse_cmd_labels(dat):
+    h = parse_i32_header(dat, C.SCN_HDR_FIELDS, C.SCN_HDR_SIZE)
+    if not h:
+        return []
+    ofs = h.get("cmd_label_list_ofs", 0)
+    cnt = h.get("cmd_label_cnt", 0)
+    if ofs <= 0 or cnt <= 0 or ofs + cnt * 8 > len(dat):
+        return []
+    out = []
+    for i in range(cnt):
+        cmd_id, off = struct.unpack_from("<ii", dat, ofs + i * 8)
+        out.append((cmd_id, off))
+    return out
+
+
+def compress_scene_dat(dat, lz_path, easy_code):
+    if not easy_code:
+        raise RuntimeError("ctx.easy_angou_code is not set")
+    packed = bytearray(lzss_pack(dat))
+    xor_cycle_inplace(packed, easy_code, 0)
+    result = bytes(packed)
+    write_bytes(lz_path, result)
+    return result
+
+
+def _load_scene_data(ctx, scn_names, lzss_mode):
+    tmp = ctx.get("tmp_path") or ""
+    bs_dir = os.path.join(tmp, "bs")
+    if lzss_mode and len(scn_names) > 1:
+        from .parallel import parallel_lzss_compress
+
+        start = time.time()
+        dat_list, lzss_list = parallel_lzss_compress(ctx, scn_names, bs_dir)
+        set_stage_time(ctx, "LZSS", time.time() - start)
+        return dat_list, lzss_list
+    dat_list = []
+    lzss_list = []
+    easy_code = ctx.get("easy_angou_code") or b""
+    for nm in scn_names:
+        dat_path = os.path.join(bs_dir, nm + ".dat")
+        try:
+            dat_path = resolve_read_path(dat_path, kind="file")
+        except (FileNotFoundError, NotADirectoryError):
+            raise FileNotFoundError(f"scene dat not found: {dat_path}")
+        dat = read_bytes(dat_path)
+        if lzss_mode:
+            lz_path = os.path.join(bs_dir, nm + ".lzss")
+            try:
+                lz_path = resolve_read_path(lz_path, kind="file")
+            except (FileNotFoundError, NotADirectoryError):
+                t = time.time()
+                lz = compress_scene_dat(dat, lz_path, easy_code)
+                record_stage_time(ctx, "LZSS", time.time() - t)
+                log_stage("LZSS", nm + ".ss", ctx)
+            else:
+                lz = read_bytes(lz_path)
+            lzss_list.append(lz)
+        dat_list.append(dat)
+    return dat_list, lzss_list
+
+
+def _set_binary_size_stats(ctx, scn_names, dat_list, lzss_list, lzss_mode):
+    total_dat = 0
+    total_scn = 0
+    total_lzss = 0
+    dat_rows = []
+    for i, name in enumerate(scn_names):
+        dat = dat_list[i]
+        dat_size = len(dat)
+        total_dat += dat_size
+        total_scn += read_scn_header(dat)["scn_size"]
+        total_lzss += len(lzss_list[i]) if lzss_mode else 0
+        dat_rows.append({"name": name, "dat_bytes": dat_size})
+    dat_rows.sort(
+        key=lambda x: (
+            -x["dat_bytes"],
+            ascii_lower(x["name"]),
+            x["name"],
+        )
+    )
+    ctx["stats"]["binary_size_stats"] = {
+        "lzss_mode": lzss_mode,
+        "dat_bytes": total_dat,
+        "scn_bytes": total_scn,
+        "lzss_bytes": total_lzss,
+        "lzss_ratio": total_lzss / total_dat if total_dat and lzss_mode else None,
+        "top_dat_scenes": dat_rows[:5],
+    }
+
+
+def _build_index_list_for_strings(strs):
+    idx = []
+    ofs_units = 0
+    blob = bytearray()
+    for s in strs:
+        raw = s.encode("utf-16le", "surrogatepass")
+        n = len(raw) // 2
+        idx.append((ofs_units, n))
+        blob.extend(raw)
+        ofs_units += n
+    return idx, bytes(blob)
+
+
+def _build_pack_bytes(
+    inc_prop_list,
+    inc_cmd_name_list,
+    inc_prop_name_list,
+    inc_cmd_list,
+    scn_name_list,
+    scn_data_list,
+    scn_data_exe_angou_mod,
+    original_source_header_size,
+    original_source_chunks,
+):
+    hdr = dict.fromkeys(C.PACK_HDR_FIELDS, 0)
+    hdr["header_size"] = C.PACK_HDR_SIZE
+    hdr["scn_data_exe_angou_mod"] = scn_data_exe_angou_mod
+    hdr["original_source_header_size"] = original_source_header_size
+    inc_prop_blob = bytearray()
+    for prop in inc_prop_list:
+        inc_prop_blob.extend(
+            struct.pack("<ii", C._FORM_CODE[prop["form"]], prop["size"])
+        )
+    inc_prop_idx, inc_prop_name_blob = _build_index_list_for_strings(inc_prop_name_list)
+    inc_cmd_blob = bytearray()
+    for scn_no, offset in inc_cmd_list:
+        inc_cmd_blob.extend(struct.pack("<ii", scn_no, offset))
+    inc_cmd_idx, inc_cmd_name_blob = _build_index_list_for_strings(inc_cmd_name_list)
+    scn_name_idx, scn_name_blob = _build_index_list_for_strings(scn_name_list)
+    scn_data_idx = []
+    scn_data_size = 0
+    for blob in scn_data_list:
+        scn_data_idx.append((scn_data_size, len(blob)))
+        scn_data_size += len(blob)
+    b = bytearray(b"\0" * C.PACK_HDR_SIZE)
+
+    def _push(sec):
+        ofs = len(b)
+        b.extend(sec)
+        return ofs
+
+    hdr["inc_prop_list_ofs"] = _push(inc_prop_blob)
+    hdr["inc_prop_cnt"] = len(inc_prop_list)
+    hdr["inc_prop_name_index_list_ofs"] = _push(pack_i32_pairs(inc_prop_idx))
+    hdr["inc_prop_name_index_cnt"] = len(inc_prop_idx)
+    hdr["inc_prop_name_list_ofs"] = _push(inc_prop_name_blob)
+    hdr["inc_prop_name_cnt"] = len(inc_prop_name_list)
+    hdr["inc_cmd_list_ofs"] = _push(inc_cmd_blob)
+    hdr["inc_cmd_cnt"] = len(inc_cmd_list)
+    hdr["inc_cmd_name_index_list_ofs"] = _push(pack_i32_pairs(inc_cmd_idx))
+    hdr["inc_cmd_name_index_cnt"] = len(inc_cmd_idx)
+    hdr["inc_cmd_name_list_ofs"] = _push(inc_cmd_name_blob)
+    hdr["inc_cmd_name_cnt"] = len(inc_cmd_name_list)
+    hdr["scn_name_index_list_ofs"] = _push(pack_i32_pairs(scn_name_idx))
+    hdr["scn_name_index_cnt"] = len(scn_name_idx)
+    hdr["scn_name_list_ofs"] = _push(scn_name_blob)
+    hdr["scn_name_cnt"] = len(scn_name_list)
+    hdr["scn_data_index_list_ofs"] = _push(pack_i32_pairs(scn_data_idx))
+    hdr["scn_data_index_cnt"] = len(scn_data_idx)
+    hdr["scn_data_list_ofs"] = len(b)
+    for blob in scn_data_list:
+        _push(blob)
+    hdr["scn_data_cnt"] = len(scn_data_list)
+    for ch in original_source_chunks:
+        _push(ch)
+    struct.pack_into(
+        "<" + "i" * len(C.PACK_HDR_FIELDS),
+        b,
+        0,
+        *[hdr[k] for k in C.PACK_HDR_FIELDS],
+    )
+    return bytes(b)
+
+
+def _build_original_source_chunks(ctx, lzss_mode):
+    if not lzss_mode:
+        return (0, [])
+    if not ctx.get("source_angou"):
+        return (0, [])
+    skip = ctx.get("original_source_mode") is False
+    scn_path = ctx.get("scn_path") or ""
+    tmp_path = ctx.get("tmp_path") or ""
+    if tmp_path:
+        os.makedirs(os.path.join(tmp_path, "os"), exist_ok=True)
+    if not scn_path:
+        return (0, [])
+    from . import compiler as _m
+
+    rel_list = _make_original_source_rel_list(ctx)
+    if not rel_list:
+        return (0, [])
+    if len(rel_list) > 1:
+        from .parallel import parallel_source_encrypt
+
+        start = time.time()
+        sizes, chunks = parallel_source_encrypt(ctx, rel_list, scn_path, tmp_path, skip)
+        set_stage_time(ctx, "OS", time.time() - start)
+        if not sizes:
+            return (0, [])
+        size_list_bytes = struct.pack("<" + "I" * len(sizes), *sizes)
+        size_list_enc = _m.source_angou_encrypt(size_list_bytes, "__DummyName__", ctx)
+        return (len(size_list_enc), [] if skip else [size_list_enc] + chunks)
+    sizes = []
+    chunks = []
+    for rel in rel_list:
+        src_path = os.path.join(scn_path, rel.replace("\\", os.sep))
+        raw = ctx["source_bytes"].get(rel)
+        if raw is None:
+            try:
+                src_path = resolve_read_path(src_path, kind="file")
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            raw = read_bytes(src_path)
+        start = time.time()
+        log_stage("OS", rel, ctx)
+        cache_path = (
+            os.path.join(tmp_path, "os", rel.replace("\\", os.sep)) if tmp_path else ""
+        )
+        enc_blob = _m.source_angou_encrypt(raw, rel, ctx)
+        write_cached_bytes(cache_path, enc_blob)
+        sizes.append(len(enc_blob) & 0xFFFFFFFF)
+        if not skip:
+            chunks.append(enc_blob)
+        record_stage_time(ctx, "OS", time.time() - start)
+    if not sizes:
+        return (0, [])
+    size_list_bytes = struct.pack("<" + "I" * len(sizes), *sizes)
+    size_list_enc = _m.source_angou_encrypt(size_list_bytes, "__DummyName__", ctx)
+    return (len(size_list_enc), [] if skip else [size_list_enc] + chunks)
+
+
+def command_link_errors(names, command_ids):
+    counts = [0] * len(names)
+    duplicates = []
+    for command_id in command_ids:
+        if 0 <= command_id < len(counts):
+            counts[command_id] += 1
+            if counts[command_id] == 2:
+                duplicates.append(
+                    (command_id, f"command {names[command_id]} defined more than once")
+                )
+    return duplicates + [
+        (command_id, f"command {name} is not defined")
+        for command_id, name in enumerate(names)
+        if counts[command_id] == 0
+    ]
+
+
+def link_pack(ctx):
+    tmp_path = ctx.get("tmp_path") or ""
+    out_path = ctx.get("out_path") or ""
+    scene_pck = ctx.get("scene_pck") or "Scene.pck"
+    if (not tmp_path) or (not out_path):
+        raise RuntimeError("ctx.tmp_path and ctx.out_path are required")
+    lzss_mode = bool(ctx.get("lzss_mode", True))
+    if ctx.get("easy_link"):
+        lzss_mode = False
+    iad = ctx.get("ia_data")
+    if not isinstance(iad, dict):
+        if ctx.get("inc_list"):
+            iad = build_ia_data(ctx)
+        else:
+            iad = build_empty_ia_data(new_replace_tree(), ctx.get("defined_names"))
+        ctx["ia_data"] = iad
+    inc_props = iad["property_list"]
+    inc_cmds = iad["command_list"]
+    inc_command_cnt = iad["inc_command_cnt"]
+    scn_names = [
+        os.path.splitext(os.path.basename(scene))[0] for scene in ctx["scn_list"]
+    ]
+    dat_list, lzss_list = _load_scene_data(ctx, scn_names, lzss_mode)
+    _set_binary_size_stats(ctx, scn_names, dat_list, lzss_list, lzss_mode)
+    scn_name_list = [ascii_lower(nm) for nm in scn_names]
+    inc_prop_name_list = [p["name"] for p in inc_props]
+    inc_cmd_name_list = [c["name"] for c in inc_cmds]
+    inc_cmd_list = [(0, 0) for _ in range(len(inc_cmds))]
+    if inc_command_cnt > 0:
+        labels_by_scene = [_parse_cmd_labels(dat) for dat in dat_list]
+        errors = command_link_errors(
+            inc_cmd_name_list[:inc_command_cnt],
+            [command_id for labels in labels_by_scene for command_id, _ in labels],
+        )
+        if errors:
+            raise RuntimeError(errors[0][1])
+        for scn_no, labels in enumerate(labels_by_scene):
+            for cmd_id, off in labels:
+                if 0 <= cmd_id < inc_command_cnt and cmd_id < len(inc_cmd_list):
+                    inc_cmd_list[cmd_id] = (scn_no, off)
+    noangou_scene_data = lzss_list if lzss_mode else dat_list
+    exe_el = compile_exe_el(ctx)
+    original_hsz, original_chunks = _build_original_source_chunks(ctx, lzss_mode)
+    scene_data = noangou_scene_data
+    if exe_el:
+        scene_data = []
+        for blob in noangou_scene_data:
+            b = bytearray(blob)
+            xor_cycle_inplace(b, exe_el, 0)
+            scene_data.append(bytes(b))
+    pack = _build_pack_bytes(
+        inc_props,
+        inc_cmd_name_list,
+        inc_prop_name_list,
+        inc_cmd_list,
+        scn_name_list,
+        scene_data,
+        int(bool(exe_el)),
+        original_hsz,
+        original_chunks,
+    )
+    p = os.path.join(out_path, scene_pck)
+    write_bytes(p, pack)
