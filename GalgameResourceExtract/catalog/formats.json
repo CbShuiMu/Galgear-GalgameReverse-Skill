@@ -1,0 +1,63 @@
+[
+  {
+    "id": "willplus",
+    "extensions": [
+      ".ws2",
+      ".lng"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/willplus.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "WillPlus / AdvHD：按原生消息 ID 关联原脚本、姓名本地化表与翻译表；没有随包通用 WS2/LNG 解析器。",
+    "aliases": [
+      "advhd"
+    ]
+  },
+  {
+    "id": "entis-gls",
+    "extensions": [
+      ".noa",
+      ".csx"
+    ],
+    "magic_ascii": [
+      "Entis",
+      "Cotopha Image file",
+      "cotomi context file"
+    ],
+    "reference": "engine/entis-gls.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Entis GLS / Cotopha：区分 NOA、CSX 和存档层；检查 16 字节段头、完整 conststr 索引与 image 引用。",
+    "aliases": [
+      "entis-cotopha"
+    ]
+  },
+  {
+    "id": "emote",
+    "extensions": [
+      ".scn",
+      ".psb"
+    ],
+    "magic_ascii": [
+      "PSB",
+      "mdf"
+    ],
+    "reference": "engine/emote.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Emote / PSB 格式族的场景资源参考；PSB 文件头只标识资源格式，不能据此确认整款游戏的引擎。",
+    "aliases": [
+      "psb-scenario"
+    ]
+  }
+]

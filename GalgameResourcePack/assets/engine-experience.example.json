@@ -1,0 +1,49 @@
+{
+  "kind": "gal-engine-experience",
+  "schema_version": 1,
+  "engine": "example-engine",
+  "engine_version": "填写实际格式版本",
+  "variant": "填写平台与方言条件",
+  "stage": "pack",
+  "validation_level": "real_sample",
+  "summary": "填写实际证实的方法",
+  "preconditions": [
+    "填写已验证的文件头、版本及工具条件"
+  ],
+  "steps": [
+    "填写实际工具或解析器版本、处理步骤及验证方法"
+  ],
+  "limitations": [
+    "填写未验证的版本、加密分支或运行行为"
+  ],
+  "artifacts": {
+    "source": {
+      "path": "source.bin",
+      "sha256": "填写源文件实际SHA256",
+      "role": "source"
+    },
+    "verification": {
+      "path": "verification.json",
+      "sha256": "填写验证报告实际SHA256",
+      "role": "verification"
+    }
+  },
+  "checks": [
+    {
+      "name": "sample",
+      "status": "passed",
+      "evidence": [
+        "source",
+        "verification"
+      ]
+    },
+    {
+      "name": "roundtrip",
+      "status": "passed",
+      "evidence": [
+        "source",
+        "verification"
+      ]
+    }
+  ]
+}

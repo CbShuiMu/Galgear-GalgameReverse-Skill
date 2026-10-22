@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="312" viewBox="0 0 1200 312" role="img" aria-labelledby="title desc">
+  <title id="title">GalSkill: GalExtract → GalTTS → GalPack</title>
+  <desc id="desc">从脚本引用到中文语音，再到重建归档。</desc>
+  <rect width="1200" height="312" rx="20" fill="#f3f7f5"/>
+  <g font-family="'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif">
+  <g id="stage-1" transform="translate(36 28)">
+    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+    <text x="28" y="42" font-size="21" font-weight="600" fill="#087a78">01 / 提取与匹配</text>
+    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalExtract</text>
+    <text x="28" y="146" font-size="24" fill="#53676f">读取脚本里的语音引用</text>
+    <path d="M28 184 H322" stroke="#d4dfdb"/>
+    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#087a78">mapping.json</text>
+  </g>
+  <path d="M395 156 h20 m-7 -7 7 7 -7 7" fill="none" stroke="#087a78" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g id="stage-2" transform="translate(425 28)">
+    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+    <text x="28" y="42" font-size="21" font-weight="600" fill="#a34d38">02 / 生成中文配音</text>
+    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalTTS</text>
+    <text x="28" y="146" font-size="24" fill="#53676f">使用选定的 TTS 后端</text>
+    <path d="M28 184 H322" stroke="#d4dfdb"/>
+    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#a34d38">001.ogg</text>
+  </g>
+  <path d="M784 156 h20 m-7 -7 7 7 -7 7" fill="none" stroke="#087a78" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g id="stage-3" transform="translate(814 28)">
+    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+    <text x="28" y="42" font-size="21" font-weight="600" fill="#087a78">03 / 重建与验证</text>
+    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalPack</text>
+    <text x="28" y="146" font-size="24" fill="#53676f">合并资源并核对哈希</text>
+    <path d="M28 184 H322" stroke="#d4dfdb"/>
+    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#087a78">archive + hashes</text>
+  </g>
+  </g>
+</svg>

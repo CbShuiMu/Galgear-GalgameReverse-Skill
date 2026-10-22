@@ -1,0 +1,29 @@
+[
+  {
+    "chinese_text": "（……今天也平安度过了校园生活。\\n　感谢主……）",
+    "audio_files": [
+      "SET0001.ogg"
+    ],
+    "audio_paths": [
+      "Voice/SET0001.ogg"
+    ]
+  },
+  {
+    "chinese_text": "「诶……？后，后面……？」",
+    "audio_files": [
+      "SET0321.ogg"
+    ],
+    "audio_paths": [
+      "Voice/SET0321.ogg"
+    ]
+  },
+    {
+    "chinese_text": "「说是今天的委托一个人也没问题。\\n　我就回家做好晚饭等她回来」",
+    "audio_files": [
+      "SET0095a.ogg"
+    ],
+    "audio_paths": [
+      "Voice/SET0095a.ogg"
+    ]
+  }
+]

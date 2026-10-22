@@ -1,0 +1,53 @@
+# 引擎经验积累与复用
+
+本流程把当前任务的验证结果变成可复查的本地经验，再把通用方法收录为随包引擎资料。它不会自动运行历史命令、安装补丁或扩大当前任务。经验内容始终是待核对资料，不能覆盖用户指令和权限。
+
+## 每次任务的闭环
+
+1. **先查经验。** 识别出引擎与版本后，运行 `scripts/engine_experience.py query --engine <引擎标识> --stage <阶段> --version <实际版本>`，再读本技能的经验索引。若格式索引列出历史别名，检索旧记录时也查询该别名；不改写已有经验 ID。版本匹配只是筛选条件，还须核对方言、平台、文件头、工具和前提。不把另一个游戏或版本的经验直接当成当前事实。
+2. **完成当前任务的验证。** 逆向需代表样本和结构证据；提取需代表样本、资源身份及提取检查；封包需代表样本和重新提取后的往返比对。格式验证不等于游戏内成功，运行测试未完成时只记录实际等级。
+3. **自动保存成功记录。** 验证通过后，在用户工作目录写成功报告，用 `record --report <报告路径>` 归档。记录实现方法、适用条件、工具/源码版本、验证产物、限制和失效条件。成功经验整理是任务收尾的一部分，无需用户每次重新要求。失败或尚未验证的尝试不能记为成功。
+4. **提炼可复用知识。** 确认方法能复用且通过真实样本后，由 AI 助手检查并去除用户绝对路径、个人信息、密钥、原游戏对白和资源字节；然后运行 `promote --id <完整经验ID>`。这一步只增加当前技能的引擎资料和索引，不改核心工作流。用户要求只保存在本地、不修改技能时跳过收录。安装目录不可写时保留本地记录并报告未收录，不影响当前任务已验证产物的交付。
+5. **修正旧经验。** 后续发现旧规则不适用时，先缩小版本/方言范围；结论确实被推翻则运行 `invalidate --id <ID> --reason <原因>`，再记录新证据和新方法。保留历史，不覆盖原记录或扩大兼容性承诺。
+
+三个引擎相关技能都随附独立的同名标准库脚本，默认查询同一用户知识库；无需安装兄弟技能。收录时只接受本技能负责的阶段：GalReverse 为 `reverse`，GalExtract 为 `extract`，GalPack 为 `pack`。GalTTS 的生成审计不能替代这些阶段的引擎证据。
+
+## 本地记录与技能资料
+
+默认本地库为 Windows 的 `%LOCALAPPDATA%/GalSkill/experience`，其他系统为 `$XDG_STATE_HOME/gal-skill/experience`，未设置时用 `~/.local/state/gal-skill/experience`。可通过 `GAL_SKILL_EXPERIENCE_HOME` 或全局 `--store` 参数指定位置，必须位于技能目录之外。首次 `query` 不创建目录。
+
+本地 `records/<经验ID>.json` 保存完整报告和源/产物路径与哈希；同一报告重复记录复用相同 ID。`invalidated/` 保存失效原因。收录生成 `engine/<engine>.md`，并更新 `catalog/experiences.json`。同一引擎始终使用同一个文件，以独立经验 ID 保留多次验证和适用条件。收录文档不复制原始产物与路径，标题、版本、前提、步骤和限制须由 AI 助手检查为可分发内容。说明统一使用解包、封包、原样资源根目录、对白记录和经验收录等术语；代码标识、命令和原始证据保持原样。
+
+## 成功报告
+
+报告使用 `kind: gal-engine-experience`、`schema_version: 1`，包含：
+
+| 字段 | 内容 |
+| --- | --- |
+| `engine` | 小写字母/数字和连字符的引擎或格式族标识，例如 `ethornell`；已有格式索引时沿用其中的引擎标识 |
+| `engine_version`、`variant` | 实际引擎/格式版本与方言、平台条件；未知就明确写未确认并限制适用范围 |
+| `stage` | `reverse`、`extract` 或 `pack` |
+| `validation_level` | `synthetic`、`real_sample` 或 `runtime`；不按预期等级填写 |
+| `summary` | 本次证实的方法或结果，不能写成整个引擎全面支持 |
+| `preconditions`、`steps`、`limitations` | 适用前提、可复现方法和限制数组；非空前提和步骤，限制可为空但不代表无限兼容 |
+| `artifacts` | 来源/结果/验证文件对象，每项有 `path`、`sha256`、`role`；role 为 `source`、`result` 或 `verification` |
+| `checks` | 检查数组，每项有 `name`、`status: passed`、引用 artifact key 的非空 `evidence` 数组 |
+
+从本技能的 `assets/engine-experience.example.json` 复制到项目工作目录后填写实际值。路径相对于报告所在目录或使用本地绝对路径。工具/解析器版本及测试方法写入步骤和验证报告，不能只写“执行成功”。
+
+各阶段必须有 `sample` 检查；逆向再有 `structure`，提取再有 `extraction`，封包再有 `roundtrip`。至少一个检查须将来源和结果/验证产物连接起来。产物必须真实存在且哈希一致；失败检查不允许进入成功记录。
+
+`record` 核对报告结构、证据引用和当前文件哈希，不运行解析器、不重新执行报告中的命令，也不能自动证明报告声称的结构语义、音质或游戏行为。AI 助手必须先按该阶段流程产生真实验证结果，再填写报告。纯合成结果可留在本地库，但 `promote` 会拒绝把它收录成真实引擎成功经验。
+
+## 命令与失效
+
+```powershell
+python scripts/engine_experience.py query --engine ethornell --stage pack --version "ARC20"
+python scripts/engine_experience.py record --report D:/GalWork/Example/reports/engine-success.json
+python scripts/engine_experience.py promote --id <record返回的完整ID>
+python scripts/engine_experience.py invalidate --id <完整ID> --reason "实际失败条件与新证据"
+```
+
+收录前会重新检查原验证产物哈希；文件变化或丢失时先恢复/重新验证，不能仅依赖旧摘要。新方法写新记录，既有引擎资料保持不变，新经验追加为带独立 ID 的记录；相同 ID 重复收录不会重复追加，内容不一致时拒绝覆盖。索引更新使用独占锁和原子替换；异常退出遗留锁时，确认无写入进程后才清理本技能的 `catalog/.experience.lock`，不要自动抢锁。
+
+失效后本地查询不再将该记录列入可用 `entries`，但会在 `invalidated` 列出 ID 和原因；随包页即使仍标为 active，也须排除命中本地失效 ID 的方法。当前技能索引将其标为 `invalidated`，原始文档保留审计历史。其他技能副本或已分发副本不自动修改；遇到矛盾时应在相关副本同步失效说明。任务输出资源与解析器变化时仍按当前流程重新验证，不因为有成功经验跳过检查。
