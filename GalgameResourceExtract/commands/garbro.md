@@ -11,9 +11,9 @@
 | `f` | `GARbro.Console.exe f [-q]` | 列出可识别的归档格式标签与说明 |
 | `f --writable` | `GARbro.Console.exe f --writable [-q]` | 列出支持创建的格式、扩展名及写入器是否支持子目录。`-w` 是 `--writable` 的别名 |
 | `options` | `GARbro.Console.exe options <Tag> [-q]` | 列出格式的创建选项、类型、当前默认值和枚举值。复杂类型会标记为无法通过 CLI 赋值 |
-| `i` | `GARbro.Console.exe i [options] <file>` | 识别归档或单个图片、音频文件 |
+| `i` | `GARbro.Console.exe i [options] <file>` | 识别归档或单个图像、音频文件 |
 | `l` | `GARbro.Console.exe l [options] <file>` | 列出条目名称、偏移和大小 |
-| `x` | `GARbro.Console.exe x [options] <file>` | 提取归档，或对单个图片、音频文件执行转换流程 |
+| `x` | `GARbro.Console.exe x [options] <file>` | 提取归档，或对单个图像、音频文件执行转换流程 |
 | `c` / `pack` | `GARbro.Console.exe c -t <Tag> -o <archive> [options] <input-directory>` | 将目录中的文件封包为指定格式的归档 |
 
 ## 创建选项（`c` / `pack`）
@@ -61,7 +61,7 @@
 | `YPF` | `Key`：文件名 XOR 密钥，范围 `0` 到 `255`。引擎默认值 `4294967295` 表示未指定，创建前必须替换。`Version`：整数格式版本，默认 `290`。当前写入器仅支持旧版索引布局；CLI 接受 `1` 到 `472`，但不含 `222`。版本必须匹配目标游戏 | 是 |
 | `ZIP` | `CompressionLevel`：`Optimal`（默认）、`Fastest` 或 `NoCompression`。`FileNameEncoding`：文件名编码，默认 `shift_jis`。写入器不支持密码保护 | 是 |
 
-部分引擎要求特定文件名、字符编码、版本或脚本结构。例如，AMI 仅接受以十六进制资源 ID 命名的图片或 `.scr` 文件，且 ID 必须唯一。ARC/Will 的扩展名最多 3 字节，并会规范化文件名大小写。许多写入器使用 CP932，会拒绝无法编码的文件名。CLI 复用现有写入器；支持创建并不保证兼容目标游戏的每个版本。
+部分引擎要求特定文件名、字符编码、版本或脚本结构。例如，AMI 仅接受以十六进制资源 ID 命名的图像或 `.scr` 文件，且 ID 必须唯一。ARC/Will 的扩展名最多 3 字节，并会规范化文件名大小写。许多写入器使用 CP932，会拒绝无法编码的文件名。CLI 复用现有写入器；支持创建并不保证兼容目标游戏的每个版本。
 
 单个输入文件大小上限为 `uint.MaxValue` 字节。具体格式还可能限制归档总大小、名称长度和文件数量。SAR 和 NSA 最多支持 32767 个文件。递归封包拒绝目录链接，文件符号链接也不能作为资源输入。
 
@@ -73,13 +73,13 @@
 | --- | --- |
 | `-o <directory>` | `x` 的输出目录，默认为当前目录 |
 | `-f <regex>` | 按条目名称过滤资源 |
-| `-if <format>` | 对 `x`，将图片转换为指定格式，如 `png`、`jpg` 或 `bmp`。`jpg` 映射为 `JPEG` |
+| `-if <format>` | 对 `x`，将图像转换为指定格式，如 `png`、`jpg` 或 `bmp`。`jpg` 映射为 `JPEG` |
 | `-ca` | 对 `x`，保留常见 `wav`、`mp3` 和 `ogg` 音频格式；其他可解码音频写为 WAV |
 | `-na` | 排除音频条目 |
-| `-ni` | 排除图片条目 |
+| `-ni` | 排除图像条目 |
 | `-ns` | 排除脚本条目 |
-| `-aio` | 图片转换时应用图像偏移并调整输出画布 |
-| `-ocu` | 需要 `-if`。保留常见 JPEG、PNG、BMP 和 TGA 格式；其他图片转换为 PNG |
+| `-aio` | 图像转换时应用图像偏移并调整输出画布 |
+| `-ocu` | 需要 `-if`。保留常见 JPEG、PNG、BMP 和 TGA 格式；其他图像转换为 PNG |
 | `-y` / `--overwrite` | 覆盖已有提取输出文件 |
 | `-s` / `--skip` | 跳过已有提取输出文件 |
 | `-r` / `--rename` | 将冲突输出文件重命名为 `name (2).extension`，按需递增编号 |

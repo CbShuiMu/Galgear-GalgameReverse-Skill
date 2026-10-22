@@ -6,7 +6,7 @@
 
 保留现有顶层数组和 `{"entries": [...]}`。显式版本格式是 `{"kind":"gal-dialogue-map","schema_version":1,"entries":[...]}`；未知 kind 或版本拒绝处理。每条记录的 `chinese_text`、`audio_files` 与可选 `audio_paths` 保持原语义。新提取结果应提供完整相对 `audio_paths`；旧版省略路径时仍只在 `asset_root/Voice/filename` 和 `asset_root/filename` 查找唯一文件。
 
-可选的 `dialogue_id` 是唯一出现标识；`speaker` 为字符串或 `null`；`source` 为来源对象。它们保存在计划及交接清单的 `references` 中，不自动成为模型音色或生成参数。没有 `dialogue_id` 的旧数据仍通过 `row` 和 `voice_index` 追溯当前输入快照。
+可选的 `dialogue_id` 是唯一对白记录标识；`speaker` 为字符串或 `null`；`source` 为来源对象。它们保存在计划及交接清单的 `references` 中，不自动成为模型音色或生成参数。没有 `dialogue_id` 的旧数据仍通过 `row` 和 `voice_index` 追溯当前输入快照。
 
 ## 多段音频
 
@@ -36,6 +36,6 @@
 - 同一实际资源对应不同文本：预检查失败，列出资源及冲突行；不能生成多份后覆盖同一路径。
 - 不同目录的同名资源：`relative` 布局分别生成；`flat` 布局仍报输出冲突，不把它们当共享资源合并。
 
-`total` 表示唯一资源任务数；`total_references` 表示语音引用数；`reused_references` 表示共享任务减少的重复次数。样本限制、停止、进度、审计数量都以唯一任务计数。原始映射不被修改，生成清单的每个资源只出现一次，引用列表包含零基 `row`、`voice_index` 及可选出现标识、姓名和来源。
+`total` 表示唯一资源任务数；`total_references` 表示语音引用数；`reused_references` 表示共享任务减少的重复次数。样本限制、停止、进度、审计数量都以唯一任务计数。原始映射不被修改，生成清单的每个资源只出现一次，引用列表包含零基 `row`、`voice_index` 及可选对白记录标识、姓名和来源。
 
 文本仍按原规则清理换行转义及连续空白；仅增加引用不会改变相同资源文本的生成指纹，但映射哈希与交接清单会重新审计。文本、资源字节、模型或生成参数变化时继续使用原有指纹失效规则。证据来源信息仅用于追溯，计划器不据此执行代码或证明脚本语义。

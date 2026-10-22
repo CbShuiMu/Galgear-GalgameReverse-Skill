@@ -12,7 +12,7 @@
 | R4 | YuriSizuku：[IDA 静态分析 PSV 游戏](https://blog.schnee.moe/posts/GalgameReverse4/) | 结合索引、magic 和分发逻辑定位实现；谨慎迁移伪代码中的位宽、指针与常量表 | [资源与算法](../guides/formats-and-algorithms.md) |
 | R5 | YuriSizuku：[Switch 平台下的 Unity 后端 IL2CPP 分析](https://blog.schnee.moe/posts/GalgameReverse5/) | 配对原生模块与 metadata，沿语言状态的初始化、写入及读取追踪实际消费者 | [原生程序与 IL2CPP](../guides/native-and-il2cpp.md) |
 | R6 | YuriSizuku：[动态汉化分析：MAJIROv3](https://blog.schnee.moe/posts/GalgameReverse6/) | 以脚本身份和相对偏移关联运行时文本，检查显示、历史记录和重复加载是否一致 | [运行时替换](../guides/runtime-replacement.md) |
-| R7 | YuriSizuku：[动态汉化分析 2：AZsystem](https://blog.schnee.moe/posts/GalgameReverse7/) | 将替换提前到完整资源层，统一处理容量、脚本引用及图片通道布局 | [运行时替换](../guides/runtime-replacement.md) |
+| R7 | YuriSizuku：[动态汉化分析 2：AZsystem](https://blog.schnee.moe/posts/GalgameReverse7/) | 将替换提前到完整资源层，统一处理容量、脚本引用及图像通道布局 | [运行时替换](../guides/runtime-replacement.md) |
 | R8 | YuriSizuku：[哈希算法分析：krkrz_hxv4](https://blog.schnee.moe/posts/GalgameReverse8/) | 从资源解析链分离名称映射与内容变换，用运行时样本检验离线哈希实现 | [资源与算法](../guides/formats-and-algorithms.md) |
 | RS1 | YuriSizuku：[ARM/ARM64 ELF 中汉化字符串超长修改方法](https://blog.schnee.moe/posts/GalgameReverse_special1/) | 在可加载区域放置长字符串，再根据实际寻址方式更新引用 | [原生程序与 IL2CPP](../guides/native-and-il2cpp.md) |
 | D1 | Dir-A：[GalGame 引擎免封包略谈](https://www.cnblogs.com/Dir-A/p/18096904) | 实测目录与归档的加载优先级，核对裸文件的数据状态和分配器所有权 | [运行时替换](../guides/runtime-replacement.md) |

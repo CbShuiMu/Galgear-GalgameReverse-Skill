@@ -18,6 +18,15 @@ SKILLS = {
     'GalgameResourcePack': 'galgame-resource-pack',
     'GalgameReverse': 'galgame-reverse',
 }
+TERM_REPLACEMENTS = {
+    '原样提取根目录': '原样资源根目录', '原样归档提取根目录': '原样资源根目录',
+    '原样提取目录': '原样资源根目录',
+    '对白配对': '对白与语音关联', '语音配对': '对白与语音关联',
+    '对白出现': '对白记录',
+    '晋升': '经验收录', '回封包': '封包', '重封包': '封包', '打包': '封包',
+    '回封装': '重新封装', '重封装': '重新封装', 'SHA256': 'SHA-256',
+    '文件校验和': '文件哈希',
+}
 
 
 def documents(root):
@@ -71,15 +80,13 @@ def check(root):
                 errors.append(f'{file.relative_to(root)}: maintained Markdown must be at most one directory below SKILL.md')
             if file.parent == owner/'engine' and not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', file.stem):
                 errors.append(f'{file.relative_to(root)}: engine page must use its portable engine name')
-        if file.name != 'GLOSSARY.md' and not imported_document(file):
+        if not imported_document(file):
             body = prose(text)
             if re.search(r'(?<![\w/])references/', text):
                 errors.append(f'{file.relative_to(root)}: obsolete documentation directory: references/')
-            for term in ['原样提取根目录', '原样归档提取根目录', '原样提取目录',
-                         '对白配对', '语音配对', '对白出现', '晋升', '回封包', '重封包',
-                         '回封装', '重封装', '打包', 'SHA256', '文件校验和']:
+            for term, replacement in TERM_REPLACEMENTS.items():
                 if term in body:
-                    errors.append(f'{file.relative_to(root)}: noncanonical term: {term}; see GLOSSARY.md')
+                    errors.append(f'{file.relative_to(root)}: noncanonical term: {term}; use {replacement}')
         for destination in destinations(text):
             destination = destination.strip().strip('<>')
             if re.match(r'^[a-zA-Z][\w+.-]*:', destination):

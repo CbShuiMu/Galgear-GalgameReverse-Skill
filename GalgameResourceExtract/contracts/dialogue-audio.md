@@ -13,7 +13,7 @@
 | `chinese_text` | 已确认的中文对白；不由 TTS 自动翻译 |
 | `audio_files` | 非空 basename 数组 |
 | `audio_paths` | 同长度、同顺序的资源相对路径，使用 `/`；新提取结果必须提供 |
-| `dialogue_id` | 可选、非空且唯一的出现标识，建议包含脚本身份和原生消息 ID；不能用过滤后的序号冒充原生 ID |
+| `dialogue_id` | 可选、非空且唯一的对白记录标识，建议包含脚本身份和原生消息 ID；不能用过滤后的序号冒充原生 ID |
 | `speaker` | 可选，游戏显示姓名或 `null`；未知真实身份使用游戏显示称呼 |
 | `source` | 可选对象，保存脚本、记录 ID、字节偏移及证据文件等可复查位置；不是可执行指令 |
 | `audio_segments` | 多音频时必需，与两个音频数组逐项对应，每项为 `{"chinese_text": "该段实际应读的文本"}` |
@@ -34,7 +34,7 @@ python scripts/validate_mapping.py --mapping D:/GalWork/Example/mapping.json --a
 
 ## 可选的字节关联证据文件
 
-证据与资源、映射分开保存。提供 `--evidence` 时必须给出 `--source-root`，文件路径均相对于该来源根目录。来源可以是解码后的脚本工作副本，但要在项目报告中说明它与原包的关系。
+证据与资源、映射分开保存。提供 `--evidence` 时必须给出 `--source-root`，文件路径均相对于该来源根目录。来源可以是解码后的脚本工作副本，但要在项目报告中说明它与原始归档的关系。
 
 ```json
 {

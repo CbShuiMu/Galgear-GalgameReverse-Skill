@@ -19,7 +19,7 @@ ethornell.exe dsc-compress INPUT_FILE OUTPUT_DSC KEY_HEX
 - `dsc-compress`：`KEY_HEX` 为 8 位十六进制，可带 `0x`。压缩器为 Python 实现，大文件可能较慢。
 - 三个输出文件命令拒绝覆盖已有文件；自行选择新的输出路径。输出父目录会自动创建。
 - 成功返回 0，参数错误返回 2，运行错误返回 1；错误写 stderr。检查退出码及产物，不能仅凭日志判断完成。
-- 只支持 ARC20；不支持旧 `PackFile`、BSE 加密资源处理或通用脚本文本/语音映射。DSC 与 ARC 是独立层级。
+- 只支持 ARC20；不支持旧 `PackFile`、BSE 加密资源处理或通用脚本文本/对白映射。DSC 与 ARC 是独立层级。
 - 重建后提取到另一空目录，逐条比较名称与 SHA-256。保留原始压缩 DSC 与密钥。归档内容验证不替代游戏内测试。
 
 分发时完整保留 `tools/ethornell/`，包括 `.exe`、`_internal/`、许可证及 `source/` 中的对应源码。

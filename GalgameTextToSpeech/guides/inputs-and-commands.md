@@ -2,7 +2,7 @@
 
 ## JSON 约定
 
-使用现有 GalGame 对白与语音映射结构。支持顶层数组和 `{"entries": [...]}`。共享语音、分段与出现标识的完整规则见[映射到任务契约](../contracts/dialogue-mapping.md)。示例对白保留中文，因为它是合成输入：
+使用现有 GalGame 对白映射结构。支持顶层数组和 `{"entries": [...]}`。共享语音、分段与对白记录标识的完整规则见[映射到任务契约](../contracts/dialogue-mapping.md)。示例对白保留中文，因为它是合成输入：
 
 ```json
 [
@@ -69,7 +69,7 @@
 
 输出目录的 `.galtts/` 保存预检查结果、计划、源 JSON 快照、`manifest.jsonl`、`progress.json`、中间 WAV、日志、`audit.json` 和 `resources.json`。源 JSON 和资源保持不变。续跑只跳过指纹和文件哈希均匹配的成功结果。默认每个条目最多重试两次。停止标记在当前条目完成后生效。只有用户新近要求开始或恢复该批次时，才使用 `--resume`。
 
-`handoff` 在不加载模型的情况下审计全部当前映射，并导出 `.galtts/resources.json`。只有完整审计通过才设置 `complete: true`；样本与审计失败的结果不能作为完整替换集使用。每个条目记录原始相对 `path`、原文件路径及哈希和大小、生成文件路径及哈希和大小、操作及指纹。顶层结构使用 `kind: gal-resource-manifest`、`schema_version: 1` 和 `stage: generated`，并记录映射 JSON 哈希及原始和输出根目录。更改配置后或封包前重新运行 `handoff`。直接交接给 GalPack 时，用一个归档的原样资源根目录作为 `asset_root`；不同归档根目录应分开处理。
+`handoff` 在不加载模型的情况下审计全部当前映射，并导出 `.galtts/resources.json`。只有生成审计通过才设置 `complete: true`；样本与审计失败的结果不能作为完整替换集使用。每个条目记录原始相对 `path`、原文件路径及哈希和大小、生成文件路径及哈希和大小、操作及指纹。顶层结构使用 `kind: gal-resource-manifest`、`schema_version: 1` 和 `stage: generated`，并记录映射 JSON 哈希及原始和输出根目录。更改配置后或封包前重新运行 `handoff`。直接交接给 GalPack 时，用一个归档的原样资源根目录作为 `asset_root`；不同归档根目录应分开处理。
 
 `run --limit N` 产生 `sample_completed`，不得报告为全部完成。`audit` 始终检查整个映射。通过格式和哈希检查不能证明试听质量、发音、情感或音色相似度。为新模型、角色或设置生成样本并试听；有帮助时比较 ASR 转录。用户明确直接要求完整批次时，遵循该要求，不额外增加样本审批步骤。
 

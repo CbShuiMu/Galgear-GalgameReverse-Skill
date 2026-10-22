@@ -6,10 +6,10 @@
 - 已核对版本：`1.2.0 (rev 970f3feaf49e)`，2026-10-18。
 - 二进制 SHA-256：`610A2A133649A25771012BD98F25EF77661ECB50CA4F249C43DEF44704A437B9`。
 - 用途：CRI 容器列表/提取/创建/修改，HCA/ADX/AHX 音频编解码，以及支持格式的加解密和密钥候选恢复。
-- 不解析 MAGES SC3 `.scx` 对白、中文字体码表、游戏脚本语音调用或对白与语音映射。CPK 中取出 `.scx` 后交给脚本工具；HCA 编码成功不等于游戏可播放。
+- 不解析 MAGES SC3 `.scx` 对白、中文字体码表、游戏脚本语音调用或对白映射。CPK 中取出 `.scx` 后交给脚本工具；HCA 编码成功不等于游戏可播放。
 - 这是独立原生 CLI，不使用旧 `PyCriCodecs` 的 Python API，也不使用 GARbro 的 `x/l/c` 子命令。工具更新后先执行 `--version` 和 `--help`，再复核受影响参数。
 
-按任务读取：归档提取见“列表与输出路径”；CPK 写回见“CPK”；配音转换见“HCA”；ACB 对白音频定位见“ACB”；其他容器见“其他创建模式”。
+按任务读取：解包见“列表与输出路径”；CPK 写回见“CPK”；配音转换见“HCA”；ACB 对白音频定位见“ACB”；其他容器见“其他创建模式”。
 
 ## 调用约定
 
@@ -87,7 +87,7 @@ $listing = ($listText -join "`n") | ConvertFrom-Json
 & $cri $archive --raw -o (Join-Path $extractRoot '?i_?e')
 ```
 
-CPK 提取会解开 CRILAYLA，导出包内资源自身的编码字节；包内 `.hca` 不会被递归转为 WAV。对 AWB/ACB 等音频容器，默认导出可能解码，制作重建基线时使用 `--raw`。独立 HCA/ADX 的 `--raw` 可能重建文件头，不用它代替文件复制来保证整文件哈希不变。
+CPK 提取会解开 CRILAYLA，导出归档内资源自身的编码字节；归档内 `.hca` 不会被递归转为 WAV。对 AWB/ACB 等音频容器，默认导出可能解码，制作重建基线时使用 `--raw`。独立 HCA/ADX 的 `--raw` 可能重建文件头，不用它代替文件复制来保证整文件哈希不变。
 
 ## CPK：创建、替换与验证
 
@@ -100,7 +100,7 @@ CPK 提取会解开 CRILAYLA，导出包内资源自身的编码字节；包内 
 # 确认需要压缩时才增加 --compress。
 ```
 
-`--profile` 是字符串预设，**不是 `--mode 0/1/2/3`**。该版本 CPK 创建默认 `filename`、对齐 `2048` 字节，不能据此推断源包配置。可选预设及默认表组合：
+`--profile` 是字符串预设，**不是 `--mode 0/1/2/3`**。该版本 CPK 创建默认 `filename`、对齐 `2048` 字节，不能据此推断原始归档配置。可选预设及默认表组合：
 
 | profile | TOC | ITOC | GTOC | ETOC |
 | --- | --- | --- | --- | --- |
@@ -111,11 +111,11 @@ CPK 提取会解开 CRILAYLA，导出包内资源自身的编码字节；包内 
 | `id-group` | 有 | 有 | 有 | 无 |
 | `filename-id-group` | 有 | 有 | 有 | 有 |
 
-- `-m --json` 提供 `alignment/content_offset/utf_version/has_toc/has_itoc/has_gtoc/has_etoc` 等；自定义源包组合可能无法用上述预设精确表达。
-- 创建会递归收集文件，按相对路径排序，包内路径相对于输入目录根；无 `-R`，无尾部斜杠特殊语义。
-- `--alignment` 非零，CPK 上限 `65535`；实际值按源包取。`--encoding NAME` 是容器文本字段编码覆盖，不是 SC3 对白或音频编码转换。
-- CLI 不提供逐文件指定 CPK ID、组信息、时间、CRC、TVERSION 等全部底层构建选项。不要声称目录重建自动保留原包 ID、条目顺序或全部元数据。
-- 少量文件替换优先读取原包后 mutation，再核对元数据和资源；mutation 也不保证输出与源包逐字节一致。
+- `-m --json` 提供 `alignment/content_offset/utf_version/has_toc/has_itoc/has_gtoc/has_etoc` 等；自定义原始归档组合可能无法用上述预设精确表达。
+- 创建会递归收集文件，按相对路径排序，归档内路径相对于输入目录根；无 `-R`，无尾部斜杠特殊语义。
+- `--alignment` 非零，CPK 上限 `65535`；实际值按原始归档取。`--encoding NAME` 是容器文本字段编码覆盖，不是 SC3 对白或音频编码转换。
+- CLI 不提供逐文件指定 CPK ID、组信息、时间、CRC、TVERSION 等全部底层构建选项。不要声称目录重建自动保留原始归档 ID、条目顺序或全部元数据。
+- 少量文件替换优先读取原始归档后 mutation，再核对元数据和资源；mutation 也不保证输出与原始归档逐字节一致。
 
 ### 修改已有 CPK
 
@@ -256,10 +256,10 @@ CPK 提取会解开 CRILAYLA，导出包内资源自身的编码字节；包内 
 | --- | --- |
 | `unknown option` | 比对本地 `--help`；不要套用旧 Python API、GARbro 或其他版本语法 |
 | `only one input path is supported` | 普通操作改成逐文件调用，检查参数是否因空格拆开 |
-| `CPK ... target must be an entry index` | 重新列出原包，按完整路径取零基索引 |
+| `CPK ... target must be an entry index` | 重新列出原始归档，按完整路径取零基索引 |
 | 输出位置像目录但实际生成一个文件 | 检查最终选中条目数量；单条目 `-o` 为文件路径 |
 | `could not detect supported format` | 核对文件头与已知格式；只有证据明确时用 `-f` |
 | JSON 解析失败 | 检查退出码与 stderr、JSON 选项互斥；不要解析混入日志的合并流 |
-| 写出成功但游戏读取失败 | 对照源包 ID/布局/编码/压缩/加密与音频头参数；保留输出供诊断，不报告为已安装可用 |
+| 写出成功但游戏读取失败 | 对照原始归档 ID/布局/编码/压缩/加密与音频头参数；保留输出供诊断，不报告为已安装可用 |
 
 维护依据：本地 `--version/--help`、对应版本的 [CLI 参数解析](https://github.com/Youjose/CriCodecs/blob/970f3feaf49e/CriCodecs/src/cli/cli_parse.cpp)、[创建与 mutation 实现](https://github.com/Youjose/CriCodecs/blob/970f3feaf49e/CriCodecs/src/cli/cli_maker.cpp)、[列表与提取实现](https://github.com/Youjose/CriCodecs/blob/970f3feaf49e/CriCodecs/src/cli/cli_export.cpp)。接口冲突时以随附二进制的实测行为为准。

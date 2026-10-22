@@ -1,4 +1,4 @@
 interface:
   display_name: "GalTTS"
   short_description: "使用所选 TTS 模型批量生成中文配音，并记住项目与输出配置"
-  default_prompt: "使用 $galgame-text-to-speech，根据对白与音频映射 JSON，通过我选定的 TTS 后端生成中文配音并写入指定输出目录；复用本地设置，首次使用时协助配置。"
+  default_prompt: "使用 $galgame-text-to-speech，根据对白映射 JSON，通过我选定的 TTS 后端生成中文配音并写入指定输出目录；复用本地设置，首次使用时协助配置。"

@@ -30,7 +30,7 @@ repack_script_text_translation.exe TRANSLATIONS.json SCRIPT_IN.mrg SCRIPT_OUT.mr
 - MZP 保留输入顺序；`mzp_compress` 只封装，不执行 MZX/NXX 压缩。`mzp_extract` 输出 `输入文件名_0000.bin` 等；显式提供空输出目录。
 - `mzx_compress` 仅生成有效的 literal 流，通常比输入大；不保证压缩率。NXX 的 NXGX 使用 zlib；NXCX 没有真实样本验证。
 - `hfa_extract` 只提取；无对应 HFA 封包器。
-- 两个脚本文本工具处理的 `.mrg` 实际为特定 MZP 字符串表，不是任意 MRG。JSON 为 `script_text_by_hash[hash] = {jp, en, notes}`，其中 `hash` 是 SHA-256 的大写十六进制表示；回填读取非空 `en`，不自动翻译，也不生成语音映射。
+- 两个脚本文本工具处理的 `.mrg` 实际为特定 MZP 字符串表，不是任意 MRG。JSON 为 `script_text_by_hash[hash] = {jp, en, notes}`，其中 `hash` 是 SHA-256 的大写十六进制表示；回填读取非空 `en`，不自动翻译，也不生成对白映射。
 - 没有统一 `--help`；无参数输出用法并返回非零。成功返回 0；错误非零，严重格式错误可能直接终止。部分日志写 stderr，不能仅凭 stderr 判断失败。
 - 工具可能覆盖输出；始终选择新的文件/空目录，预先创建输出文件父目录。原始文件保持独立；重建后重新提取并核对索引、名称、有效载荷与填充。
 
