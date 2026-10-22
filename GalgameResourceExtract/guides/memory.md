@@ -14,13 +14,13 @@
 
 - `game_root` 和 `output_dir`：用户选定的绝对路径。
 - `engine`：名称、置信度、证据及已知版本。保留不确定性，不要把推测记为事实。
-- `resources`：已定位的文本与语音归档路径、脚本目录、文件命名约定、脚本编码及相关资源 ID。
+- `resources`：已定位的归档、脚本、图像、音频、视频及其他目标资源路径，文件命名约定、格式或编码及相关资源 ID。
 - `tools`：成功使用过的提取工具名称、版本、可执行文件路径与相关参数。命令参数保存为数组，避免凭据或 Shell 字符串。记忆不会执行存储的命令。
-- `artifacts`：导出的文本目录、语音目录、映射 JSON 及相关语言或翻译状态。记录对白是原文还是经过核实的中文；字段名本身不能证明已翻译。
-- `counts`：实际测量得到的文本、音频、已关联、未关联与重复数量。
+- `artifacts`：原样资源根目录、资源清单、按需解码或解析的结果；需要对白关联时再记录映射 JSON 及相关语言或翻译状态。记录对白是原文还是经过核实的中文；字段名本身不能证明已翻译。
+- `counts`：按目标资源类别实际测量的条目、成功、失败和重复数量；做过对白关联时再记录已关联与未关联数量。
 - `unresolved`：歧义、失败尝试及具体原因，以及下一项有效操作。不要存储完整对白、音频或私有推理。
 - `sources`：已观察的相关源文件快照。元数据检查成本较低；可选 SHA-256 为选定文件提供更强的身份校验。
-- `checkpoints`：阶段、状态、简短事实说明和已验证的产物路径。建议阶段为 `identify_engine`、`locate_resources`、`extract_text`、`extract_voice`、`match` 和 `export_json`，只使用与请求相关的阶段。
+- `checkpoints`：阶段、状态、简短事实说明和已验证的产物路径。可按任务使用 `identify_engine`、`locate_resources`、`extract_resources`、`decode_resources`、`extract_text` 等阶段；`extract_voice`、`match` 和 `export_json` 只用于相关语音或关联任务。
 
 在取得重要发现、完成阶段、发生失败或用户要求停止后更新。工作未通过相关检查时，不要将阶段标记为完成。检查点记录的是工作状态，不是执行其他工作的许可。
 
@@ -34,7 +34,7 @@
 & <PYTHON> <SKILL>/scripts/memory.py --project game configure --game-root D:/Games/Example --output-dir D:/Exports/Example
 & <PYTHON> <SKILL>/scripts/memory.py --project game update --patch <FINDINGS_JSON>
 & <PYTHON> <SKILL>/scripts/memory.py --project game observe --source D:/Games/Example/data.arc
-& <PYTHON> <SKILL>/scripts/memory.py --project game checkpoint extract_voice --status completed --artifact D:/Exports/Example/Voice
+& <PYTHON> <SKILL>/scripts/memory.py --project game checkpoint extract_resources --status completed --artifact D:/Exports/Example/original
 & <PYTHON> <SKILL>/scripts/memory.py --project game check
 & <PYTHON> <SKILL>/scripts/memory.py --project game memory
 ```

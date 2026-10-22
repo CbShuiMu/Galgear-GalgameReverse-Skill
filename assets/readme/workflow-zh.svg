@@ -1,33 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="312" viewBox="0 0 1200 312" role="img" aria-labelledby="title desc">
-  <title id="title">GalSkill: GalExtract → GalTTS → GalPack</title>
-  <desc id="desc">从脚本引用到中文语音，再到重建归档。</desc>
-  <rect width="1200" height="312" rx="20" fill="#f3f7f5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">GalSkill：通用资源主线与按需分支</title>
+  <desc id="desc">GalExtract 解包资源，按用户需求修改工作副本后交给 GalPack 封包和往返验证。需要配音时从修改阶段进入 GalTTS，生成语音后交给 GalPack。遇到未知格式或加载障碍时使用 GalReverse，验证方法后返回当前任务。</desc>
+  <defs>
+    <marker id="arrow-main" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#087a78" stroke-width="1.7" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrow-tts" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#a34d38" stroke-width="1.7" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="700" rx="20" fill="#f3f7f5"/>
   <g font-family="'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif">
-  <g id="stage-1" transform="translate(36 28)">
-    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
-    <text x="28" y="42" font-size="21" font-weight="600" fill="#087a78">01 / 提取与匹配</text>
-    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalExtract</text>
-    <text x="28" y="146" font-size="24" fill="#53676f">读取脚本里的语音引用</text>
-    <path d="M28 184 H322" stroke="#d4dfdb"/>
-    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#087a78">mapping.json</text>
-  </g>
-  <path d="M395 156 h20 m-7 -7 7 7 -7 7" fill="none" stroke="#087a78" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <g id="stage-2" transform="translate(425 28)">
-    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
-    <text x="28" y="42" font-size="21" font-weight="600" fill="#a34d38">02 / 生成中文配音</text>
-    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalTTS</text>
-    <text x="28" y="146" font-size="24" fill="#53676f">使用选定的 TTS 后端</text>
-    <path d="M28 184 H322" stroke="#d4dfdb"/>
-    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#a34d38">001.ogg</text>
-  </g>
-  <path d="M784 156 h20 m-7 -7 7 7 -7 7" fill="none" stroke="#087a78" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <g id="stage-3" transform="translate(814 28)">
-    <rect width="350" height="256" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
-    <text x="28" y="42" font-size="21" font-weight="600" fill="#087a78">03 / 重建与验证</text>
-    <text x="28" y="100" font-size="44" font-weight="700" fill="#19343d">GalPack</text>
-    <text x="28" y="146" font-size="24" fill="#53676f">合并资源并核对哈希</text>
-    <path d="M28 184 H322" stroke="#d4dfdb"/>
-    <text x="28" y="213" font-size="24" font-family="Consolas, 'SFMono-Regular', monospace" fill="#087a78">archive + hashes</text>
-  </g>
+    <g id="heading">
+      <text x="48" y="56" font-size="36" font-weight="700" fill="#19343d">按需求选择资源处理路线</text>
+      <text x="48" y="94" font-size="22" fill="#53676f">脚本 · 图像 · 音频 · 视频 · 字体及其他数据</text>
+    </g>
+
+    <g id="extract" transform="translate(48 140)">
+      <rect width="324" height="170" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+      <text x="24" y="38" font-size="21" font-weight="600" fill="#087a78">01 / 解包与按需解析</text>
+      <text x="24" y="88" font-size="40" font-weight="700" fill="#19343d">GalExtract</text>
+      <text x="24" y="132" font-size="22" fill="#53676f">保留原样资源和完整路径</text>
+    </g>
+    <path d="M382 225 H428" fill="none" stroke="#087a78" stroke-width="3" marker-end="url(#arrow-main)"/>
+
+    <g id="resource-editing" transform="translate(438 140)">
+      <rect width="324" height="170" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+      <text x="24" y="38" font-size="21" font-weight="600" fill="#087a78">02 / 按用户需求处理</text>
+      <text x="24" y="88" font-size="36" font-weight="700" fill="#19343d">修改资源副本</text>
+      <text x="24" y="132" font-size="22" fill="#53676f">按资源类型核对格式与引用</text>
+    </g>
+    <path d="M772 225 H818" fill="none" stroke="#087a78" stroke-width="3" marker-end="url(#arrow-main)"/>
+
+    <g id="pack" transform="translate(828 140)">
+      <rect width="324" height="170" rx="16" fill="#ffffff" stroke="#d4dfdb"/>
+      <text x="24" y="38" font-size="21" font-weight="600" fill="#087a78">03 / 封包与往返验证</text>
+      <text x="24" y="88" font-size="40" font-weight="700" fill="#19343d">GalPack</text>
+      <text x="24" y="132" font-size="22" fill="#53676f">合并修改，保留其余资源</text>
+    </g>
+
+    <g id="optional-tts-route">
+      <path d="M600 320 V382" fill="none" stroke="#a34d38" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow-tts)"/>
+      <text x="622" y="356" font-size="21" fill="#a34d38">需要中文配音时</text>
+      <g transform="translate(438 392)">
+        <rect width="324" height="144" rx="16" fill="#fff9f5" stroke="#e5cfc3"/>
+        <text x="24" y="34" font-size="21" font-weight="600" fill="#a34d38">可选 / 中文语音生成</text>
+        <text x="24" y="78" font-size="36" font-weight="700" fill="#19343d">GalTTS</text>
+        <text x="24" y="116" font-size="22" fill="#53676f">已确认对白与参考音频</text>
+      </g>
+      <path d="M772 464 H990 V320" fill="none" stroke="#a34d38" stroke-width="2.5" stroke-dasharray="7 6" stroke-linejoin="round" marker-end="url(#arrow-tts)"/>
+      <text x="811" y="447" font-size="21" fill="#a34d38">替换语音</text>
+    </g>
+
+    <g id="reverse-support" transform="translate(48 580)">
+      <rect width="1104" height="84" rx="14" fill="#eaf1f5" stroke="#c9dbe5"/>
+      <text x="24" y="51" font-size="30" font-weight="700" fill="#426d83">GalReverse</text>
+      <text x="248" y="32" font-size="22" fill="#19343d">遇到未知格式、脚本指令、编码字库或加载障碍时按需分析</text>
+      <text x="248" y="62" font-size="21" fill="#53676f">验证方法后，返回解包、资源修改或封包阶段。</text>
+    </g>
   </g>
 </svg>

@@ -4,7 +4,7 @@
 
 - `SKILL.md` 放触发、路线、共同约束及交付边界；根目录下的 `guides/` 放流程，`engine/` 放按引擎命名的资料，`commands/` 放工具命令，`contracts/` 放交接契约，`catalog/` 放索引，`provenance/` 放来源。维护的 Markdown 最多位于一层子目录；第三方源码保留原始内部结构。常用资料从 `SKILL.md` 直接链接，小技能不为形式创建空目录。
 - 项目术语以 [GLOSSARY.md](GLOSSARY.md) 为准，统一使用“解包”“封包”“原样资源根目录”“对白记录”“对白与语音关联”和“经验收录”。代码标识、CLI 参数、文件格式名和原始输出保持不变。
-- GalExtract 管原样资源与对白引用，GalTTS 将引用转换成唯一生成任务，GalPack 管基线合并和归档往返，GalReverse 管未知格式和加载障碍。不要把下一阶段的成功自动当作上一阶段语义正确的证明。
+- GalExtract 按用户需求解包各类资源，需要时解析脚本和对白引用；GalPack 管各类修改资源的基线合并和归档往返，GalReverse 管未知格式和加载障碍。GalTTS 专注将对白与语音引用转换成唯一语音生成任务，仅在需要语音生成时参与。不要把下一阶段的成功自动当作上一阶段语义正确的证明。
 - 当前工作不涉及发布构建重组或工具二进制更新。修改文档和辅助脚本时保留工具运行依赖、第三方源码及许可证。
 - 引擎经验的项目证据留在用户本地；收录到技能包的知识必须去除项目路径、密钥和原游戏内容，标明版本、验证等级和失效条件。经验不扩展用户授权。
 - 文档或结构变更运行 `python scripts/check_project.py`。映射改动运行 GalExtract 的 `scripts/test_mapping.py` 和 GalTTS 的 `scripts/test_dialogue_mapping.py`；生成流程运行 `scripts/test_pipeline.py --ffmpeg <实际路径>`；交接变化另运行 GalPack 的集成检查。

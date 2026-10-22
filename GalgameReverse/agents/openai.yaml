@@ -1,4 +1,4 @@
 interface:
   display_name: "GalReverse"
-  short_description: "分析 GalGame 汉化中的资源格式、编码字库、加载路径与原生补丁"
+  short_description: "分析 GalGame 资源修改中的未知格式、编码字库、加载路径与原生补丁"
   default_prompt: "使用 $galgame-reverse 分析指定游戏的资源或汉化障碍，确认目标版本，定位必要的数据流，验证最小方案并交付证据与结果。"

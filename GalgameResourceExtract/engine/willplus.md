@@ -2,6 +2,8 @@
 
 本页提供格式与关联线索，不随附 WS2/LNG 通用解析器。先核对引擎版本、原始脚本、姓名本地化表和翻译归档；具体文件名、配置字节及消息 ID 语义须用当前文件验证。
 
+以下姓名和语音关联步骤仅在用户需要相应内容时执行。只需解包脚本或其他资源时，完成归档提取与条目核对即可；纯文本导出保留目标范围内的无语音记录，不要求生成语音映射。
+
 ## 读取原生消息与姓名
 
 [DisplayMessage 实现](https://github.com/DarthFly/advhd_ws2_tools/blob/master/Ws2/Opcodes/DisplayMessage.php)将操作码 `0x14` 后的 DWORD 作为消息 ID，再读取 layer 和 message 字符串；较新版本另读配置字节。[SetDisplayName 实现](https://github.com/DarthFly/advhd_ws2_tools/blob/master/Ws2/Opcodes/SetDisplayName.php)用 `0x15` 读取显示姓名字符串，较新版本也可能有配置字节。
