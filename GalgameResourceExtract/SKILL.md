@@ -46,6 +46,11 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 
 | 内容 | 文档 |
 | --- | --- |
+| 消息消费者、保守姓名传播、分支图与存档坐标等级 | [分支与存档定位](guides/control-flow.md) |
+| 完整剧情转录、姓名与语言、静态流程、存档候选的证据边界 | [剧情转录与位置证据](guides/story-export.md) |
+| System-NNN release SPT：按指令提取消息与选项 | [system-nnn](engine/system-nnn.md) |
+| FVP HCB：指令边界与字符串候选 | [fvp](engine/fvp.md) |
+| 批量台词提取、静态脚本节点与实际存档恢复的分别验收 | [脚本与存档节点](guides/script-and-save-nodes.md) |
 | GARbro 对常见 GalGame 引擎的解包支持情况 | [garbro-support](catalog/garbro-support.md) |
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
@@ -73,3 +78,5 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | Ren'Py：RPA 与 RPY / RPYC | [renpy](engine/renpy.md) |
 | TyranoScript：散文件与桌面外壳 | [tyrano](engine/tyrano.md) |
 | Artemis：PF6 / PF8 与脚本 | [artemis](engine/artemis.md) |
+| NeXAS：PAC 与编译脚本提取边界 | [nexas](engine/nexas.md) |
+| Nitroplus：PAK 与 NPK 分别识别 | [nitroplus](engine/nitroplus.md) |

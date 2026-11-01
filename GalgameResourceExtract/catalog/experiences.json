@@ -1,5 +1,294 @@
 {
   "kind": "gal-engine-experiences",
   "schema_version": 1,
-  "entries": []
+  "entries": [
+    {
+      "experience_id": "48e0a975d45fc8ea8b84fe2bed33ab18df9b723b780965c49f7f05a9cc3ed3cf",
+      "engine": "siglus",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "c594f19e4b5b730ab39870370f6dd20d1c7225bbb1c0c7192ed815ca597ac6df",
+      "engine": "nscripter",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nscripter.md"
+    },
+    {
+      "experience_id": "4484950956f2029d4b6221a68c8b0ff026a0d4cf680b753cc12935d8779a7f4f",
+      "engine": "majiro",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "4985321a3b2c424122e2a6638019c86fb194380a3744288aa071a8d12f9cfb26",
+      "engine": "siglus",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "99caf658cf62eb215dbda7a66ac6309e703da37982a3572a075efa4ed36c957d",
+      "engine": "artemis",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "cf8bc0ebb4b5da5d5b6c6514807e516d3f8f8624bf6b194a2f8ea8d7d5b06597",
+      "engine": "artemis",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "16222ab4f39fd73112ee67a8896c52d2340e7301b815e88759515c365232be44",
+      "engine": "reallive",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/reallive.md"
+    },
+    {
+      "experience_id": "04c42a4d936b080ccbed1560dfb633472add610b902a54a7d405662c8f5e7a92",
+      "engine": "ethornell",
+      "engine_version": "当前真实样本；版本兼容性未扩展",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/ethornell.md"
+    },
+    {
+      "experience_id": "e9c95af843bb4e734c728a4bc52803a09dd9efdb89f1afd74eb41adaf4bf03fd",
+      "engine": "nitroplus",
+      "engine_version": "当前 GARbro 读取器实际识别的 Windows 样本",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nitroplus.md"
+    },
+    {
+      "experience_id": "65df36e6c72560fffb781734717dddd2b226225a021fa8480bcf3d2981f72ee0",
+      "engine": "nexas",
+      "engine_version": "当前 GARbro 读取器实际识别的 Windows 样本",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nexas.md"
+    },
+    {
+      "experience_id": "aaafe3f4d90ca756dbc0d7497478022b8df849533f9651d1c9b5f079e579b1d8",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 DAT/CSV",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "42ccbcc2759b0a37714cfc1e074e2f188b9aa0801e4adc5889e04e1ad0539014",
+      "engine": "nscripter",
+      "engine_version": "NScript XOR84",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nscripter.md"
+    },
+    {
+      "experience_id": "c67db8aa2e081b2501de53ff10c24377e1d9cde20c059877156c18ed8f013563",
+      "engine": "majiro",
+      "engine_version": "MJO V1 partial",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "fab395501a2851942fea1372222fb8df8c002ef22b09f151b7b88289b066ce35",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 DAT/CSV",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "7619e48ac8198f191044a9dd7a75f0f5fddc463704f679054eb396dccfc6cd66",
+      "engine": "artemis",
+      "engine_version": "literal AST v1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "b61327b8e6159b0f6acd73002972a03066958d3840140fc7abada622133a033b",
+      "engine": "artemis",
+      "engine_version": "literal AST v1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "6ea870d934f34834b689a68c33a1397ce756a402ec1fbd83f73008fca126489d",
+      "engine": "reallive",
+      "engine_version": "compiler 10002",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/reallive.md"
+    },
+    {
+      "experience_id": "8615a20daee27475010b317aadabbc76b82b99ce7ed51b3b533d998dec3fc95e",
+      "engine": "ethornell",
+      "engine_version": "BGI v0/v1 reader subset",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/ethornell.md"
+    },
+    {
+      "experience_id": "c67b01afabb3b376afb6cc7de5a7fa00b31cfebb9b6474030cc2986392669e3d",
+      "engine": "renpy",
+      "engine_version": "RPYC decompiled RPY subset",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/renpy.md"
+    },
+    {
+      "experience_id": "ed4134788a23c0026f5902e92a668e7adb76b8232d4e27ac8d38fb9d0bdd9a1d",
+      "engine": "fvp",
+      "engine_version": "HCB matching opcode layout",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/fvp.md"
+    },
+    {
+      "experience_id": "c41b3f0e536d77636b2a2b82b2010b29aa23d65b4c182fdd5bf5f0600767bc63",
+      "engine": "system-nnn",
+      "engine_version": "release SPT matching header",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/system-nnn.md"
+    },
+    {
+      "experience_id": "28f207d3d5eeadf02809f8c51cd7a225b431f77b713a5cf64743a46927ae85a1",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 matched DAT and database consumers",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "382aeea853287285d00ae1960453e6dd4263d5049195a1dd071250fa38cda31a",
+      "engine": "nscripter",
+      "engine_version": "NScript XOR84 decoded source; static labels",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nscripter.md"
+    },
+    {
+      "experience_id": "88ed5b97aa2feecaec5e54adca853579c9e309b13861c485f6d051834b166739",
+      "engine": "majiro",
+      "engine_version": "MJO V1; fixed v0.0.41 opcode templates",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "3b857b9006346c1392880290710084a7ecd597d8a0f07b31fdca907369f6fed0",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 matched DAT and database consumers",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "2dd8fe471dd80ee88b5a2350fc35f4ed3bd03c08f6102b5f2f85ca619bcee581",
+      "engine": "artemis",
+      "engine_version": "literal AST v1 with selection tables",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "ef62c55d880fa40b433f90c8bfed0262018bbf3fe32d5c70e791b392a0d5e4bf",
+      "engine": "artemis",
+      "engine_version": "literal AST v1 with selection tables",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "7eb64986ad33485ade8161f66bcfbe07b9e889b420e35df604f01439c773ed9a",
+      "engine": "reallive",
+      "engine_version": "compiler 10002; VNT v0.0.41 reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/reallive.md"
+    },
+    {
+      "experience_id": "9b5f4753098166fd1174bb7e90eeda2c10fce0a50d1c8261e3b8b75d9746f725",
+      "engine": "nitroplus",
+      "engine_version": "local text markup subset; engine version unconfirmed",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nitroplus.md"
+    },
+    {
+      "experience_id": "111de07330cf39de7480fc947c7d7d21b9970c5f8b51014d5a27f47dc5ffe2b7",
+      "engine": "ethornell",
+      "engine_version": "VNT v0.0.41 matched consumer references",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/ethornell.md"
+    },
+    {
+      "experience_id": "4dac4123fd4a1b1b9d7a924ef4bf2c271b26611373c509d29843a454a2fc3e40",
+      "engine": "renpy",
+      "engine_version": "unrpyc 2.0.3 decompiled syntax subset",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/renpy.md"
+    },
+    {
+      "experience_id": "1d386d5172dea0202aa4cb1e76c582e0854f7e6cd56b32ee3cad8a036b50c161",
+      "engine": "system-nnn",
+      "engine_version": "release SPT; matched direct control subset",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/system-nnn.md"
+    }
+  ]
 }

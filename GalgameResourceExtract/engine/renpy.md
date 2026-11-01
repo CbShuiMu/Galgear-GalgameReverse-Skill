@@ -40,3 +40,74 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 [lexer]: https://github.com/renpy/renpy/blob/f5c62227489ba60939432f0a33dd7eceb6d83b54/renpy/lexer.py
 [script]: https://github.com/renpy/renpy/blob/f5c62227489ba60939432f0a33dd7eceb6d83b54/renpy/script.py
 [language]: https://www.renpy.org/doc/html/language_basics.html
+
+## 台词解析与原生位置的验收
+
+静态转录可同时读取 Character 的姓名表达式与本地化表，通过实际键关联姓名；保留源文件和行号。动态姓名、复杂Python、screens和表达式不可通过执行未知项目初始化来补齐。档案成员与散文件分别记录；反编译成功和静态消息导出不证明所有分支、补丁优先级或存档恢复。
+
+## 静态分支与语法范围
+
+从反编译 RPY 建图时，保留 if/elif/else、menu/choice、while、标签及调用的语法层级与源行。跳转、调用继续位置和返回栈分别表示，缺失、多解或动态目标保留未解决。Python/ATL 的多行表达式和不透明代码不能按普通对白扫描。不同 decompiler 可能输出无缩进的标签后续语句；应验证实际语法形式，而非把固定缩进当作全版本规则。完整性仍按[分支与存档定位](../guides/control-flow.md)验收。
+
+<!-- EXPERIENCE:c67b01afabb3b376afb6cc7de5a7fa00b31cfebb9b6474030cc2986392669e3d:START -->
+## 已验证静态RPY消息与本地化姓名键关联；不执行项目Python
+
+- 引擎版本：RPYC decompiled RPY subset
+- 方言/条件：Windows offline; explicit format checks; no runtime save loading
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`c67b01afabb3b376afb6cc7de5a7fa00b31cfebb9b6474030cc2986392669e3d`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 确认容器与成员身份，保留原件及独立来源；复用前检查SHA-256
+- 当前脚本布局必须符合对应读取器，字符编码由项目证据显式指定
+
+### 已验证步骤
+
+- 逐文件读取并保留原生坐标、消息分类、姓名来源与失败诊断；解析器不执行游戏脚本
+- 本地Python适配器及固定版本VNTranslationTools v0.0.41、SSSU 0.5.7、unrpyc 2.0.3按格式分流，实际实现、来源和命令留在本地
+- 独立核对导出计数、唯一ID、来源哈希与已知坐标边界；支持的布局另对代表性脚本重新解析核对
+
+### 限制与失效条件
+
+- 只覆盖本次成功子集；具体失败项和数量保存在本地，不能扩展为全引擎支持
+- 未确认全路线剧情、补丁覆盖顺序、未知控制指令、语音关联或实际存档恢复
+- 语言键、文件顺序与字符串顺序不能自动证明正文语言或运行顺序；原生坐标和候选关联分别保存
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:c67b01afabb3b376afb6cc7de5a7fa00b31cfebb9b6474030cc2986392669e3d:END -->
+
+<!-- EXPERIENCE:4dac4123fd4a1b1b9d7a924ef4bf2c271b26611373c509d29843a454a2fc3e40:START -->
+## 静态脚本菜单、条件体和调用目标已导出；动态表达式和返回栈未执行
+
+- 引擎版本：unrpyc 2.0.3 decompiled syntax subset
+- 方言/条件：Windows offline source/bytecode refinement; scope limited to passed files
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`4dac4123fd4a1b1b9d7a924ef4bf2c271b26611373c509d29843a454a2fc3e40`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 来源文件与已验证快照一致，逐文件保留格式版本、字符编码和失败项
+- 消费者、操作数、字符串或数据库引用由实际读取实现与样本结构支持，不按文件名猜配
+
+### 已验证步骤
+
+- 使用项目本地Python适配器与固定SSSU 0.5.7 / VNTranslationTools v0.0.41读取实现保留原生坐标，代码和源码证据均留在本地
+- 分别输出消息、片段或明确候选，保留姓名字段、语言槽位、分支/引用图的实际证据类型
+- 核对来源哈希、记录ID和计数、已知坐标边界及图端点；读取失败或未知版本不计为该阶段成功
+
+### 限制与失效条件
+
+- 部分产物是片段、候选或引用图；统计不代表唯一句数、选择数或所有可达剧情
+- 动态指令、未知消费者、补丁覆盖与全路线语义仍有未解决项，具体数量在本地报告
+- 缓存命中、存档字段解码和静态坐标一致均不等于游戏内加载验证；没有运行时恢复成功声明
+- 项目专用编码、列号、消费者编号、布局特例和原游戏内容不写入随包通则
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:4dac4123fd4a1b1b9d7a924ef4bf2c271b26611373c509d29843a454a2fc3e40:END -->

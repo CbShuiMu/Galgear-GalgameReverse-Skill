@@ -292,5 +292,35 @@
     },
     "summary": "Artemis：PF6/PF8 读取与 PF8 创建，旧格式名称编码须另核对。",
     "aliases": []
+  },
+  {
+    "id": "system-nnn",
+    "extensions": [
+      ".spt"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/system-nnn.md",
+    "capabilities": {
+      "archive": "reference_only",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "release SPT：标准库只读解析器保留原指令消息与选项位置；不解析存档或封包。",
+    "aliases": []
+  },
+  {
+    "id": "fvp",
+    "extensions": [
+      ".hcb"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/fvp.md",
+    "capabilities": {
+      "archive": "reference_only",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "HCB指令边界及字符串候选方法；不将字符串池宣称为完整对白。",
+    "aliases": []
   }
 ]

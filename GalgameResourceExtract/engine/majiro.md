@@ -4,6 +4,7 @@
 
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用版本与限制 |
 | --- | --- | --- | --- |
+| 本技能 [parse_majiro_v1.py](../scripts/parse_majiro_v1.py)，VNTranslationTools v0.0.41 操作数表，MIT | V1 MJO 指令、Text片段与局部分支读取 | 不支持封包或脚本写入 | Python 3标准库；严格长度、目标边界与编码检查；不是完整对白重建器 |
 | [GARbro CLI](../commands/garbro.md)，随附，格式标签 `MAJIRO` | 列表、解包 `MajiroArcV1.000`、`V2.000`、`V3.000` 分支 | 创建 `MajiroArcV1.000` | 当前写入器硬编码 V1，没有选择 V2/V3 的选项；只保存基本文件名，不支持子目录。能读取 V2/V3 不表示能按原版重建；见[实现][arc] |
 | [Majiro V3 CLI](../commands/majiro-cli.md)，随附，MIT | 校验并提取规范 V3 平面归档，核对名称、CRC-64 哈希及索引边界 | 创建有效哈希并严格排序的 V3 归档，原样保存成员 | Python 3.9+；仅小写且可逐字节往返的 CP932 基本文件名，不支持子目录、哈希碰撞或 V2。拒绝不满足条件的名称，不自动改名；见[命令与来源](../commands/majiro-cli.md) |
 | [MajiroTools][tools]，外部，未随附 | MJO 反汇编，输出 `.mjil` 及可选 `.mjres` 文本资源 | 将对应中间格式重新汇编为 MJO | 不是 ARC 封包工具；脚本操作码、字符串边界和重定位需要匹配。不能将反汇编成功当成全部控制流或语音关系已确认 |
@@ -44,3 +45,106 @@
 [disassembler]: https://github.com/AtomCrafty/MajiroTools/blob/e0261df508b6c8065865bb51b4059263cef84394/src/MajiroLib/Script/Disassembler.cs
 [helper]: https://github.com/RepressedAlliance/NarciBloom/blob/68b1771df55896cb738c5693e2ba861557af8ca2/tools/patch_narcissu_font.py
 [crypt]: https://github.com/trigger-segfault/majiro-py/blob/f7ec450d5b78f0ed6df603b8c0b0ed79748d9cee/src/mjotool/crypt.py
+
+
+## 台词解析与原生位置的验收
+
+固定的外部 VNTranslationTools v0.0.41 读取器可用于匹配 MJO 的消息与姓名解析，但真实样本中存在不支持的脚本。保留每文件诊断；函数入口和文本范围仍是静态坐标。不能因为部分文件导出成功就声明整个游戏台词完整。
+
+## V1 指令遍历与消息片段
+
+本技能新增 `scripts/parse_majiro_v1.py INPUT.mjo OUTPUT.json [--encoding cp932]`。它使用固定 VNTranslationTools v0.0.41 的操作数表（MIT，授权在 `provenance/VNTranslationTools-LICENSE.txt`），只读 `MajiroObjV1.000` / `MajiroObjX1.000`，验证函数表、代码长度、字符串终止符及跳转指令边界；不封包。真实样本已验证匹配布局，不承诺所有定制版本。
+
+Text 操作码导出的是片段；Proc、Ctrl、Ruby 和动态字符串可能共同构成一个显示消息。Ldstr 另列候选，不将资源名当作对白。内联姓名只绑定其实际片段，不沿用到下一段。局部分支图保留条件未求值与系统调用未解释的限制。字符编码须由项目证据指定；严格解码失败时不静默替换，单项目补丁参数留在本地。
+
+<!-- EXPERIENCE:4484950956f2029d4b6221a68c8b0ff026a0d4cf680b753cc12935d8779a7f4f:START -->
+## 已验证脚本子集提取；脚本坐标与存档恢复分别验收
+
+- 引擎版本：当前真实样本；版本兼容性未扩展
+- 方言/条件：Windows 静态提取；不验证运行时
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`4484950956f2029d4b6221a68c8b0ff026a0d4cf680b753cc12935d8779a7f4f`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 文件头与实际读取器匹配；先列出条目并验证边界
+- 工具输出需核对条目名称、大小和层级
+
+### 已验证步骤
+
+- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
+
+### 限制与失效条件
+
+- 只证实当前样本提取阶段；不证明其他版本、补丁覆盖顺序、完整台词、存档恢复或封包兼容性
+- 静态标签和候选命令不是实际存档槽位；无运行时验证
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:4484950956f2029d4b6221a68c8b0ff026a0d4cf680b753cc12935d8779a7f4f:END -->
+
+<!-- EXPERIENCE:c67db8aa2e081b2501de53ff10c24377e1d9cde20c059877156c18ed8f013563:START -->
+## 已导出成功解析子集的消息与姓名；不包含失败脚本
+
+- 引擎版本：MJO V1 partial
+- 方言/条件：Windows offline; explicit format checks; no runtime save loading
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`c67db8aa2e081b2501de53ff10c24377e1d9cde20c059877156c18ed8f013563`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 确认容器与成员身份，保留原件及独立来源；复用前检查SHA-256
+- 当前脚本布局必须符合对应读取器，字符编码由项目证据显式指定
+
+### 已验证步骤
+
+- 逐文件读取并保留原生坐标、消息分类、姓名来源与失败诊断；解析器不执行游戏脚本
+- 本地Python适配器及固定版本VNTranslationTools v0.0.41、SSSU 0.5.7、unrpyc 2.0.3按格式分流，实际实现、来源和命令留在本地
+- 独立核对导出计数、唯一ID、来源哈希与已知坐标边界；支持的布局另对代表性脚本重新解析核对
+
+### 限制与失效条件
+
+- 只覆盖本次成功子集；具体失败项和数量保存在本地，不能扩展为全引擎支持
+- 未确认全路线剧情、补丁覆盖顺序、未知控制指令、语音关联或实际存档恢复
+- 语言键、文件顺序与字符串顺序不能自动证明正文语言或运行顺序；原生坐标和候选关联分别保存
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:c67db8aa2e081b2501de53ff10c24377e1d9cde20c059877156c18ed8f013563:END -->
+
+<!-- EXPERIENCE:88ed5b97aa2feecaec5e54adca853579c9e309b13861c485f6d051834b166739:START -->
+## 匹配MJO V1指令已完整遍历并导出Text片段与局部分支；失败编码变体另列
+
+- 引擎版本：MJO V1; fixed v0.0.41 opcode templates
+- 方言/条件：Windows offline source/bytecode refinement; scope limited to passed files
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`88ed5b97aa2feecaec5e54adca853579c9e309b13861c485f6d051834b166739`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 来源文件与已验证快照一致，逐文件保留格式版本、字符编码和失败项
+- 消费者、操作数、字符串或数据库引用由实际读取实现与样本结构支持，不按文件名猜配
+
+### 已验证步骤
+
+- 使用项目本地Python适配器与固定SSSU 0.5.7 / VNTranslationTools v0.0.41读取实现保留原生坐标，代码和源码证据均留在本地
+- 分别输出消息、片段或明确候选，保留姓名字段、语言槽位、分支/引用图的实际证据类型
+- 核对来源哈希、记录ID和计数、已知坐标边界及图端点；读取失败或未知版本不计为该阶段成功
+
+### 限制与失效条件
+
+- 部分产物是片段、候选或引用图；统计不代表唯一句数、选择数或所有可达剧情
+- 动态指令、未知消费者、补丁覆盖与全路线语义仍有未解决项，具体数量在本地报告
+- 缓存命中、存档字段解码和静态坐标一致均不等于游戏内加载验证；没有运行时恢复成功声明
+- 项目专用编码、列号、消费者编号、布局特例和原游戏内容不写入随包通则
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:88ed5b97aa2feecaec5e54adca853579c9e309b13861c485f6d051834b166739:END -->
