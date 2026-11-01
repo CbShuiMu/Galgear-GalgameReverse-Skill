@@ -12,6 +12,22 @@ MJO=load('gal_majiro_v1','parse_majiro_v1.py')
 SIG=load('gal_siglus_flow','parse_siglus_flow.py')
 
 class ScriptParsers(unittest.TestCase):
+    def test_majiro_assembly_and_branch_name_boundary(self):
+        def instruction(off,name,args=(),targets=()):
+            return dict(offset=off,end=off+2,name=name,operands=list(args),targets=list(targets))
+        trace=[instruction(0,'text',['A「hel']),instruction(2,'proc'),
+               instruction(4,'text',['lo」']),instruction(6,'ctrl',['p']),
+               instruction(8,'text',['Narration']),instruction(10,'br',[0],[14]),
+               instruction(12,'text',['B「']),instruction(14,'text',['Other branch']),
+               instruction(16,'ret'),instruction(18,'ldstr',['Choice A']),
+               instruction(20,'ldstr',['Choice B']),instruction(22,'callp',[0x0A7A489C,0,2])]
+        messages,choices,_=MJO.assemble_messages(trace)
+        self.assertEqual(messages[0]['text'],'「hello」')
+        self.assertEqual(messages[0]['speaker'],'A')
+        self.assertIsNone(messages[1]['speaker'])
+        self.assertIsNone(messages[3]['speaker'])
+        self.assertEqual([r['text'] for r in choices],['Choice A','Choice B'])
+        self.assertEqual(messages[0]['instruction_offsets'],[0,4])
     def test_majiro_native_fragment_and_bad_length(self):
         text='A「hello」'.encode('cp932')+b'\0';code=struct.pack('<HH',0x840,len(text))+text+struct.pack('<HH',0x841,0x82b)
         header=b'MajiroObjV1.000\0'+struct.pack('<6I',0,0,1,123,0,len(code))

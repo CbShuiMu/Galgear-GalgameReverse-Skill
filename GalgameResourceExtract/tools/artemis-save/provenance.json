@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/dougchansan/ns2-savekit",
+  "commit": "656ce4d31fe569a7a22b7408d023c4326ce0880c",
+  "upstream_files": {
+    "source/artemis-save.py": "18fcaedaea62524a41152e7ede506175b6fa20bcddd4a915a678b2e1ef3bed25",
+    "LICENSE": "c5bac98cf9835fdd769a84df01848ec2aaa7da7a4233ca79af583cafc300780d"
+  },
+  "scope": "Read-only CLI wrapper for BOWS/BOWG/BOWX 1002/1003 index and caret; upstream editing functions are not called.",
+  "wrapper_sha256": "13ebca6036d322b5f86e202dcbd10e30bcb3ed76b374afb74379242ae1fbdbe0"
+}

@@ -83,6 +83,63 @@ def binary_graph(p,tr,scene,base,functions=()):
     return nodes,edges
 
 
+def assemble_messages(trace):
+    """Join only known Text/Proc/Ctrl sequences; keep branch entries separate.
+
+    Consumer hashes and operand order follow VNTranslationTools v0.0.41,
+    MajiroScript.cs/MajiroSyscalls.cs (MIT). This does not emulate the VM.
+    """
+    entries={t for v in trace for t in v['targets']}
+    messages=[];choices=[];unresolved=[];parts=[];spans=[];stack=[]
+    def flush(reason):
+        if parts:
+            text=''.join(parts)
+            if text.strip():
+                match=re.fullmatch(r'([^「」\r\n]{1,40})「(.*)',text,re.S)
+                messages.append({'text':'「'+match[2] if match else text,
+                    'speaker':match[1] if match else None,
+                    'speaker_status':'inline-assembled-name' if match else 'no-single-inline-name',
+                    'instruction_offsets':list(dict.fromkeys(spans)),
+                    'code_offset':spans[0], 'assembly_boundary':reason,
+                    'kind':'assembled-message','runtime_verified':False})
+        parts.clear();spans.clear()
+    for v in trace:
+        off=v['offset'];name=v['name'];args=v['operands']
+        if off in entries:
+            flush('branch-entry');stack.clear()
+        if name=='ldstr':
+            stack.append((args[0],off));continue
+        if name=='text':parts.append(args[0]);spans.append(off);continue
+        if name in ('proc','line','ldc.i'):continue
+        if name=='ctrl' and args[0]=='n':
+            parts.append('\n');spans.append(off);continue
+        if name=='ctrl' and args[0]=='d' and stack:
+            text,at=stack.pop();parts.append(text);spans.extend((at,off));continue
+        if name=='callp' and (args[0]&0xffffffff)==0x3198FD01 and len(stack)>=2:
+            ruby,at=stack.pop();base,bt=stack.pop();parts.append('['+base+'/'+ruby+']');spans.extend((bt,at,off));continue
+        flush(name)
+        if name in ('call','callp'):
+            consumer=args[0]&0xffffffff;argc=args[2]
+            count=None;skip=0
+            if consumer==0x0A7A489C:count=argc
+            elif consumer==0x57F252DB:count=argc-2;skip=2
+            elif consumer==0x4B22CC66:count=argc//2
+            elif consumer in (0xE72D9F52,0xEFA43BBD):count=1
+            if count is not None:
+                if count<0 or len(stack)<count+skip:
+                    unresolved.append({'offset':off,'kind':'nonliteral-consumer-arguments','consumer':consumer})
+                else:
+                    selected=stack[:len(stack)-skip] if skip else stack
+                    for i,(text,at) in enumerate(selected[-count:] if count else []):
+                        choices.append({'text':text,'speaker':None,'kind':'consumer-choice' if consumer in (0x0A7A489C,0x57F252DB,0x4B22CC66) else 'message-box',
+                            'code_offset':at,'consumer_offset':off,'consumer':consumer,'option_index':i,'runtime_verified':False})
+        elif name=='ctrl' and args[0] not in ('n','d'):
+            unresolved.append({'offset':off,'kind':'uninterpreted-text-control','control':args[0]})
+        stack.clear()
+    flush('end-of-code')
+    return messages,choices,unresolved
+
+
 def main():
     import argparse
     ap=argparse.ArgumentParser(description=__doc__)
@@ -92,7 +149,8 @@ def main():
     templates=Path(__file__).resolve().parents[1]/'assets/majiro-v1-opcodes.json'
     rows,candidates,trace,checks=read_majiro(a.input,templates,a.encoding)
     nodes,edges=binary_graph(a.input,trace,a.input.stem,checks['code_base'],checks['functions'])
-    result={'source_sha256':hashlib.sha256(a.input.read_bytes()).hexdigest(),'message_fragments':rows,'string_candidates':candidates,'flow':{'nodes':nodes,'edges':edges},'checks':checks,'runtime_verified':False}
+    messages,choices,unresolved=assemble_messages(trace)
+    result={'source_sha256':hashlib.sha256(a.input.read_bytes()).hexdigest(),'message_fragments':rows,'messages':messages,'consumer_text':choices,'unresolved_text':unresolved,'string_candidates':candidates,'flow':{'nodes':nodes,'edges':edges},'checks':checks,'runtime_verified':False}
     a.output.parent.mkdir(parents=True,exist_ok=True)
     with a.output.open('x',encoding='utf-8') as f:json.dump(result,f,ensure_ascii=False,indent=2)
     print(json.dumps({'message_fragments':len(rows),'string_candidates':len(candidates),'flow_nodes':len(nodes)}))

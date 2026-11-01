@@ -15,6 +15,8 @@
 | rpatool CLI | `tools/rpatool/rpatool.py` | 标准 RPA v2 / v3 全片段与前缀读取；见 [rpatool 命令](rpatool.md) |
 | RLdev SEEN CLI | `tools/rldev-seen/rlseen.py` | RealLive SEEN.TXT 索引与原样成员，不执行脚本解压或编译；见 [SEEN 命令](rldev-seen.md) |
 | Majiro V3 CLI | `tools/majiro-cli/majiro_cli.py` | 严格递增哈希索引、小写 CP932 平面名称的 ARC V3 列表与原样提取；见 [Majiro 命令](majiro-cli.md) |
+| YU-RIS 474 CLI | `tools/yuris-cli/yuris_cli.py` | YPF 474 校验提取与 YSTB WORD 消费者子集；见 [YU-RIS CLI](yuris-cli.md) |
+| Artemis 存档 CLI | `tools/artemis-save/artemis_save_cli.py` | BOW* 索引与匹配布局的 ASB 活动指针；见 [存档 CLI](artemis-save.md) |
 
 按文件头、引擎及版本证据选择工具，调用前阅读对应命令文档。GARbro 的 DLL、配置和 `GameData/`、Ethornell 的 `_internal/` 及各工具许可证须保持随包位置。解包与脚本解析是独立步骤；这些工具不会自动生成对白映射。Mangetsu 的条目索引、NAM 名称、扇区填充及额外压缩层需单独记录，不能把生成的提取文件名直接当成游戏中的语音引用。
 

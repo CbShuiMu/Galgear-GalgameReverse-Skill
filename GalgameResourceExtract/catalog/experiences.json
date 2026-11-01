@@ -289,6 +289,69 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/system-nnn.md"
+    },
+    {
+      "experience_id": "bb4133cdbc5741dab93a43baf68992b08a7e8670af788aba0db91db093554db3",
+      "engine": "majiro",
+      "engine_version": "MJO V1 / VNT v0.0.41 consumer subset",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "b1f2f292ac599137f4b92b9f45a02127c9748ad331349cc82ff3a67570aeb1bc",
+      "engine": "artemis",
+      "engine_version": "literal AST v1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "fbe6148dba8920f09279ccc7242e24b4f422157970d478d78b85d7bcee3a127d",
+      "engine": "artemis",
+      "engine_version": "AST v1 and BOWS 1003 indexed save",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "2cf94cb3a04c54a7a5a45fcbda3d155115a61d227563ebde7ff2294a601291a2",
+      "engine": "yuris",
+      "engine_version": "YPF / YSCM / YSTB 474",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/yuris.md"
+    },
+    {
+      "experience_id": "015b7166baa69a5069dde694d1a8aa7da888183ba7d07b18f08801a96ccfd653",
+      "engine": "renpy",
+      "engine_version": "legacy ZIP protocol-2 RollbackLog and zlib RPYC",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/renpy.md"
+    },
+    {
+      "experience_id": "fa7a81a0a3a99d17015a65b28653b29c4cd8d5d21f21731504da381da40ee063",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 native save/DAT",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "952fbd8d4e1bbe881304e9ecfb4849d208e19c98e4789234802c573f308d659e",
+      "engine": "siglus",
+      "engine_version": "SSSU 0.5.7 database consumer",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
     }
   ]
 }

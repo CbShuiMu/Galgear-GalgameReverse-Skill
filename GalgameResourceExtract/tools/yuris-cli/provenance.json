@@ -1,0 +1,33 @@
+{
+  "sources": [
+    {
+      "repository": "https://github.com/morkt/GARbro",
+      "commit": "b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0",
+      "path": "ArcFormats/YuRis/ArcYPF.cs",
+      "license": "MIT in source header"
+    },
+    {
+      "repository": "https://github.com/arcusmaximus/VNTranslationTools",
+      "commit": "36fbe909d02f2e9bb187443e03e2df595f56bfec",
+      "version": "v0.0.41",
+      "path": "VNTextPatch.Shared/Scripts/Yuris",
+      "license": "MIT"
+    }
+  ],
+  "scope": "YPF version 474, raw extraction with checksums; YSTB 474 instruction and WORD subset; no writer, VM execution or save parser",
+  "hashes": {
+    "VNTranslationTools-LICENSE.txt": "6397c8d12a25f2f12080fd5f9dbdbc10a30da7ce5bf79391a18252b0f6ad80ec",
+    "yuris_cli.py": "f48be1ac79b73158477722e4988844e91fb991a2d0d615d1be9f284a0e3357f9",
+    "source/ArcYPF.cs": "f7b3d9f30e6a52c2b4914d47a0c5eb5244de840839b0a84ddfc99729d319570e",
+    "source/YurisAttribute.cs": "138f47ef9a0aba18bde4c17999c0ccac6358d5a62145c6782e210e345795fdbf",
+    "source/YurisCommand.cs": "022795b029da590364e26d1f571fc316542d85ef30428c30b2e6b86b906f6bba",
+    "source/YurisCommandList.cs": "c27432fee2fa83f48d20ded0d558cac890c01da96f5a35cdf67777b3105ba53a",
+    "source/YurisConfigScript.cs": "634f473e07557a6847c37bf2a3b156b73ea317f6da47f0824db26b6bd49b67de",
+    "source/YurisScenarioScript.cs": "3e2d449eb96e1270c791d5fadef6d1f5796259937753db653a75de3ff8cada75",
+    "source/YurisScript.cs": "747e1961d59f1cff9e173a1411a5dc7b5dad099c5cc8274384ac7ba47df4a6cf"
+  },
+  "additional_layout_reference": {
+    "url": "https://github.com/shimamura-sakura/yuri/blob/main/yuri/fileformat/ystb.py",
+    "scope": "IF/ELSE/LOOP metadata observations; source not redistributed (no license found)"
+  }
+}

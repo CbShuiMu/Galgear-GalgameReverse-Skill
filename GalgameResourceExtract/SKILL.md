@@ -47,6 +47,8 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | 内容 | 文档 |
 | --- | --- |
 | 消息消费者、保守姓名传播、分支图与存档坐标等级 | [分支与存档定位](guides/control-flow.md) |
+| YPF 474 校验提取与 YSTB WORD 子集 | [YU-RIS CLI](commands/yuris-cli.md) |
+| BOW* 索引及 ASB 活动指针（不直接等于 AST 剧情位置） | [Artemis 存档 CLI](commands/artemis-save.md) |
 | 完整剧情转录、姓名与语言、静态流程、存档候选的证据边界 | [剧情转录与位置证据](guides/story-export.md) |
 | System-NNN release SPT：按指令提取消息与选项 | [system-nnn](engine/system-nnn.md) |
 | FVP HCB：指令边界与字符串候选 | [fvp](engine/fvp.md) |

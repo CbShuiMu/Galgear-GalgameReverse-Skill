@@ -6,6 +6,7 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
+| 本技能 [locate_renpy_save.py](../scripts/locate_renpy_save.py) 与 passive_pickle 辅助读取器 | 匹配旧 ZIP 日志中的活动 RollbackLog 节点与旧式 zlib RPYC 原生身份 | 不写存档或 RPYC | 不导入 pickle 类或调用 reducer；只支持已测试旧布局，现代 RPYC2 和其他对象操作码未覆盖 |
 | [rpatool CLI](../commands/rpatool.md)，随附；[Shizmob 上游][rpatool] + 本地适配 | 标准 RPA v2 / v3，读取全部分段及可选前缀 | 创建 RPA v2 / v3，保留子目录和原始成员字节 | Python 3.9+ 标准库；受限 pickle、大小与路径校验。只验证合成资源，RPI、v3.2、专用混淆不在适配入口范围 |
 | [GARbro CLI](../commands/garbro.md)，随附；[RPA 实现][garbro] | 所引读取器仅接受 `RPA-3.0`，每个成员仅使用首个索引片段 | 创建 RPA-3.0，可配置索引 XOR `Key` | 不是全版本或多分段 RPA 读取器；需要完整提取时优先用随附 rpatool，按所有条目检查 |
 | [unrpyc][unrpyc]，外部 MIT 工具 | 将支持的 `.rpyc` / `.rpymc` 反编译为脚本工作副本 | 不负责生成 RPYC 或创建 RPA | 未随附；v2 CLI 需 Python 3.9+，旧脚本适配看该版本兼容说明。只选离线 CLI，不自动采用向游戏注入 `un.rpyc` 的路线 |
@@ -111,3 +112,33 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 
 原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
 <!-- EXPERIENCE:4dac4123fd4a1b1b9d7a924ef4bf2c271b26611373c509d29843a454a2fc3e40:END -->
+
+<!-- EXPERIENCE:015b7166baa69a5069dde694d1a8aa7da888183ba7d07b18f08801a96ccfd653:START -->
+## 旧存档活动上下文的原生节点身份与 RPYC 唯一匹配；回滚历史和上一条显示文本分别保留
+
+- 引擎版本：legacy ZIP protocol-2 RollbackLog and zlib RPYC
+- 方言/条件：Windows offline; only matched layouts and passed files
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`015b7166baa69a5069dde694d1a8aa7da888183ba7d07b18f08801a96ccfd653`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 使用同版本读取实现核对文件身份、区段和原生坐标
+- 不同语言、归档、补丁和回滚历史保持独立来源，不推断加载优先级
+
+### 已验证步骤
+
+- 使用保留源码与固定版本的只读解析器导出独立结果；格式或编码不匹配即另列失败
+- 核对真实样本哈希、来源坐标、记录数量与消费者或索引证据，验证范围和失败项分别报告
+
+### 限制与失效条件
+
+- 只证实对应阶段与匹配布局；没有全路线剧情或游戏内恢复成功声明
+- 动态条件、未知消费者、补丁优先级与调用返回仍有缺口，不能将静态引用或系统指针当成完整剧情
+- 原游戏内容、用户路径、标题专用参数与原始证据仅保存在本地
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:015b7166baa69a5069dde694d1a8aa7da888183ba7d07b18f08801a96ccfd653:END -->
