@@ -43,6 +43,10 @@ GARbro 解包可能同时完成成员解压；当方案包含非零脚本参数�
 [official]: https://yu-ris.net/manual/yu-ris/index.html
 [yuri]: https://github.com/shimamura-sakura/yuri/blob/183b85ef403d0d5d6bde0af76353e90e2ca970ca/yuri.md
 
+## CG 与差分图像（实测子集）
+
+版本 474 的图像 YPF 继续使用名称 CRC、成员 Adler32、位置和展开长度核对；大包可用只读映射逐成员读取，避免整个归档装入内存。原生图像与 PNG 分离。 实际样本阶段见 [CG 状态表](../catalog/cg-status.md)，命令与边界见 [图像 CLI](../commands/garbro-images.md)。本节不声明完整 CG 或全部差分组合。
+
 <!-- EXPERIENCE:2cf94cb3a04c54a7a5a45fcbda3d155115a61d227563ebde7ff2294a601291a2:START -->
 ## YPF 474 全成员校验提取与 YSTB WORD 消费者、显式姓名及原生坐标子集已验证
 
@@ -72,3 +76,34 @@ GARbro 解包可能同时完成成员解压；当方案包含非零脚本参数�
 
 原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
 <!-- EXPERIENCE:2cf94cb3a04c54a7a5a45fcbda3d155115a61d227563ebde7ff2294a601291a2:END -->
+
+<!-- EXPERIENCE:66fadd925fc662c4663a12b04018f83ecf244bb55dbebcb59a4b3f1e3fcb6196:START -->
+## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
+
+- 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 方言/条件：Read-only image extraction substage; no complete CG claim
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`66fadd925fc662c4663a12b04018f83ecf244bb55dbebcb59a4b3f1e3fcb6196`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 来源签名、索引与读取器匹配；不同归档和补丁保持独立目录
+- 单个原生图像、配套层或子图身份可追溯，未将图片数量视为独立 CG 数
+
+### 已验证步骤
+
+- 在独立工作目录提取所选原生图像；记录来源、位置、大小与 SHA-256
+- 按匹配读取器另存 PNG 和多子图，保留偏移及错误／延期，不覆盖原生文件
+- 逐文件核对已登记输出哈希、大小与 PNG 尺寸；只声明本轮成功子集
+
+### 限制与失效条件
+
+- 图像候选包含背景、立绘、UI、子图和不同分包；完整 CG 语义未验收
+- 预算延期、未知编码、同名条目、配套层和实际补丁加载仍有单独限制
+- 没有游戏内视觉组合、全部差分或封包回写成功声明；原图片及用户路径只留本地
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:66fadd925fc662c4663a12b04018f83ecf244bb55dbebcb59a4b3f1e3fcb6196:END -->

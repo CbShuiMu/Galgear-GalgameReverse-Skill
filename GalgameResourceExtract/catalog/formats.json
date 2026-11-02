@@ -1,5 +1,17 @@
 [
   {
+    "id": "rugp",
+    "extensions": [".rio", ".ici"],
+    "magic_ascii": [],
+    "reference": "engine/rugp.md",
+    "capabilities": {
+      "archive": "reference_only",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "rUGP ICI/RIO：随附只读对象目录 CLI；图像载荷提取、CG 解码与封包仍未验证。"
+  },
+  {
     "id": "willplus",
     "extensions": [
       ".ws2",

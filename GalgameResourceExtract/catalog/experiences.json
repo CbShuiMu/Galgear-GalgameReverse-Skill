@@ -352,6 +352,105 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "35182a1e2ce8f1c45017bc89bd72ffed9d3d8bdcc8c8da9307c17f903ef1e926",
+      "engine": "siglus",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "de8335df4539792fe4a6aa9caaffaca9486a8af203f94d9f63b037f61eb69fc9",
+      "engine": "nscripter",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nscripter.md"
+    },
+    {
+      "experience_id": "427c6b31fac7dcab76914d5a54fb32f813d7a5230dfed603f893b0e5b637e463",
+      "engine": "majiro",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "faeffdf43cd3e7df420ed332b317a9ab363a09165476baf3b7deac33e3dc4239",
+      "engine": "artemis",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "66fadd925fc662c4663a12b04018f83ecf244bb55dbebcb59a4b3f1e3fcb6196",
+      "engine": "yuris",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/yuris.md"
+    },
+    {
+      "experience_id": "d16a73ea47e389c522662280020616de71a89f1bbb92e69526ddaba6050a0d6b",
+      "engine": "reallive",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/reallive.md"
+    },
+    {
+      "experience_id": "3b454f3d1ed6c9bf4e43f452b89c6d2284fc7a98707991dc5f124978f54f2b2d",
+      "engine": "nexas",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nexas.md"
+    },
+    {
+      "experience_id": "46bade2c90577dbc6992083865855897c3d2fa541d18058bb89da66dcc3bdc9c",
+      "engine": "ethornell",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/ethornell.md"
+    },
+    {
+      "experience_id": "d559906b7f1301e6341eebc8d21bd1f673c2782b89e6834d2367a7ada3dca7c7",
+      "engine": "renpy",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/renpy.md"
+    },
+    {
+      "experience_id": "595431d19030af1863627b7c2d74e86877ce3de11a61007a2b4a309c83e7e55f",
+      "engine": "fvp",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/fvp.md"
+    },
+    {
+      "experience_id": "5b5370058deaae147430c66c0819cdfe244685cdb9191111ea62c6fe561914ac",
+      "engine": "system-nnn",
+      "engine_version": "Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/system-nnn.md"
     }
   ]
 }

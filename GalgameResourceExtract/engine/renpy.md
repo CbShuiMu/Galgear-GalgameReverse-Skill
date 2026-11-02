@@ -50,6 +50,10 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 
 从反编译 RPY 建图时，保留 if/elif/else、menu/choice、while、标签及调用的语法层级与源行。跳转、调用继续位置和返回栈分别表示，缺失、多解或动态目标保留未解决。Python/ATL 的多行表达式和不透明代码不能按普通对白扫描。不同 decompiler 可能输出无缩进的标签后续语句；应验证实际语法形式，而非把固定缩进当作全版本规则。完整性仍按[分支与存档定位](../guides/control-flow.md)验收。
 
+## CG 与差分图像（实测子集）
+
+RPA 中的标准 PNG/JPEG 可保持原字节，按 event、背景、立绘等来源目录分别统计；event 中的文件数含差分，不等于独立 CG 数。 实际样本阶段见 [CG 状态表](../catalog/cg-status.md)，命令与边界见 [图像 CLI](../commands/garbro-images.md)。本节不声明完整 CG 或全部差分组合。
+
 <!-- EXPERIENCE:c67b01afabb3b376afb6cc7de5a7fa00b31cfebb9b6474030cc2986392669e3d:START -->
 ## 已验证静态RPY消息与本地化姓名键关联；不执行项目Python
 
@@ -142,3 +146,34 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 
 原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
 <!-- EXPERIENCE:015b7166baa69a5069dde694d1a8aa7da888183ba7d07b18f08801a96ccfd653:END -->
+
+<!-- EXPERIENCE:d559906b7f1301e6341eebc8d21bd1f673c2782b89e6834d2367a7ada3dca7c7:START -->
+## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
+
+- 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 方言/条件：Read-only image extraction substage; no complete CG claim
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`d559906b7f1301e6341eebc8d21bd1f673c2782b89e6834d2367a7ada3dca7c7`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 来源签名、索引与读取器匹配；不同归档和补丁保持独立目录
+- 单个原生图像、配套层或子图身份可追溯，未将图片数量视为独立 CG 数
+
+### 已验证步骤
+
+- 在独立工作目录提取所选原生图像；记录来源、位置、大小与 SHA-256
+- 按匹配读取器另存 PNG 和多子图，保留偏移及错误／延期，不覆盖原生文件
+- 逐文件核对已登记输出哈希、大小与 PNG 尺寸；只声明本轮成功子集
+
+### 限制与失效条件
+
+- 图像候选包含背景、立绘、UI、子图和不同分包；完整 CG 语义未验收
+- 预算延期、未知编码、同名条目、配套层和实际补丁加载仍有单独限制
+- 没有游戏内视觉组合、全部差分或封包回写成功声明；原图片及用户路径只留本地
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:d559906b7f1301e6341eebc8d21bd1f673c2782b89e6834d2367a7ada3dca7c7:END -->

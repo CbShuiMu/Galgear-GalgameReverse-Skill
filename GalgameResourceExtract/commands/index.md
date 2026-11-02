@@ -1,10 +1,12 @@
 # 提取工具索引
 
-所有工具路径相对于本技能目录解析，不依赖 Shell 的当前目录；运行入口按 `tools/<工具>/` 分类，CLI 无需 GUI。rpatool、RLdev SEEN 与 Majiro 适配需要 Python 3.9+ 标准库；其余随附入口为 Windows 程序，GalArc 与 FreeMote 需要 .NET Framework 4.8。依赖、许可证和对应源码保持随包位置。
+所有工具路径相对于本技能目录解析，不依赖 Shell 的当前目录；运行入口按 `tools/<工具>/` 分类，CLI 无需 GUI。Python 入口按各命令页检查版本，其中 RIO 目录 CLI 需要 Python 3.10+ 标准库；其他二进制入口主要面向 Windows，GalArc 与 FreeMote 需要 .NET Framework 4.8。依赖、许可证和对应源码保持随包位置。
 
 | 工具 | 入口 | 提取时的适用范围与命令文档 |
 | --- | --- | --- |
 | GARbro CLI | `tools/GARbro-cli/GARbro.Console.exe` | 多引擎归档识别、列表与提取；见 [GARbro CLI](garbro.md) |
+| GARbro 图像批处理 | `tools/GARbro-cli/GalImageExport.exe` | 原生图像、PNG 及可识别多子图容器的分离导出与 JSONL 清单；见 [图像批处理](garbro-images.md) |
+| AgeReVerse RIO 目录 | `tools/age-rio-cli/rio_inventory.py` | ICI／RIO 图像对象元数据与卷内边界；不提取图像载荷；见 [RIO 目录 CLI](age-rio.md) |
 | Ethornell | `tools/ethornell/ethornell.exe` | BGI/Ethornell ARC20 原样提取及独立 DSC 解压、密钥读取；见 [Ethornell 命令](ethornell.md) |
 | Mangetsu | `tools/mangetsu/*.exe` | Tsukihime Remake Switch 的 MRG/HED/NAM、MZP、MZX、NXX、HFA 及特定脚本文本表；见 [Mangetsu 命令](mangetsu.md) |
 | pfs-rs | `tools/pfs-rs/pfs-rs.exe` | Artemis PF6 / PF8 列表与提取；见 [pfs-rs 命令](pfs-rs.md) |

@@ -1,0 +1,15 @@
+{
+  "version": "1.1",
+  "scope": "Batch image/raw/frame export through existing GARbro 1.5.44 GameRes APIs; no game data; duplicate members preserved by selected-entry ordinal",
+  "upstream": "https://github.com/morkt/GARbro",
+  "reference_commit": "b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0",
+  "license": "MIT; GARbro-LICENSE.txt",
+  "files": {
+    "GalImageExport.exe": "6939b5763ded67e403d4df0ff2da252984acda3611e94355c4739580f13ba4b6",
+    "source/GalImageExport.cs": "09a7ea6238d2605e3e876332dc8f1f644adc6009e3299e8529039e8084004ec9",
+    "source/build-images.ps1": "8f5a7efbc318dfd83c4636d7dc93a2712342d06968810d2ab0c7e0fa60e25dd7",
+    "GARbro-LICENSE.txt": "fbcffdc0f547145fc774652201cc88b48030bb32ddca18ca0356988be0a6a84a",
+    "GameRes.dll": "c2f5311e59f82c40d1552d3f2be707746956ce461c970863acef9a61973f69b3",
+    "ArcFormats.dll": "437ae50a13fbbae5834fc7e9ae3082dc757f88800425b60c92ea0cb2efd1755a"
+  }
+}
