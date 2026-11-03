@@ -1,0 +1,27 @@
+{
+  "BCnEncoder.Net": {
+    "url": "https://raw.githubusercontent.com/Nominom/BCnEncoder.NET/74eda8a330759d81e6307f19aefc547e40687825/LICENSE-MIT",
+    "file": "BCnEncoder.Net-LICENSE.txt",
+    "sha256": "e2b6a70c0a540789d0d312c248d67bc571e3e84eaa191a391974bc0443e17ee0"
+  },
+  "Stub.System.Data.SQLite.Core.NetFramework": {
+    "url": "https://www.sqlite.org/copyright.html",
+    "file": "Stub.System.Data.SQLite.Core.NetFramework-LICENSE.html",
+    "sha256": "44ca9f793055c8e32fc65f65a4f5bcf813a33f5bdaaa084067dd617a4ed3cc70"
+  },
+  "System.Data.SQLite.Core": {
+    "url": "https://www.sqlite.org/copyright.html",
+    "file": "System.Data.SQLite.Core-LICENSE.html",
+    "sha256": "44ca9f793055c8e32fc65f65a4f5bcf813a33f5bdaaa084067dd617a4ed3cc70"
+  },
+  "MSFTCompressionCab": {
+    "url": "https://raw.githubusercontent.com/wixtoolset/wix3/wix3101rtm/LICENSE.TXT",
+    "file": "MSFTCompressionCab-LICENSE.txt",
+    "sha256": "f97a1b399e469b584c610b69924b1545799e94241eff2f74d1c36a84ba6a09c3"
+  },
+  "libwebp": {
+    "url": "https://raw.githubusercontent.com/webmproject/libwebp/v1.3.2/COPYING",
+    "file": "libwebp-LICENSE.txt",
+    "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
+  }
+}

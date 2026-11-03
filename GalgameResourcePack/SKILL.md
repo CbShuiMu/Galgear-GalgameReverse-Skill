@@ -45,7 +45,8 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 | 资源交接清单：阶段、身份、路径与完成标记 | [resource-manifest](contracts/resource-manifest.md) |
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
-| GARbro CLI 命令与选项 | [garbro](commands/garbro.md) |
+| GARbro Mod CLI：列表与解包 | [garbro](commands/garbro.md) |
+| GARbro 兼容后端：封包与旧版选项 | [garbro-legacy](commands/garbro-legacy.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
 | GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |

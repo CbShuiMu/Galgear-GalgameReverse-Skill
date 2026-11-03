@@ -5,7 +5,7 @@
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用版本与限制 |
 | --- | --- | --- | --- |
 | [RLdev SEEN CLI](../commands/rldev-seen.md)，随附工具 | 按 10000 个场景编号拆出原样 `SEENnnnn.TXT` 成员，列出编号、偏移与大小 | 以原样成员重建 10000 槽索引；保留原场景编号 | 基于 [RLdev 归档实现][archiver]的保守适配，Python 标准库 CLI；不解压、解密或编译脚本，拒绝把 `KPRL` 等工作文件作为原样成员封包 |
-| [GARbro CLI](../commands/garbro.md)，随附工具 | 识别并读取其支持的 RealLive/AVG 归档、图像及音频 | 当前随附可写列表没有 RealLive `SEEN.TXT` 写入器 | 可识别标签与当前实现为准；资源转换输出不能替代原样成员基线 |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附工具 | 识别并读取其支持的 RealLive/AVG 归档、图像及音频 | 当前随附可写列表没有 RealLive `SEEN.TXT` 写入器 | 可识别标签与当前实现为准；资源转换输出不能替代原样成员基线 |
 | [RLdev：kprl / rlc][rldev]，外部工具 | `kprl` 包含原样归档拆分、脚本解压和反汇编等不同动作 | `kprl` 可处理归档重建与脚本压缩，`rlc` 编译脚本 | 上游针对 AVG2000 / RealLive；所引固定版本为 GPL-2.0-or-later，完整编译器与 OCaml 等依赖未随附。游戏附加变换和指令版本需要独立核验 |
 
 工具路径相对于本技能根目录。`SEEN.TXT` 的归档拆分、成员内部解压与解密、指令反汇编、脚本编译是不同步骤，不能只凭输出扩展名判断已经完成哪一层。

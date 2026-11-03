@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>WindowsAPICodePack</id>
+    <version>8.0.14</version>
+    <title>WindowsAPICodePack</title>
+    <authors>Microsoft Corporation, Jacob Slusser, Peter William Wagner (aka PWagner)</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="file">License.md</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <icon>Windows.png</icon>
+    <readme>Readme.md</readme>
+    <projectUrl>https://github.com/Wagnerp/Windows-API-CodePack-NET</projectUrl>
+    <description>Complete Windows API Code Pack including Core, Shell, Sensors, Extended Linguistic Services, and Shell Extensions. This unified package contains all components needed for Windows Forms and WPF development with the Windows API Code Pack 1.1, modernized for .NET Framework 4.6.2-4.8.1 and .NET 8-10. Modifications by Jacob Slusser until 2020. Modified to use .NET Frameworks 4.6.2 - 4.8.1, .NET 8 - 10 and refactoring by Peter William Wagner, (aka PWagner) 2023 - 2025.</description>
+    <tags>windows api shell taskdialog vista win7 win8 win10 win11 sensors linguistic explorer</tags>
+    <repository type="git" url="git" commit="9ca67af3028210831affbbff1f222789695453c7" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.6.2" />
+      <group targetFramework=".NETFramework4.7" />
+      <group targetFramework=".NETFramework4.7.1" />
+      <group targetFramework=".NETFramework4.7.2" />
+      <group targetFramework=".NETFramework4.8" />
+      <group targetFramework=".NETFramework4.8.1" />
+      <group targetFramework="net8.0-windows7.0" />
+      <group targetFramework="net9.0-windows7.0" />
+      <group targetFramework="net10.0-windows7.0" />
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net8.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WindowsForms" />
+      </group>
+      <group targetFramework="net9.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WindowsForms" />
+      </group>
+      <group targetFramework="net10.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WindowsForms" />
+      </group>
+      <group targetFramework=".NETFramework4.6.2" />
+      <group targetFramework=".NETFramework4.7" />
+      <group targetFramework=".NETFramework4.7.1" />
+      <group targetFramework=".NETFramework4.7.2" />
+      <group targetFramework=".NETFramework4.8" />
+      <group targetFramework=".NETFramework4.8.1" />
+    </frameworkReferences>
+  </metadata>
+</package>

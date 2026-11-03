@@ -115,8 +115,9 @@ class MajiroCliTests(unittest.TestCase):
             self.call(installed, 'extract', archive, output)
             self.assertEqual(inventory(output), inventory(source))
             independent = self.base / f'garbro-{number}'
+            independent.mkdir()
             garbro = ROOT / 'GalgameResourceExtract/tools/GARbro-cli/GARbro.Console.exe'
-            proc = subprocess.run([str(garbro), 'x', '-q', '-y', '-o', str(independent), str(archive)],
+            proc = subprocess.run([str(garbro), '-x', str(archive)], cwd=independent,
                                   capture_output=True, timeout=30)
             self.assertEqual(proc.returncode, 0, proc.stderr.decode(errors='replace'))
             self.assertEqual(inventory(independent), inventory(source))

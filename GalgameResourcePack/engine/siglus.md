@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | [Siglus CLI：归档适配](../commands/siglus-ssu.md)，随附工具 | `unpack` 从支持的 `Scene.pck` 提取已解压、解密的场景 DAT | `pack --base` 按原包身份替换 DAT，保留包级属性、命令表与未修改成员的原压缩字节 | 已知 92 字节 PCK 头、连续场景数据布局；带嵌入源码时只允许未修改场景往返，拒绝新 DAT 与旧源码不符。未知布局直接报错 |
 | [SiglusSceneScriptUtility 0.5.7][upstream]，随附在同一 CLI | 上游 `-x` 解包并尝试恢复嵌入源码，`--disam` 反汇编；`--decompile` 为实验性反编译 | `-c` 从完整源码编译；`-c --dat-repack` 从现有 DAT 新建场景包 | 上游提供多个指令版本配置；缺少 `.inc` 时 `--dat-repack` 不能恢复原包的 include 元数据。不能用实验性反编译输出替代可靠的重建基线 |
-| [GARbro CLI](../commands/garbro.md)，随附工具 | 按实际格式识别其支持的图像、语音包和其他归档 | 仅适用于可写列表中的其他外层格式 | 不能用其他可写格式改扩展名代替 `Scene.pck`；特定媒体解码能力不等于场景归档写入能力 |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附工具 | 按实际格式识别其支持的图像、语音包和其他归档 | 仅适用于可写列表中的其他外层格式 | 不能用其他可写格式改扩展名代替 `Scene.pck`；特定媒体解码能力不等于场景归档写入能力 |
 
 两个技能均独立随附 Windows x64 CLI，内含 Python 运行时，无需联网或安装 Rust。来源、许可、纯 Python 源码和构建方法见工具目录；图像编辑所需的可选 Pillow、诊断用 psutil 与 Rust 加速未随附，不把这些可选功能记为已验证能力。
 

@@ -6,7 +6,7 @@ ONScripter 是 NScripter 兼容实现，多个分支的文字、命令和资源�
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro CLI](../commands/garbro.md)，随附 | 解包其支持的 SAR / NSA / NS2 | 创建 SAR / NSA | NSA 创建只提供原样存储、BMP 的 LZSS，不写 SPB / NBZ；NS2 没有此后端写入能力，结构见 [NScripter](nscripter.md) |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附 | 解包其支持的 SAR / NSA / NS2 | 创建 SAR / NSA | NSA 创建只提供原样存储、BMP 的 LZSS，不写 SPB / NBZ；NS2 没有此后端写入能力，结构见 [NScripter](nscripter.md) |
 | [GalArc CLI](../commands/galarc.md)，随附适配工具 | 按命令页读取标准 NS2 | 补齐命令页列明的标准 NS2 创建 | 不包含整套 ONScripter 运行时，不证明目标分支加载兼容 |
 | [Ogapee ONScripter][upstream]，外部 GPL-2.0-or-later 源码参考 | `nsadec.cpp`、`sardec.cpp` 和 `nscriptdecode.cpp` 提供归档与脚本包装的实现依据 | 读取器含部分归档写入辅助；不是已随附的通用封包 CLI | 引擎源码不是本技能运行依赖，也不应通过启动游戏替代归档验证 |
 | [ONScripter-Tools][tools]，外部 GPL 工具 | `nscdec`、`nsadec`、`ns2dec`、`sardec` | `nscmake`、`nsamake`、`ns2make`、`sarmake` | 未随附；其旧版 `-ns2` / `-ns3` 偏移参数与 NS2 格式名不同，具体参数按所用版本说明 |

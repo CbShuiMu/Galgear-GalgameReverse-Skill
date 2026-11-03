@@ -1,37 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GARbro>
-    <Release>
-        <Version>1.5.44</Version>
-        <Url>https://github.com/morkt/GARbro/releases/latest</Url>
-        <Notes>New formats:
-- UMPK archives and GRC images
-- 'CsPack2' archives
-- UCG archives
-- IMGX images
-- FLK archives and BPA images
-- Jam Creation archives and DPO images
-- PAC0 archives and PCG0 images
-- CMB archives
-- PAK archives and SFG images
-- uGOS 'FC' and 'FD' images
-
-Updated KiriKiri encryption schemes.
-</Notes>
-    </Release>
-    <FormatsData>
-        <FileVersion>148</FileVersion>
-        <Url>https://github.com/morkt/GARbro/raw/master/ArcFormats/Resources/Formats.dat</Url>
-        <Requires>
-            <Assembly Name="ArcFormats" Version="1.2.47.2146"/>
-            <Assembly Name="GameRes" Version="1.4.26.238"/>
-        </Requires>
-    </FormatsData>
-    <FormatsData>
-        <FileVersion>145</FileVersion>
-        <Url>https://github.com/morkt/GARbro/raw/c35ca8ec1f15edb9a32823014a3d532d9b4f5941/ArcFormats/Resources/Formats.dat</Url>
-        <Requires>
-            <Assembly Name="ArcFormats" Version="1.2.46.2120"/>
-            <Assembly Name="GameRes" Version="1.4.26.238"/>
-        </Requires>
-    </FormatsData>
+  <Release>
+    <Version>1.0.2.2</Version>
+    <Url>https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2</Url>
+    <SourceCommit>102d19710c819ed363b7ea28f2d883ccaf922214</SourceCommit>
+    <Notes>Pinned GARbro Mod CLI distribution. Extraction/listing only; legacy packing runtime remains isolated. This is installed-version metadata, not an auto-update feed.</Notes>
+  </Release>
+  <FormatsData>
+    <SHA256>e0a9a8a78027b679975b357c0413c6bfbabeeec6cbdd981a41df75cc21b4f3b5</SHA256>
+    <Source>GARbro-Mod-1.0.2.2.zip/GameData/Formats.dat</Source>
+  </FormatsData>
 </GARbro>

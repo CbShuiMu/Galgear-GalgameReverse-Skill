@@ -1,0 +1,359 @@
+[
+  {
+    "package": "BCnEncoder.Net",
+    "version": "2.3.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/bcnencoder.net/2.3.0/bcnencoder.net.2.3.0.nupkg",
+    "package_sha256": "0d4decb032058890326af2cdd23efef9372fa4609461a00687ce24c9cebde07e",
+    "files": {
+      "BCnEncoder.Net-LICENSE.txt": "e2b6a70c0a540789d0d312c248d67bc571e3e84eaa191a391974bc0443e17ee0"
+    },
+    "license_source": "https://raw.githubusercontent.com/Nominom/BCnEncoder.NET/74eda8a330759d81e6307f19aefc547e40687825/LICENSE-MIT"
+  },
+  {
+    "package": "CommunityToolkit.HighPerformance",
+    "version": "8.4.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/communitytoolkit.highperformance/8.4.0/communitytoolkit.highperformance.8.4.0.nupkg",
+    "package_sha256": "abd45966f2e5be4d6c5ee22be70741c724dff68d06da6936df1b4d1837fabc6b",
+    "license": "MIT",
+    "files": {
+      "CommunityToolkit.HighPerformance-8.4.0-0-License.md": "651997ef19dbb9ecb8dd660dbc86444a65af21f18cfe08daa69bf201cd5cfdfc",
+      "CommunityToolkit.HighPerformance-8.4.0-1-ThirdPartyNotices.txt": "7774f8b0ab66bfb47ec154ce24a2d6d574febc44a74d940b8a037d1c56756163"
+    }
+  },
+  {
+    "package": "Concentus",
+    "version": "2.2.2",
+    "url": "https://api.nuget.org/v3-flatcontainer/concentus/2.2.2/concentus.2.2.2.nupkg",
+    "package_sha256": "f487f890bef65757af1cecf420e357f00488cbfac0b409ba461ccbceef81481f",
+    "license": "LICENSE",
+    "files": {
+      "Concentus-2.2.2-0-LICENSE": "c17f3900e66526e46b23839b62e4b507b03a51cc262d925fb8ad5c753afc0026"
+    }
+  },
+  {
+    "package": "Concentus.Oggfile",
+    "version": "1.0.6",
+    "url": "https://api.nuget.org/v3-flatcontainer/concentus.oggfile/1.0.6/concentus.oggfile.1.0.6.nupkg",
+    "package_sha256": "e77b06506ff19b711d32bc2fa54000a26fbf7b89047b84a1661c182d82409bd9",
+    "license": "MS-PL",
+    "files": {
+      "Concentus.Oggfile-1.0.6-LICENSE.txt": "1e389f5907823543203be92297b6fc8b4c3793dac1742904c8303cc4a4cc7fb4"
+    },
+    "license_source": "https://licenses.nuget.org/MS-PL"
+  },
+  {
+    "package": "K4os.Compression.LZ4",
+    "version": "1.3.8",
+    "url": "https://api.nuget.org/v3-flatcontainer/k4os.compression.lz4/1.3.8/k4os.compression.lz4.1.3.8.nupkg",
+    "package_sha256": "3a64f72703b8aa99190cbed7aa216a642cb1c928fae2cf6dfa65dc3754fe2320",
+    "license": null,
+    "files": {
+      "K4os.Compression.LZ4-1.3.8-LICENSE.txt": "ef5a021fc2ae3658f4ad8d2526c87fb2cf394285f47abfb784cf73a27ffd9522"
+    },
+    "license_source": "https://raw.githubusercontent.com/MiloszKrajewski/K4os.Compression.LZ4/1.3.8/LICENSE"
+  },
+  {
+    "package": "MSFTCompressionCab",
+    "version": "1.0.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/msftcompressioncab/1.0.0/msftcompressioncab.1.0.0.nupkg",
+    "package_sha256": "ed9abd51c532009ec2cdc0e44a09dac0dcc42d5241eb489f6c2d8c68c896525f",
+    "license": null,
+    "files": {
+      "MSFTCompressionCab-LICENSE.txt": "f97a1b399e469b584c610b69924b1545799e94241eff2f74d1c36a84ba6a09c3"
+    },
+    "license_source": "https://raw.githubusercontent.com/wixtoolset/wix3/wix3101rtm/LICENSE.TXT"
+  },
+  {
+    "package": "Microsoft.Bcl.HashCode",
+    "version": "6.0.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.hashcode/6.0.0/microsoft.bcl.hashcode.6.0.0.nupkg",
+    "package_sha256": "f3b9b2bab0bf8cc717d5fdf6d7aee3ec54e36d9e85bd41347acae161319cbd6b",
+    "license": "MIT",
+    "files": {
+      "Microsoft.Bcl.HashCode-6.0.0-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "Microsoft.Bcl.Numerics",
+    "version": "10.0.5",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.numerics/10.0.5/microsoft.bcl.numerics.10.0.5.nupkg",
+    "package_sha256": "30cedb0265b5893a231fe2fbcb94d0a17c321b4c0cea43d9d37b6b09fb91249e",
+    "license": "MIT",
+    "files": {
+      "Microsoft.Bcl.Numerics-10.0.5-0-THIRD-PARTY-NOTICES.TXT": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+    }
+  },
+  {
+    "package": "Microsoft.Win32.Registry",
+    "version": "5.0.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/5.0.0/microsoft.win32.registry.5.0.0.nupkg",
+    "package_sha256": "f64ca53c67ca65ce7cc85a8d29aefbb2da2672836731e1115e8cd62730dc5080",
+    "license": "MIT",
+    "files": {
+      "Microsoft.Win32.Registry-5.0.0-0-LICENSE.TXT": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "Microsoft.Win32.Registry-5.0.0-1-THIRD-PARTY-NOTICES.TXT": "78e22d4d24a710d2a09426c09060f3448204778ed506b1da55447a6089b54fae"
+    }
+  },
+  {
+    "package": "NAudio",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio/2.2.1/naudio.2.2.1.nupkg",
+    "package_sha256": "d1402cd555b1fa6a2b5eb6dc25139f0dba0aed72e4b033f791d3759ce2ade958",
+    "license": "license.txt",
+    "files": {
+      "NAudio-2.2.1-0-license.txt": "303e01786b271eb464b3f43d18a375f2f17d37bc708a37c2fdf45b289fb5bfaa"
+    }
+  },
+  {
+    "package": "NAudio.Asio",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.asio/2.2.1/naudio.asio.2.2.1.nupkg",
+    "package_sha256": "aae0c06c2559fbf56bd4b4f4a5cb9aeef158e35c7b536699e4e6b8012a683577",
+    "license": "MIT",
+    "files": {
+      "NAudio.Asio-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NAudio.Core",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.core/2.2.1/naudio.core.2.2.1.nupkg",
+    "package_sha256": "794645dbfd30e4880663d52d9d9224d55c301fa54228ff623c95d572c7887347",
+    "license": "MIT",
+    "files": {
+      "NAudio.Core-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NAudio.Midi",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.midi/2.2.1/naudio.midi.2.2.1.nupkg",
+    "package_sha256": "763d8fb1c12a3ac1203940c33b86bced220212bc1808bc2ea4fd38a1c1c7709a",
+    "license": "MIT",
+    "files": {
+      "NAudio.Midi-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NAudio.Wasapi",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.wasapi/2.2.1/naudio.wasapi.2.2.1.nupkg",
+    "package_sha256": "c8396b8dbab86a2619edfd9158beaf18c21cb86677099b5594950fd8651b9d1a",
+    "license": "MIT",
+    "files": {
+      "NAudio.Wasapi-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NAudio.WinForms",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.winforms/2.2.1/naudio.winforms.2.2.1.nupkg",
+    "package_sha256": "54ebc435672272ca29dc86689a12e39c3fde7446d3ee5282d7d73f39493f98c0",
+    "license": "MIT",
+    "files": {
+      "NAudio.WinForms-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NAudio.WinMM",
+    "version": "2.2.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/naudio.winmm/2.2.1/naudio.winmm.2.2.1.nupkg",
+    "package_sha256": "48da978d715f219489c050ee8c32c64f80ff73718eba237ebcbc636ba5902be3",
+    "license": "MIT",
+    "files": {
+      "NAudio.WinMM-2.2.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "NVorbis",
+    "version": "0.10.5",
+    "url": "https://api.nuget.org/v3-flatcontainer/nvorbis/0.10.5/nvorbis.0.10.5.nupkg",
+    "package_sha256": "d432921dc2be29c062a95cae247e12955c9b709fd347823d01dfd68a16c5387a",
+    "license": "LICENSE",
+    "files": {
+      "NVorbis-0.10.5-0-LICENSE": "08e4ea5ffe20037cea0f34a424fee6722898cee7f85cd23cbf2b72847c2c36f8"
+    }
+  },
+  {
+    "package": "Newtonsoft.Json",
+    "version": "13.0.4",
+    "url": "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.4/newtonsoft.json.13.0.4.nupkg",
+    "package_sha256": "f09081d457405baf35a973fa0c50d6bf272ed683f2568c5a620a49da952f6529",
+    "license": "MIT",
+    "files": {
+      "Newtonsoft.Json-13.0.4-0-LICENSE.md": "b98a397897ff55f76cddc380041507a95a896b2946e0188703bf0496793d6516"
+    }
+  },
+  {
+    "package": "SharpZipLib",
+    "version": "1.4.2",
+    "url": "https://api.nuget.org/v3-flatcontainer/sharpziplib/1.4.2/sharpziplib.1.4.2.nupkg",
+    "package_sha256": "fe0895aa2930a2b1b65caa9f37db8bca35125ebdf9cc1b99d855f6afc5ff5946",
+    "license": "MIT",
+    "files": {
+      "SharpZipLib-1.4.2-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "SixLabors.ImageSharp",
+    "version": "2.1.13",
+    "url": "https://api.nuget.org/v3-flatcontainer/sixlabors.imagesharp/2.1.13/sixlabors.imagesharp.2.1.13.nupkg",
+    "package_sha256": "329da52b952054df0d120f3916c846d58791cd5dbcce73ffaa47c868f726ac42",
+    "license": "Apache-2.0",
+    "files": {
+      "SixLabors.ImageSharp-2.1.13-LICENSE.txt": "821602941cab0a35e9f461326976dede9239410a988bdcfc88348cc3f57bc6a5"
+    }
+  },
+  {
+    "package": "Snappier",
+    "version": "1.3.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/snappier/1.3.0/snappier.1.3.0.nupkg",
+    "package_sha256": "07614201bf21a7ede2fac404f27701ddb5b298fcd3e958ff0dab92770a0d4684",
+    "license": "BSD-3-Clause",
+    "files": {
+      "Snappier-1.3.0-LICENSE.txt": "f36f9ec72c9e743e5e2da723db095c1d07c39b3daf5161098522cf3c2b0043e3"
+    }
+  },
+  {
+    "package": "Stub.System.Data.SQLite.Core.NetFramework",
+    "version": "1.0.119.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/stub.system.data.sqlite.core.netframework/1.0.119/stub.system.data.sqlite.core.netframework.1.0.119.nupkg",
+    "package_sha256": "f5f86b80729323890da590a8c7ba7957f04e2735e583d075220d1521745e9f4c",
+    "files": {
+      "Stub.System.Data.SQLite.Core.NetFramework-LICENSE.html": "44ca9f793055c8e32fc65f65a4f5bcf813a33f5bdaaa084067dd617a4ed3cc70"
+    },
+    "license_source": "https://www.sqlite.org/copyright.html"
+  },
+  {
+    "package": "System.Buffers",
+    "version": "4.6.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.buffers/4.6.1/system.buffers.4.6.1.nupkg",
+    "package_sha256": "b00451e91d016fbec091ad1e361f3a7015e1d91d4047f7e48a74455b2a673d79",
+    "license": "MIT",
+    "files": {
+      "System.Buffers-4.6.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "System.Data.SQLite.Core",
+    "version": "1.0.119.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.data.sqlite.core/1.0.119/system.data.sqlite.core.1.0.119.nupkg",
+    "package_sha256": "2106b1fde378f6aebb4be4c6366b963780f3d400e36388ea44f7adcadb20c089",
+    "files": {
+      "System.Data.SQLite.Core-LICENSE.html": "44ca9f793055c8e32fc65f65a4f5bcf813a33f5bdaaa084067dd617a4ed3cc70"
+    },
+    "license_source": "https://www.sqlite.org/copyright.html"
+  },
+  {
+    "package": "System.Memory",
+    "version": "4.6.3",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.memory/4.6.3/system.memory.4.6.3.nupkg",
+    "package_sha256": "26078aeb758c9ae985e8bf851f973026061da6a5eb4837204d0c2d2204c72955",
+    "license": "MIT",
+    "files": {
+      "System.Memory-4.6.3-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "System.Numerics.Vectors",
+    "version": "4.6.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.numerics.vectors/4.6.1/system.numerics.vectors.4.6.1.nupkg",
+    "package_sha256": "2bc500a86dcb02f2032d6d877f9e2d6e9e4a79080e57239b4198679d4031f2c7",
+    "license": "MIT",
+    "files": {
+      "System.Numerics.Vectors-4.6.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "System.Runtime.CompilerServices.Unsafe",
+    "version": "6.1.2",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.runtime.compilerservices.unsafe/6.1.2/system.runtime.compilerservices.unsafe.6.1.2.nupkg",
+    "package_sha256": "5f6a7f53af3465f92beb6da873ebe0e496206c313313b98badee4355a6b25937",
+    "license": "MIT",
+    "files": {
+      "System.Runtime.CompilerServices.Unsafe-6.1.2-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "System.Security.AccessControl",
+    "version": "6.0.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.security.accesscontrol/6.0.1/system.security.accesscontrol.6.0.1.nupkg",
+    "package_sha256": "462e26f796417e8a4350655a85bbd4233b94cbd0f7150c1c5e9acfd88e885141",
+    "license": "MIT",
+    "files": {
+      "System.Security.AccessControl-6.0.1-0-LICENSE.TXT": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "System.Security.AccessControl-6.0.1-1-THIRD-PARTY-NOTICES.TXT": "7e96bfbc9187981d10b946a1f2c26609d968e645dd7521e6129389d03473e519"
+    }
+  },
+  {
+    "package": "System.Security.Principal.Windows",
+    "version": "5.0.0",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.security.principal.windows/5.0.0/system.security.principal.windows.5.0.0.nupkg",
+    "package_sha256": "081390c25f6f78592b28ada853c24514488a221fe9f9a24efaaf5373643ff3d6",
+    "license": "MIT",
+    "files": {
+      "System.Security.Principal.Windows-5.0.0-0-LICENSE.TXT": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "System.Security.Principal.Windows-5.0.0-1-THIRD-PARTY-NOTICES.TXT": "78e22d4d24a710d2a09426c09060f3448204778ed506b1da55447a6089b54fae"
+    }
+  },
+  {
+    "package": "System.Text.Encoding.CodePages",
+    "version": "10.0.5",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.text.encoding.codepages/10.0.5/system.text.encoding.codepages.10.0.5.nupkg",
+    "package_sha256": "ef6595fd9f5ad0c16e448ff311c4def9a870bea4ebe2405a143849ddacaee621",
+    "license": "MIT",
+    "files": {
+      "System.Text.Encoding.CodePages-10.0.5-0-THIRD-PARTY-NOTICES.TXT": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+    }
+  },
+  {
+    "package": "System.Threading.Tasks.Extensions",
+    "version": "4.6.3",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.threading.tasks.extensions/4.6.3/system.threading.tasks.extensions.4.6.3.nupkg",
+    "package_sha256": "1abc92c7517a021ead7e79d0b7f3c70be75bce0fac7cfe3b38e157d32245ff1a",
+    "license": "MIT",
+    "files": {
+      "System.Threading.Tasks.Extensions-4.6.3-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "System.ValueTuple",
+    "version": "4.6.2",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.valuetuple/4.6.2/system.valuetuple.4.6.2.nupkg",
+    "package_sha256": "76fd0e366a2b90655fd15d557b0b79504197748358cb578fe3193f6d97bdd9aa",
+    "license": "MIT",
+    "files": {
+      "System.ValueTuple-4.6.2-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "WPFToolkits",
+    "version": "3.5.50211.1",
+    "url": "https://api.nuget.org/v3-flatcontainer/wpftoolkits/3.5.50211.1/wpftoolkits.3.5.50211.1.nupkg",
+    "package_sha256": "4efae6c7183f26e1882e7dc0cf9808758d1099ca6198439f6e33142c1524426f",
+    "license": "MIT",
+    "files": {
+      "WPFToolkits-3.5.50211.1-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  },
+  {
+    "package": "WindowsAPICodePack",
+    "version": "8.0.14",
+    "url": "https://api.nuget.org/v3-flatcontainer/windowsapicodepack/8.0.14/windowsapicodepack.8.0.14.nupkg",
+    "package_sha256": "27296f53bbd0a081dd0ddcf37924082fbbd7b5f676bb05fe0a56f2bf59a43d48",
+    "license": "License.md",
+    "files": {
+      "WindowsAPICodePack-8.0.14-0-License.md": "a615f8aa88e7372ec4f24f0b877b32a72016cdae96cc0ef070887c31817d6c65"
+    }
+  },
+  {
+    "package": "ZstdSharp.Port",
+    "version": "0.8.7",
+    "url": "https://api.nuget.org/v3-flatcontainer/zstdsharp.port/0.8.7/zstdsharp.port.0.8.7.nupkg",
+    "package_sha256": "5acb834d93afdd382213c355fd35db29130706c64a81607c88374a2abf4ebc0a",
+    "license": "MIT",
+    "files": {
+      "ZstdSharp.Port-0.8.7-LICENSE.txt": "0ff20ddac3d7ee3c94cd6b60bef6537b4c4f6815063ab28228ab8ca563b1fe8e"
+    }
+  }
+]

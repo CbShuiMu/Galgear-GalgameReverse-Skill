@@ -5,7 +5,7 @@
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用版本与限制 |
 | --- | --- | --- | --- |
 | [Ethornell CLI](../commands/ethornell.md)，随附，源于 [ethornell-tools][eth-tools] 与本地 CLI 入口 | 列表、原样提取 `BURIKO ARC20` 条目；独立读取 DSC 元数据、解压 DSC | 创建 ARC20；对已确认的 `DSC FORMAT 1.00` 流重新压缩 | 不支持旧 `PackFile` 封包，也不支持 BSE 处理；ARC20 创建不会自动压缩 DSC。文件名按 Shift-JIS 处理，最多 95 编码字节；参数及退出码见命令页 |
-| [GARbro CLI](../commands/garbro.md)，随附，标签 `BGI` / `BURIKO ARC` | 读取旧 PackFile 和 ARC20；读取过程中可展开 DSC，或按已实现分支还原 BSE 头部 | 没有对应归档写入器 | 读取 BSE 仅覆盖所引实现中的 `1.00` / `1.01` 分支；不是所有 BGI 加密资源的通用方案；见[实现][bgi] |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，标签 `BGI` / `BURIKO ARC` | 读取旧 PackFile 和 ARC20；读取过程中可展开 DSC，或按已实现分支还原 BSE 头部 | 没有对应归档写入器 | 读取 BSE 仅覆盖所引实现中的 `1.00` / `1.01` 分支；不是所有 BGI 加密资源的通用方案；见[实现][bgi] |
 | [Bgi_asdis][bgi-asdis]，外部，未随附 | 按剧情 v0/v1 和 BP 系统脚本分流做反汇编及文本读取 | 相应脚本汇编与文本导回；不负责 ARC 封包 | 使用对应版本操作码和完整依赖；不能把工具支持多种编码理解为引擎默认支持这些编码。脚本与归档独立验收 |
 
 ## 格式特征与编码方式

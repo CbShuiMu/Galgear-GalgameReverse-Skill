@@ -31,7 +31,7 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ffmpeg', type=Path, required=True)
-    parser.add_argument('--garbro', type=Path, default=ROOT / 'GalgameResourcePack/tools/GARbro-cli/GARbro.Console.exe')
+    parser.add_argument('--garbro', type=Path, default=ROOT / 'GalgameResourcePack/tools/GARbro-cli/legacy/GARbro.Console.exe')
     args = parser.parse_args()
     checks = []
     with tempfile.TemporaryDirectory(prefix='gal-resource-workflow-') as temporary:

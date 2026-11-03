@@ -4,7 +4,8 @@
 
 | 工具 | 入口 | 封包时的适用范围与命令文档 |
 | --- | --- | --- |
-| GARbro CLI | `tools/GARbro-cli/GARbro.Console.exe` | 通过 `f --writable` 确认的可写格式；见 [GARbro CLI](garbro.md) |
+| GARbro Mod CLI | `tools/GARbro-cli/GARbro.Console.exe` | 新版归档列表与解包，不提供封包；见 [GARbro CLI](garbro.md) |
+| GARbro 兼容后端 | `tools/GARbro-cli/legacy/GARbro.Console.exe` | 通过 `f --writable` 确认的可写格式；见 [兼容后端](garbro-legacy.md) |
 | Ethornell | `tools/ethornell/ethornell.exe` | BGI/Ethornell ARC20 创建及独立 DSC 压缩；见 [Ethornell 命令](ethornell.md) |
 | Mangetsu | `tools/mangetsu/*.exe` | MRG/HED/NAM 重建、按索引替换，MZP 封装、MZX/NXGX 压缩及特定文本表回填；见 [Mangetsu 命令](mangetsu.md) |
 | pfs-rs | `tools/pfs-rs/pfs-rs.exe` | Artemis PF8 创建，PF6 不提供原格式写入；见 [pfs-rs 命令](pfs-rs.md) |

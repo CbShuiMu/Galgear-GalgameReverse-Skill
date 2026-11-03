@@ -4,7 +4,7 @@
 
 | 工具与来源 | 解包用途 | 封包用途 | 适用版本和限制 |
 | --- | --- | --- | --- |
-| [随附 GARbro CLI](../commands/garbro.md)，GARbro MIT 读取器 | `PAK/NITRO+` 已识别样本的条目列表与脚本子集提取；NPK 另行识别 | 本轮未验证 | 不把 PAK 的成功推广至 NPK；密钥及具体补丁行为留在本地 |
+| [随附 GARbro 兼容后端](../commands/garbro-legacy.md)，GARbro MIT 读取器 | `PAK/NITRO+` 已识别样本的条目列表与脚本子集提取；NPK 另行识别 | 本轮未验证 | 不把 PAK 的成功推广至 NPK；密钥及具体补丁行为留在本地 |
 
 ## 格式特征与编码方式
 

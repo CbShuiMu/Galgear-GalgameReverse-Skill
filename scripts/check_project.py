@@ -164,7 +164,11 @@ def check(root):
                 errors.append(f'{file.relative_to(root)}: link common guidance directly from SKILL.md')
     for folder in ['GalgameResourceExtract', 'GalgameResourcePack']:
         skill = root/folder
-        for pattern in ['tools/GARbro-cli/GARbro.Console.exe', 'tools/ethornell/ethornell.exe',
+        for pattern in ['tools/GARbro-cli/GARbro.Console.exe',
+                        'tools/GARbro-cli/legacy/GARbro.Console.exe',
+                        'tools/GARbro-cli/GARbro-LICENSE.txt',
+                        'tools/GARbro-cli/source/GARbro-Mod-1.0.2.2.zip',
+                        'tools/ethornell/ethornell.exe',
                         'tools/pfs-rs/pfs-rs.exe', 'tools/cricodecs/cricodecs.exe', 'tools/mangetsu/*.exe',
                         'tools/galarc-cli/galarc.exe', 'tools/galarc-cli/LICENSE.txt',
                         'tools/freemote/PsbDecompile.exe', 'tools/freemote/PsBuild.exe',

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>MSFTCompressionCab</id>
+        <version>1.0.0</version>
+        <title>Microsoft Deployment Compression Cab</title>
+        <authors>Jean-Pierre Seibel</authors>
+        <owners>Microsoft</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>This package contains Microsoft Dlls that make it easier to work with cabinet files (.cab) or some of their derivatives from .net code. It isn’t always easy to find these on their own. You can find some documentation to get started here: https://social.msdn.microsoft.com/Forums/en-US/1b6d3cbe-22ba-450b-b48f-b5d4a2644ae4/how-to-create-cab-files-in-c?forum=windowsmobiledev</description>
+        <releaseNotes>Libraries included in this package:
+Microsoft.Deployment.Compression
+Microsoft.Deployment.Compression.Cab</releaseNotes>
+    </metadata>
+</package>

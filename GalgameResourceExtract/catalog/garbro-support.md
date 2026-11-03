@@ -2,7 +2,9 @@
 
 GARbro 不能全部覆盖。它支持下表中大部分引擎的常见资源归档，但不保证支持每个游戏、版本和加密变体。**能解包不等于能把脚本转换成可读文本。**
 
-以下以原版 [morkt/GARbro](https://github.com/morkt/GARbro) 为准，第三方修改版可能不同。
+当前默认 CLI 为 [crskycode/GARbro Mod 1.0.2.2](https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2)，命令及验证边界见 [新版 CLI](../commands/garbro.md)。新版包含 ArcFormats、ArcExtra、ArcLegacy 读取库及发布包数据库，具体格式由 `-l` 查询；列出的格式仍须以当前输入验证。
+
+下表保留以原版 [morkt/GARbro](https://github.com/morkt/GARbro) 读取实现为依据的既有范围，对应 [旧版兼容后端](../commands/garbro-legacy.md)，不是本次新版全部格式的实测清单。
 
 | 引擎 | GARbro 解包支持情况 | 限制 |
 |---|---|---|
@@ -21,7 +23,7 @@ GARbro 不能全部覆盖。它支持下表中大部分引擎的常见资源归�
 
 ## 支持范围说明
 
-常见封包支持可对照 [GARbro 官方格式列表](https://morkt.github.io/GARbro/supported.html)。该列表中的游戏名称表示已测试作品，不代表同一引擎的所有作品均可解包。
+随包 [格式列表快照](garbro-supported.html)复制自固定发布源码的 `docs/supported.html`，可能滞后于运行库；[版本记录](garbro-version.xml)标明本次安装的发布版本和数据库哈希，不是自动更新源。格式表中的作品不能代替当前样本验证，也不能证明同一引擎的所有作品均可解包。新版 CLI 没有封包入口，封包能力以兼容后端的 `f --writable` 和具体创建选项为准。
 
 RealLive 音频包支持可见 [OVK／NWK 实现](https://github.com/morkt/GARbro/blob/master/ArcFormats/RealLive/ArcOVK.cs)；其 [SEEN 实现](https://github.com/morkt/GARbro/blob/master/ArcFormats/RealLive/ArcSEEN.cs)标注的是 AVG32 脚本包，不能泛化为全部 RealLive 脚本。
 

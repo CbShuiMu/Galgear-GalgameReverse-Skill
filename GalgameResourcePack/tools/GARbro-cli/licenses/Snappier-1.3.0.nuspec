@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Snappier</id>
+    <version>1.3.0</version>
+    <authors>btburnett3</authors>
+    <license type="expression">BSD-3-Clause</license>
+    <licenseUrl>https://licenses.nuget.org/BSD-3-Clause</licenseUrl>
+    <icon>icon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://brantburnett.github.io/Snappier/</projectUrl>
+    <description>A near-C++ performance implementation of the Snappy compression algorithm for .NET. Snappier is ported to C# directly
+      from the official C++ implementation, with the addition of support for the framed stream format.
+
+      By avoiding P/Invoke, Snappier is fully cross-platform and works on both Linux and Windows and against any CPU supported
+      by .NET. However, Snappier performs best in .NET 6 and later on little-endian x86/64 processors with the
+      help of System.Runtime.Instrinsics.</description>
+    <copyright>Copyright 2011-2020, Google, Inc. and Snappier Authors</copyright>
+    <tags>snappy compression fast io</tags>
+    <repository type="git" url="https://github.com/brantburnett/Snappier" branch="refs/heads/main" commit="cbf19e0f9d3fb4d7bd76ddd108e7f41a99b09885" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.7.2">
+        <dependency id="System.Memory" version="4.6.3" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net8.0" />
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="System.Memory" version="4.6.3" exclude="Build,Analyzers" />
+        <dependency id="System.Runtime.CompilerServices.Unsafe" version="6.1.2" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

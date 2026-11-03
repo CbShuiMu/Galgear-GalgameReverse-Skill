@@ -80,9 +80,10 @@ class GalArcCliTests(unittest.TestCase):
         self.assertEqual(inventory(extracted), inventory(source))
         garbro = ROOT / SKILLS[0] / "tools/GARbro-cli/GARbro.Console.exe"
         independent = self.base / "garbro"
+        independent.mkdir()
         proc = subprocess.run(
-            [str(garbro), "x", "-q", "-y", "-o", str(independent), str(output)],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            [str(garbro), "-x", str(output)], cwd=independent,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
         )
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertEqual(inventory(independent), inventory(source))

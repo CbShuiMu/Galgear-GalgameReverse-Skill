@@ -4,8 +4,9 @@
 
 | 工具 | 入口 | 提取时的适用范围与命令文档 |
 | --- | --- | --- |
-| GARbro CLI | `tools/GARbro-cli/GARbro.Console.exe` | 多引擎归档识别、列表与提取；见 [GARbro CLI](garbro.md) |
-| GARbro 图像批处理 | `tools/GARbro-cli/GalImageExport.exe` | 原生图像、PNG 及可识别多子图容器的分离导出与 JSONL 清单；见 [图像批处理](garbro-images.md) |
+| GARbro Mod CLI | `tools/GARbro-cli/GARbro.Console.exe` | 多引擎归档列表与解包，使用 `-l/-x`；见 [GARbro CLI](garbro.md) |
+| GARbro 兼容后端 | `tools/GARbro-cli/legacy/GARbro.Console.exe` | 需要 `i/l/x`、`-o`、筛选或封包时使用；见 [兼容后端](garbro-legacy.md) |
+| GARbro 图像批处理 | `tools/GARbro-cli/legacy/GalImageExport.exe` | 原生图像、PNG 及可识别多子图容器的分离导出与 JSONL 清单；见 [图像批处理](garbro-images.md) |
 | AgeReVerse RIO 目录 | `tools/age-rio-cli/rio_inventory.py` | ICI／RIO 图像对象元数据与卷内边界；不提取图像载荷；见 [RIO 目录 CLI](age-rio.md) |
 | Ethornell | `tools/ethornell/ethornell.exe` | BGI/Ethornell ARC20 原样提取及独立 DSC 解压、密钥读取；见 [Ethornell 命令](ethornell.md) |
 | Mangetsu | `tools/mangetsu/*.exe` | Tsukihime Remake Switch 的 MRG/HED/NAM、MZP、MZX、NXX、HFA 及特定脚本文本表；见 [Mangetsu 命令](mangetsu.md) |

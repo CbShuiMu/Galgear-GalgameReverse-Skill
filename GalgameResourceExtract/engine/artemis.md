@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | 本技能 [Artemis 存档 CLI](../commands/artemis-save.md)，固定 ns2-savekit 读取实现，MIT | BOW* 1002/1003 索引核验及匹配 caret 的 ASB 脚本／命令序号 | 不修改存档 | 引擎 ASB 指针不直接等于上层 AST 剧情位置；Lua 状态及实际恢复仍未验证 |
 | [pfs-rs CLI](../commands/pfs-rs.md)，随附，上游 [pfs-rs / pf8][upstream] | 列表、提取以 `pf6` 或 `pf8` 开头的 PFS 归档 | 创建 PF8；目录和文件可以作为输入 | 随附版本为 `0.2.5`，读取 PF6/PF8 不等于可创建 PF6。当前写入名称为 UTF-8；旧版非 ASCII 文件名往返须特别核对。分包与路径规则见命令页 |
-| [GARbro CLI](../commands/garbro.md)，随附，标签 `PFS` | 对所实现的 Artemis PFS 分支提供读取和提取候选路线 | 没有对应 PFS 归档写入器 | 以当前构建实际识别为准；不能把其他引擎同扩展名的 `.pfs` 当成 Artemis。需要精确能力时先看 `i` / `l` 结果与[读取实现][garbro] |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，标签 `PFS` | 对所实现的 Artemis PFS 分支提供读取和提取候选路线 | 没有对应 PFS 归档写入器 | 以当前构建实际识别为准；不能把其他引擎同扩展名的 `.pfs` 当成 Artemis。需要精确能力时先看 `i` / `l` 结果与[读取实现][garbro] |
 | [Artemis 官方工具与资料][official]，外部，未随附 | 核对脚本、宏及目标平台的资源使用规则 | 有对应工程时，沿用匹配版本的官方构建流程 | 官方说明的脚本语法不等于 PFS 二进制格式规范；当前技能没有通用 Artemis 脚本解析或编译器 |
 
 ## 格式特征与编码方式

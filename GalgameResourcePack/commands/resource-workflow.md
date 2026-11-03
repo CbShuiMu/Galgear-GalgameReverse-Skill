@@ -13,7 +13,7 @@
 | `pack` | `--manifest`、`--garbro`、`--output`、`--verification-dir`、`--report` | 检查暂存目录，使用记录的设置创建归档，并执行提取与哈希校验 |
 | `verify` | `--manifest`、`--garbro`、`--archive`、`--verification-dir`、`--report` | 在新提取目录中，依据暂存清单验证现有归档 |
 
-将示例变量解析为真实路径。`$workflow` 为本技能的辅助脚本，`$garbro` 为随附 `tools/GARbro-cli/GARbro.Console.exe`，`$python` 为 Python 3.10+ 解释器。先按所选工具的命令文档原样提取；GARbro 不使用会转换资源的 `-ca` 或 `-if`，输出到新目录。
+将示例变量解析为真实路径。`$workflow` 为本技能的辅助脚本，`$garbro` 为随附 `tools/GARbro-cli/legacy/GARbro.Console.exe`，`$python` 为 Python 3.10+ 解释器。先按所选工具的命令文档原样提取；GARbro 不使用会转换资源的 `-ca` 或 `-if`，输出到新目录。
 
 ```powershell
 # 对原样资源目录建立快照；格式与必需选项须有原始归档证据。

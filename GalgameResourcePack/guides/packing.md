@@ -24,7 +24,7 @@
 
 ## 创建归档
 
-根据所选格式阅读 [GARbro](../commands/garbro.md)、[Ethornell](../commands/ethornell.md)、[Mangetsu](../commands/mangetsu.md)、[pfs-rs](../commands/pfs-rs.md)、[CriCodecs](../commands/cricodecs.md) 或[索引中的其他工具](../commands/index.md)。具体参数、内部压缩层级、关联文件、条目索引与输出规则仅在对应命令文档维护。按已确认的设置创建新归档，记录完整命令和实际输出路径。
+根据所选格式阅读 [GARbro 兼容后端](../commands/garbro-legacy.md)、[Ethornell](../commands/ethornell.md)、[Mangetsu](../commands/mangetsu.md)、[pfs-rs](../commands/pfs-rs.md)、[CriCodecs](../commands/cricodecs.md) 或[索引中的其他工具](../commands/index.md)。具体参数、内部压缩层级、关联文件、条目索引与输出规则仅在对应命令文档维护。按已确认的设置创建新归档，记录完整命令和实际输出路径。
 
 逐个检查进程退出码。失败时保留诊断并修正原因，不猜测密钥或更换格式反复重试。除非覆盖该输出已获授权，否则不使用覆盖参数。
 

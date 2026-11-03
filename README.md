@@ -190,13 +190,13 @@ GalExtract 与 GalTTS 将项目状态保存在用户本地，技能包内的 `me
 | TTS 资源交接、基线快照与哈希校验 | [GalPack 资源交接与重建](GalgameResourcePack/guides/resource-workflow.md) |
 | 未知容器、压缩、加密和文件名哈希 | [GalReverse 格式与算法分析](GalgameReverse/guides/formats-and-algorithms.md) |
 | 逆向结果的验证和阶段交接 | [GalReverse 验证与交接](GalgameReverse/guides/validation-and-handoff.md) |
-| GARbro 命令和格式创建限制 | [GARbro CLI 参考](GalgameResourcePack/commands/garbro.md) |
+| GARbro 命令和格式创建限制 | [新版 CLI](GalgameResourcePack/commands/garbro.md) / [兼容封包后端](GalgameResourcePack/commands/garbro-legacy.md) |
 | BGI/Ethornell ARC20 提取、重建与 DSC 压缩 | [Ethornell CLI 命令](GalgameResourcePack/commands/ethornell.md) |
 | MRG/HED/NAM、MZP 等格式提取与重建 | [Mangetsu CLI 命令](GalgameResourcePack/commands/mangetsu.md) |
 | Artemis PF8/PFS 列表、提取与创建 | [pfs-rs CLI 命令](GalgameResourcePack/commands/pfs-rs.md) |
 | CRI 容器提取与修改、HCA/ADX/AHX 编解码 | [CriCodecs CLI 命令](GalgameResourcePack/commands/cricodecs.md) |
 
-随附的 GARbro CLI 基于 [morkt/GARbro](https://github.com/morkt/GARbro)，以包内 [CLI 文档](GalgameResourceExtract/commands/garbro.md)说明的命令为准。
+随附 GARbro CLI 已更新为 [crskycode/GARbro Mod 1.0.2.2](https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2)，新版使用 `-l/-x`，只提供列表与解包。原有封包和图像批处理后端隔离保留在 `tools/GARbro-cli/legacy/`，使用各自运行库；命令、来源与验证边界见 [新版 CLI](GalgameResourceExtract/commands/garbro.md)和 [兼容后端](GalgameResourcePack/commands/garbro-legacy.md)。
 
 ## 职责与资料分层
 
@@ -242,7 +242,7 @@ python GalgameTextToSpeech/scripts/test_dialogue_mapping.py
 ```powershell
 $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
 python GalgameTextToSpeech/scripts/test_pipeline.py --ffmpeg $ffmpeg
-python GalgameResourcePack/scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro GalgameResourcePack/tools/GARbro-cli/GARbro.Console.exe
+python GalgameResourcePack/scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro GalgameResourcePack/tools/GARbro-cli/legacy/GARbro.Console.exe
 ```
 
 测试使用临时状态、合成资源和模拟后端，不加载真实模型或运行游戏，也不在仓库中添加虚构的成功经验。格式往返通过仍不能证明目标游戏兼容性。

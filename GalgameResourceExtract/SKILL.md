@@ -60,7 +60,8 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | GARbro 对常见 GalGame 引擎的解包支持情况 | [garbro-support](catalog/garbro-support.md) |
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
-| GARbro CLI 命令与选项 | [garbro](commands/garbro.md) |
+| GARbro Mod CLI：列表与解包 | [garbro](commands/garbro.md) |
+| GARbro 兼容后端：封包与旧版选项 | [garbro-legacy](commands/garbro-legacy.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
 | GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |

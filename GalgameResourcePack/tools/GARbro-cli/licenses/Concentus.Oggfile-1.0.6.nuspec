@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Concentus.Oggfile</id>
+    <version>1.0.6</version>
+    <title>Concentus.OggFile</title>
+    <authors>Logan Stromberg</authors>
+    <license type="expression">MS-PL</license>
+    <licenseUrl>https://licenses.nuget.org/MS-PL</licenseUrl>
+    <icon>icon.png</icon>
+    <projectUrl>https://github.com/lostromb/concentus.oggfile</projectUrl>
+    <iconUrl>http://durandal.dnsalias.net/imgur/concentus.png</iconUrl>
+    <description>This package implements file streams which can be used to extract or encode Opus packets in an Ogg-formatted audio file (usually .opus), giving developers a very simple API to perform the task of reading or writing audio files that can be played universally. The Concentus library is used to encode/decode the opus packets automatically. The codec can optionally be accelerated by also referencing the Concentus.Native package.</description>
+    <releaseNotes>1.0.6 Added ability to isolate inner write stream from Ogg stream if desired</releaseNotes>
+    <copyright>Copyright © Logan Stromberg, Andrew Ward</copyright>
+    <repository type="git" url="https://github.com/lostromb/concentus.oggfile" commit="dee65d9de0ef009658c2d60be6fd9b29d362a482" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.5.2">
+        <dependency id="Concentus" version="2.2.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard1.1">
+        <dependency id="Concentus" version="2.2.1" exclude="Build,Analyzers" />
+        <dependency id="NETStandard.Library" version="1.6.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net8.0">
+        <dependency id="Concentus" version="2.2.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Concentus" version="2.2.1" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

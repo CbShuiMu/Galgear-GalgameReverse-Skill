@@ -4,7 +4,7 @@
 
 | 工具与来源 | 解包用途 | 封包用途 | 适用版本和限制 |
 | --- | --- | --- | --- |
-| [随附 GARbro CLI](../commands/garbro.md)，GARbro MIT 读取器 | 当前构建识别为 `PAC` 的归档列表与脚本子集提取 | 本轮未验证 | 真实 Windows 样本提取；不推广至所有 PAC 或 NeXAS 版本 |
+| [随附 GARbro 兼容后端](../commands/garbro-legacy.md)，GARbro MIT 读取器 | 当前构建识别为 `PAC` 的归档列表与脚本子集提取 | 本轮未验证 | 真实 Windows 样本提取；不推广至所有 PAC 或 NeXAS 版本 |
 
 ## 格式特征与编码方式
 

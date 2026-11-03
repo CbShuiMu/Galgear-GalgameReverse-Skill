@@ -1,6 +1,6 @@
 # GARbro 图像批处理 CLI
 
-入口为 `tools/GARbro-cli/GalImageExport.exe JOB.json`，与现有 GARbro DLL、配置、`GameData/` 和许可证放在同一目录。需要 Windows 的 .NET Framework/WPF，无 GUI，不启动游戏。原生资源和 PNG 使用不同目录，输出目录必须不存在。
+入口为 `tools/GARbro-cli/legacy/GalImageExport.exe JOB.json`，与隔离保留的旧版 GARbro DLL、配置、`GameData/` 和许可证放在同一目录。需要 Windows 的 .NET Framework/WPF，无 GUI，不启动游戏。原生资源和 PNG 使用不同目录，输出目录必须不存在。
 
 ```json
 {
@@ -29,4 +29,4 @@
 
 本工具不对资源去重、不猜测事件 CG、不改变透明度／差分组合、不封包。RCT/RC8、外部基图或标题专用解码依赖可能仍未完整满足；失败原生文件继续保留。完整 CG 验收见 [CG 提取流程](../guides/cg-extraction.md)。
 
-新增批处理源码与编译脚本位于 `tools/GARbro-cli/source/`；来源和文件哈希见 `image-cli-provenance.json`。沿用 GARbro 1.5.44 的已安装读取库，保留 `GARbro-LICENSE.txt`。使用同目录 `source/build-images.ps1` 可重新编译本批处理入口，无须重建整个 GARbro。
+新增批处理源码与编译脚本位于 `tools/GARbro-cli/legacy/source/`；来源和文件哈希见 `image-cli-provenance.json`。沿用 `legacy/` 内 GARbro 1.5.44 的读取库；新版 CLI 运行库与本批处理未混用，保留 `GARbro-LICENSE.txt`。使用同目录 `source/build-images.ps1` 可重新编译本批处理入口，无须重建整个 GARbro。

@@ -6,7 +6,7 @@
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro CLI](../commands/garbro.md)，随附；[SAR][sar] / [NSA][nsa] / [NS2][ns2] 源码 | 读取支持的 SAR、NSA、NS2，NSA 可解开 SPB / LZSS / NBZ 成员 | 创建 SAR、NSA；NSA 可原样存储或对 BMP 使用 LZSS | NS2 在此写入器中 `CanWrite=false`；NSA 不写 SPB / NBZ 或密码保护。不能用改扩展名代替 NS2 封包 |
+| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附；[SAR][sar] / [NSA][nsa] / [NS2][ns2] 源码 | 读取支持的 SAR、NSA、NS2，NSA 可解开 SPB / LZSS / NBZ 成员 | 创建 SAR、NSA；NSA 可原样存储或对 BMP 使用 LZSS | NS2 在此写入器中 `CanWrite=false`；NSA 不写 SPB / NBZ 或密码保护。不能用改扩展名代替 NS2 封包 |
 | [GalArc CLI](../commands/galarc.md)，随附适配工具 | 标准 NS2 归档读取能力以对应命令和合成测试为准 | 用于补齐标准 NS2 创建 | 只使用文档已列并验证的格式，不把上游 GUI 的全部能力当作 CLI 能力；特殊加密与变体另核对 |
 | [ONScripter-Tools][ons-tools]，外部 GPL 工具参考 | `nscdec` 处理支持的 `nscript.dat` 脚本包装；`nsadec`、`ns2dec`、`sardec` 处理对应归档 | `nscmake` 创建脚本包装；`nsamake`、`ns2make`、`sarmake` 创建对应归档 | 本技能未随附这组工具；工具分支和脚本包装必须匹配。`nscript.dat` 的编解码不是资源归档解包 |
 
