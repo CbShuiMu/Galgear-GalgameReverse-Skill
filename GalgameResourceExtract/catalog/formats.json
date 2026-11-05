@@ -1,15 +1,18 @@
 [
   {
     "id": "rugp",
-    "extensions": [".rio", ".ici"],
+    "extensions": [
+      ".rio",
+      ".ici"
+    ],
     "magic_ascii": [],
     "reference": "engine/rugp.md",
     "capabilities": {
-      "archive": "reference_only",
+      "archive": "external_cli",
       "dialogue": "reference_only",
       "voice_matching": "reference_only"
     },
-    "summary": "rUGP ICI/RIO：随附只读对象目录 CLI；图像载荷提取、CG 解码与封包仍未验证。"
+    "summary": "rUGP ICI/RIO：只读对象目录、标准图像载荷及累计 RUO 静态读回；完整 RIO、CG 组合及游戏运行未验收。"
   },
   {
     "id": "willplus",

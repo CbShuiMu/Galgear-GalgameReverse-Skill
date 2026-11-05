@@ -48,7 +48,7 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | --- | --- |
 | 逐款 CG、差分、蒙版、子图与原生资源的分别验收 | [CG 提取流程](guides/cg-extraction.md) |
 | 各引擎真实样本的图像子集、失败与完整性限制 | [CG 实测状态](catalog/cg-status.md) |
-| rUGP 的 ICI／RIO 图像目录元数据与未解码边界 | [rUGP / RIO](engine/rugp.md) / [目录 CLI](commands/age-rio.md) |
+| rUGP 载荷、透明差分、严格像素检查与静态 RUO 回封 | [rUGP / RIO](engine/rugp.md) / [图像与 RUO CLI](commands/rugp-images.md) / [目录 CLI](commands/age-rio.md) |
 | 原生图像和 PNG 的分离批处理、逐子图清单 | [GARbro 图像 CLI](commands/garbro-images.md) |
 | 消息消费者、保守姓名传播、分支图与存档坐标等级 | [分支与存档定位](guides/control-flow.md) |
 | YPF 474 校验提取与 YSTB WORD 子集 | [YU-RIS CLI](commands/yuris-cli.md) |

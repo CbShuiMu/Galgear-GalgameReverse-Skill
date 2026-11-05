@@ -1,9 +1,10 @@
 # 重建工具索引
 
-所有工具路径相对于本技能目录解析，不依赖 Shell 的当前目录；运行入口按 `tools/<工具>/` 分类，CLI 无需 GUI。rpatool、RLdev SEEN 与 Majiro 适配需要 Python 3.9+ 标准库；其余随附入口为 Windows 程序，GalArc 与 FreeMote 需要 .NET Framework 4.8。依赖、许可证和对应源码保持随包位置。
+所有工具路径相对于本技能目录解析，不依赖 Shell 的当前目录；运行入口按 `tools/<工具>/` 分类，CLI 无需 GUI。rpatool、RLdev SEEN 与 Majiro 适配需要 Python 3.9+ 标准库；rUGP 图像／RUO 需要 Python 3.10+ 标准库；其他二进制入口主要为 Windows 程序，GalArc 与 FreeMote 需要 .NET Framework 4.8。依赖、许可证和对应源码保持随包位置。
 
 | 工具 | 入口 | 封包时的适用范围与命令文档 |
 | --- | --- | --- |
+| rUGP 图像／RUO | `tools/age-rio-cli/rugp_cli.py` | 真实样本的 Cr6Ti 与累计 RUO 静态往返，完整 RIO 和游戏加载未验收；见 [命令](rugp-images.md) |
 | GARbro Mod CLI | `tools/GARbro-cli/GARbro.Console.exe` | 新版归档列表与解包，不提供封包；见 [GARbro CLI](garbro.md) |
 | GARbro 兼容后端 | `tools/GARbro-cli/legacy/GARbro.Console.exe` | 通过 `f --writable` 确认的可写格式；见 [兼容后端](garbro-legacy.md) |
 | Ethornell | `tools/ethornell/ethornell.exe` | BGI/Ethornell ARC20 创建及独立 DSC 压缩；见 [Ethornell 命令](ethornell.md) |

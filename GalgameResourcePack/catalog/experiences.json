@@ -1,5 +1,15 @@
 {
   "kind": "gal-engine-experiences",
   "schema_version": 1,
-  "entries": []
+  "entries": [
+    {
+      "experience_id": "3ed3cc699716373cb2b4aa8c4b3b693569e365e795f9fb4e5132a2239fee65c5",
+      "engine": "rugp",
+      "engine_version": "Standard Cr6Ti kind2/3 and supported CRip008; AgeReVerse 17618428499e90aa9b971212f7167cfdaf09912b",
+      "stage": "pack",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
+    }
+  ]
 }

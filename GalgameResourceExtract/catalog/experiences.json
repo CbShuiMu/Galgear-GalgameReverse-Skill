@@ -451,6 +451,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/system-nnn.md"
+    },
+    {
+      "experience_id": "d82cadd83110f97dcd09141089155c7e4b176cb3a484714351713ee9c1b56273",
+      "engine": "rugp",
+      "engine_version": "Standard Cr6Ti kind2/3 and supported CRip008; AgeReVerse 17618428499e90aa9b971212f7167cfdaf09912b",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
     }
   ]
 }

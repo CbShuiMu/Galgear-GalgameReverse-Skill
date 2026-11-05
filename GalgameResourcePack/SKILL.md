@@ -41,6 +41,7 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 
 | 内容 | 文档 |
 | --- | --- |
+| rUGP 原生图像、严格编码与累计 RUO 静态回封 | [rUGP](engine/rugp.md)、[CLI](commands/rugp-images.md)、[目录 CLI](commands/age-rio.md) |
 | 资源辅助脚本：基线快照、TTS 合并与 GARbro 往返命令 | [resource-workflow](commands/resource-workflow.md) |
 | 资源交接清单：阶段、身份、路径与完成标记 | [resource-manifest](contracts/resource-manifest.md) |
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |

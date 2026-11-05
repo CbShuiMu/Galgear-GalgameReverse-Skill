@@ -1,0 +1,89 @@
+{
+  "repository": "https://github.com/RepressedAlliance/AgeReVerse",
+  "commit": "17618428499e90aa9b971212f7167cfdaf09912b",
+  "license": "MIT; LICENSE and notices in original sources",
+  "scope": "Selected unmodified codec, catalog and RUO source modules only; excludes games, text data, manifests and runtime patches",
+  "files": {
+    "source/rUGP/__init__.py": {
+      "sha256": "ed378ea8d56fb71829fc1295256c28fc43e85b94c9ce78db1e6e90f755c25065"
+    },
+    "source/rUGP/formats/__init__.py": {
+      "sha256": "133a34a3444a6ef996c04a443c6bfb346030e0d09463d58a5dc861390c822b6a"
+    },
+    "source/rUGP/formats/images/__init__.py": {
+      "sha256": "6d864608764e7691673b4abcd7c4e5800dcf18834c79054423a50e3ecc94a74c"
+    },
+    "source/rUGP/formats/images/cr6ti_decode.py": {
+      "sha256": "621f03472c053eee074f6b6e8f6e96f6c530f4ac37988c75574d37d07203d67b"
+    },
+    "source/rUGP/formats/images/cr6ti_encode.py": {
+      "sha256": "83a3e49f134864592eda762cbc3e7e88417104da173812a8557194c479061b5e"
+    },
+    "source/rUGP/formats/images/cr6ti_reference.py": {
+      "sha256": "1a0ef71b242e9f00dc31d0e1a7231e16ea8109aa056075f794b6bf4f5683ca4c"
+    },
+    "source/rUGP/formats/images/crimp.py": {
+      "sha256": "4cf78d1cfd52b844da993c99197c0668998c4aa74b956eab2164787db7935cac"
+    },
+    "source/rUGP/formats/images/crip007_decode.py": {
+      "sha256": "d4215088233664a81e01cc49700c516d6fc1f8f00b87d578d08da544968add98"
+    },
+    "source/rUGP/formats/images/crip007_encode.py": {
+      "sha256": "2eaa05919ef0cde9acf594fce566c8fff07e5bfc4516609873a59c7473edab31"
+    },
+    "source/rUGP/formats/images/crip008_decode.py": {
+      "sha256": "142c4275bc00a3aded39a59dfd5c7eec2a20e08d02bab0bd2e8378bab2287851"
+    },
+    "source/rUGP/formats/images/crip008_kind2_encode.py": {
+      "sha256": "ab2d092be14b2096506eadf049ccc8dc3c91ec99d604b98628bf78ecfeff32ae"
+    },
+    "source/rUGP/formats/images/crip008_kind3_encode.py": {
+      "sha256": "55be70e725c6e1737f055aae7fedf0812b3443af8ab7e7abd393bac06f7253ce"
+    },
+    "source/rUGP/formats/images/crmt_metadata.py": {
+      "sha256": "6b642f26535ecabf8553cf2ea1147841f0f4aad546b29021c2d55b9466ad5dc9"
+    },
+    "source/rUGP/formats/images/crmti_capacity.py": {
+      "sha256": "3f52d86a1b77d3a9702928b5594f95533fc8c9fa80faf927bbe6a61658a462a0"
+    },
+    "source/rUGP/formats/images/crmti_decode.py": {
+      "sha256": "ce3a0b5d30781f46ac73f31bc96068862a95992c472c3a31f3751e84027d6063"
+    },
+    "source/rUGP/formats/images/crmti_encode.py": {
+      "sha256": "2188f2e7f504b1efbb1b1a46110c74eba3bb492bd411bfd78f30811cbd093ce0"
+    },
+    "source/rUGP/formats/images/crmti_record.py": {
+      "sha256": "af07c0ebc627a9ee503dfff2065ebb8c754d53c900ff04ca302a2d8df919663e"
+    },
+    "source/rUGP/formats/rio/__init__.py": {
+      "sha256": "e39761a0bc84c3b305cdea653ae311a321e71dd56fbd241fb3aa771c30200857"
+    },
+    "source/rUGP/formats/rio/crypto.py": {
+      "sha256": "d0fc3974f06dd0498360f459a970148eb4af4ef0d60850f02c3cc662b2bcd41e"
+    },
+    "source/rUGP/formats/rio/ruo.py": {
+      "sha256": "1d122a510f64fbd9cc1e4131aedc9b4353b6cbc3d71b19492641ff0099d37ac6"
+    },
+    "source/rUGP/tools/__init__.py": {
+      "sha256": "cdfada41080cc48bff066c3801cff71b5bce5d066cafa4f11c71620055ca9aa3"
+    },
+    "source/rUGP/tools/catalog/__init__.py": {
+      "sha256": "0fede1194f48fb22caa90ee3266ff466eb7d07e2fef0f9b1d57fbff28c0849b7"
+    },
+    "source/rUGP/tools/catalog/rio_inventory.py": {
+      "sha256": "d8a5102d3ff6508f29c0039dbcb0ce60c9fbff34f2d3d7eba7f5f8017c6097eb"
+    },
+    "source/rUGP/tools/images/__init__.py": {
+      "sha256": "1312e8bcd5f19ffeb2a63e89144bb9b50c0d02647fd1b80e89f81613447de8fc"
+    },
+    "source/rUGP/tools/images/decode_record.py": {
+      "sha256": "2fd43b8848b05601e0d87da06ff7bb6330e4cffa04bb11682fef1b4dd262e611"
+    },
+    "source/rUGP/tools/images/export_crmt_layers.py": {
+      "sha256": "6ab09dd86e01dd3be6655dbc18fc713efef627ec39133cf249be59c9b28920eb"
+    }
+  },
+  "wrapper": "rugp_cli.py",
+  "wrapper_sha256": "56294217c25c6d0c66e34a1ccd19093893c5742de2edf9d04ab097cdeb5b63c9",
+  "local_changes": "Separate wrapper: safe native reference selection, raw manifests, strict pixel gate, create-only cumulative RUO and inherited-byte readback; vendored source modules unchanged."
+}
