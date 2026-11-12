@@ -29,7 +29,7 @@ TyranoScript 的核心是网页文件和脚本。桌面外壳、移动平台封�
 
 ## 来源、版本与验证边界
 
-核心依据官方 TyranoScript `c8dbfd492afd3d79b0954fcf4477236f5c6c4830` 的模板、parser 和加载实现，以及官方目录教程；ASAR 参考 `electron/asar` 的 `610035abdb6c25b7c26ead1c9853c2b9de3ddb69`。本页为官方资料与源码阅读等级，没有真实游戏或运行验证。不同代际、第三方桌面外壳、自定义 loader、保护或媒体插件与上述依据不符时，重新检查具体实现；单款游戏的参数与密钥留在用户本地。
+核心依据官方 TyranoScript `c8dbfd492afd3d79b0954fcf4477236f5c6c4830` 的模板、parser 和加载实现，以及官方目录教程；ASAR 参考 `electron/asar` 的 `610035abdb6c25b7c26ead1c9853c2b9de3ddb69`。已在真实 Electron 散文件安装上核对 data 树并逐哈希验证 KS 副本。标签、动态脚本及游戏运行仍需另验。不同代际、第三方桌面外壳、自定义 loader、保护或媒体插件与上述依据不符时，重新检查具体实现；单款游戏的参数与密钥留在用户本地。
 
 [upstream]: https://github.com/ShikemokuMK/tyranoscript/tree/c8dbfd492afd3d79b0954fcf4477236f5c6c4830
 [parser]: https://github.com/ShikemokuMK/tyranoscript/blob/c8dbfd492afd3d79b0954fcf4477236f5c6c4830/tyrano/plugins/kag/kag.parser.js

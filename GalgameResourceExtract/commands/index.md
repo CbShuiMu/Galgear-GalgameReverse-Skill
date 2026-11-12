@@ -28,3 +28,7 @@
 
 
 GARbro 的资料覆盖与读取限制见 [常见引擎支持情况](../catalog/garbro-support.md)，不能据此承诺脚本解析或回写。
+
+[NeXAS PAC type 4 只读 CLI](nexas-pac4.md)用于末尾反码 Huffman 索引和成员方法 4。
+
+[GARbro 序号解包 CLI](garbro-archive.md)用于保存同名成员或指定已有归档读取器。

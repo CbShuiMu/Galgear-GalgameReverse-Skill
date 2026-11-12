@@ -14,7 +14,7 @@
       "license": "MIT"
     }
   ],
-  "scope": "YPF version 474, raw extraction with checksums; YSTB 474 instruction and WORD subset; no writer, VM execution or save parser",
+  "scope": "YPF version 474, raw extraction with checksums; YSTB 474 instruction and WORD subset; no writer, VM execution or save parser; standalone YPF 263 SwapTable04 and Adler-32 subset through ypf263.py",
   "hashes": {
     "VNTranslationTools-LICENSE.txt": "6397c8d12a25f2f12080fd5f9dbdbc10a30da7ce5bf79391a18252b0f6ad80ec",
     "yuris_cli.py": "f48be1ac79b73158477722e4988844e91fb991a2d0d615d1be9f284a0e3357f9",
@@ -24,7 +24,8 @@
     "source/YurisCommandList.cs": "c27432fee2fa83f48d20ded0d558cac890c01da96f5a35cdf67777b3105ba53a",
     "source/YurisConfigScript.cs": "634f473e07557a6847c37bf2a3b156b73ea317f6da47f0824db26b6bd49b67de",
     "source/YurisScenarioScript.cs": "3e2d449eb96e1270c791d5fadef6d1f5796259937753db653a75de3ff8cada75",
-    "source/YurisScript.cs": "747e1961d59f1cff9e173a1411a5dc7b5dad099c5cc8274384ac7ba47df4a6cf"
+    "source/YurisScript.cs": "747e1961d59f1cff9e173a1411a5dc7b5dad099c5cc8274384ac7ba47df4a6cf",
+    "ypf263.py": "03f902605d801f2c3b9336f54192578df264f6a24c5a8d0f8e90d15dae092130"
   },
   "additional_layout_reference": {
     "url": "https://github.com/shimamura-sakura/yuri/blob/main/yuri/fileformat/ystb.py",

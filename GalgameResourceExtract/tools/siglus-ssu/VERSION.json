@@ -17,5 +17,10 @@
     "psutil diagnostics",
     "native Rust acceleration"
   ],
-  "verification": "synthetic archive fixtures only; no game executed"
+  "verification": "synthetic archive fixtures only; no game executed",
+  "read_copy_source": {
+    "path": "scene_read_copy.py",
+    "license": "0BSD",
+    "sha256": "75a6e33afc57398d94074cca6c6341b1982cfdefae89f2f9cdd1f53be396eca0"
+  }
 }

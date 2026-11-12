@@ -7,6 +7,7 @@
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
 | [GARbro 兼容后端](../commands/garbro-legacy.md)，随附；[XP3 实现][garbro-xp3] | 识别、列出并解包支持的 XP3；读取器也能定位部分附加在 EXE 后的 XP3 | 创建 XP3 v1 / v2，可配置索引压缩、成员压缩及保留目录 | 写入能力不代表支持所有加密插件。CLI 的复杂 `Scheme` 不能直接赋值；需特殊方案且无法表达时停止，不用普通 XP3 冒充兼容产物 |
+| [序号解包 CLI](../commands/garbro-archive.md)，随附 | 含同名条目的 XP3 按索引序号提取，保留原名和偏移 | 无封包接口 | 逻辑流仍依赖匹配过滤器，归档签名与加载顺序须另验。 |
 | KiriKiri Z 引擎[文本流实现][text]，外部源码参考 | 核对 BOM、默认编码、简易变换和压缩文本流的读取顺序 | 描述对应文本流写入方式；不是本技能的独立脚本 CLI | 不提供 TJS 字节码反编译或任意游戏专用过滤器；不需要运行游戏来阅读源码 |
 
 归档命令使用 `i` → `l` → `x`；需要封包时先查 `options XP3`，保留目录设置为 `RetainDirs=true`。完整参数见工具文档。
@@ -34,3 +35,29 @@
 [archive]: https://github.com/krkrz/krkrz/blob/fd5c4baa6a2ef5978db1bd043634351f48667daf/base/XP3Archive.cpp
 [text]: https://github.com/krkrz/krkrz/blob/fd5c4baa6a2ef5978db1bd043634351f48667daf/base/TextStream.cpp
 [garbro-xp3]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/KiriKiri/ArcXP3.cs
+
+<!-- EXPERIENCE:9f5fd42f1afdcb8b6aabf396cfda3dd035140c24176d133c3945dec337864b1f:START -->
+## 以序号保存同名 XP3 条目并核对索引身份
+
+- 引擎版本：XP3 / 同名条目
+- 方言/条件：Windows 真实样本，限已核对的读取范围
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`9f5fd42f1afdcb8b6aabf396cfda3dd035140c24176d133c3945dec337864b1f`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 用真实源文件和验证结果确认当前版本与读取层级。
+
+### 已验证步骤
+
+- 用固定版 GARbro Mod 的逻辑流读取。同名输出各用独立序号，核对偏移、长度、重复次数、哈希和可识别媒体头。
+
+### 限制与失效条件
+
+- 仅验证当前过滤器、索引成员和逻辑载荷；不确定加载优先级、封包与签名。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:9f5fd42f1afdcb8b6aabf396cfda3dd035140c24176d133c3945dec337864b1f:END -->

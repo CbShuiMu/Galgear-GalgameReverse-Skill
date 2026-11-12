@@ -1,5 +1,33 @@
 {
   "kind": "gal-engine-experiences",
   "schema_version": 1,
-  "entries": []
+  "entries": [
+    {
+      "experience_id": "ea89fd8c1b891b6a208c84acf24b1628bb74e178a82322a7ef623f701bd215b6",
+      "engine": "eushully",
+      "engine_version": "S4IC",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/eushully.md"
+    },
+    {
+      "experience_id": "d08418fc4506cd638e3f245c5389c58efea522a873ff09209a23c2445dd25f82",
+      "engine": "nexas",
+      "engine_version": "PAC type 4",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nexas.md"
+    },
+    {
+      "experience_id": "bd0b4a30ff1acdb98b91db412679fc72f30b66602d5df437fe04c030e444d8ba",
+      "engine": "yuris",
+      "engine_version": "YPF 263 / SwapTable04",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/yuris.md"
+    }
+  ]
 }

@@ -31,36 +31,33 @@
 
 这是一套供 AI 助手执行的工作流程与辅助脚本，实际解包、解析和封包能力取决于目标格式及可用工具；不包含通用的游戏脚本解析器或预装 TTS 模型。你也可以只使用其中一个技能。
 
-## 引擎适配与实测成功案例
+## 已验证的引擎与代表游戏
 
-CG、差分与原生图像另见 [CG 实测状态表](GalgameResourceExtract/catalog/cg-status.md)。该表分别列出原生图像与 PNG／子图的已验证子集及受阻情况；图像文件数不代表独立 CG 数，也不代表全部差分组合完成。
+✅ 表示代表游戏已通过至少一项验证。各引擎的实测范围、待验证项及新增 21 个安装目录的结果见[详细验证表](docs/engine-validation.md)。图像另见 [CG 实测状态表](GalgameResourceExtract/catalog/cg-status.md)。
 
-下列引擎已有真实游戏样本通过对应阶段的验证；rUGP 图像与静态 RUO 范围于 **2026-11-05** 补充，其余按原实测记录。**✅ 表示该行列出的能力已适配**，每个引擎列出一个实测成功案例；不同发行版、汉化补丁和脚本变体仍需分别核验。
-
-| 适配 | 引擎 / 格式族 | 实测成功游戏 | 已验证的适配范围 | 尚未完成的部分 |
-| :---: | --- | --- | --- | --- |
-| ✅ | SiglusEngine | Rewrite＋ | 场景解包、消息与显式姓名、局部分支；存档活动字段及部分静态坐标核对 | 全路线语义、动态调用与游戏内存档恢复 |
-| ✅ | NScripter | 寒蝉鸣泣之时（ひぐらしのなく頃に） | 脚本解码、显示行候选、标签与字面量跳转目标 | 宏展开、动态姓名与存档恢复 |
-| ✅ | Majiro | 片羽（カタハネ ―An' call Belle―） | ARC 解包、匹配 MJO V1 的指令遍历、Text 片段与内联姓名、局部分支 | 部分补丁编码、完整消息拼接与存档格式 |
-| ✅ | Artemis | 常轨脱离 Creative（ハミダシクリエイティブ） | AST 文本、姓名、多语言选项与显式选择标签 | 宏执行、跨场景运行顺序与存档活动 PC |
-| ✅ | RealLive | 智代 After ～It’s a Wonderful Life～ | SEEN 拆分与解压、消息及姓名、指令与字符串坐标、局部跳转 | 部分脚本、选择模块与存档读取 |
-| ✅ | BGI / Ethornell | 美好的每一天 ～不连续存在～ Full Voice HD | 脚本子集解包、消息及姓名消费者、原始字符串引用核对 | 失败脚本、完整分支图与存档活动字段 |
-| ✅ | Ren’Py | 片轮少女（かたわ少女） | RPA 解包、RPYC 反编译、静态台词与姓名表、菜单和标签调用图 | 动态 Python、返回栈与存档定位 |
-| ✅ | System-NNN | 虫爱少女 | SPT 消息、姓名、选项、直接跳转、子程序与脚本名表 | 完整条件求值、旧版存档布局与加载验证 |
-| ✅ | Nitroplus 格式族 | 沙耶之歌（沙耶の唄） | PAK 脚本子集提取、翻页文本候选、显式姓名及标签引用 | 混合编码乱码、其他容器变体与完整剧情语义 |
-| ✅ | NeXAS | 认真和我恋爱！（真剣で私に恋しなさい!!） | PAC 脚本子集解包与成员核验 | BIN 台词、姓名、分支及存档语义 |
-| ✅ | FVP | 星空的记忆 -Wish upon a shooting star- | 匹配 HCB 布局的指令遍历与字符串候选提取 | 汉化布局变体、对白分类、姓名及存档定位 |
-| ✅ | rUGP | Muv-Luv | 标准 Cr6Ti／CRip008 图像载荷、透明差分与绘制矩形；Cr6Ti 和累计 RUO 的静态往返 | CBg2d、完整 CG 组合、完整 RIO 重建和游戏内加载 |
-
-表中的成功范围分别涉及解包、文本解析、候选提取或静态结构验证，**不表示这些游戏已经完成全部剧情、封包回写或游戏内存档恢复验证**。详细方法及限制见 [引擎资料索引](GalgameResourceExtract/catalog/engines.md)与 [已收录经验索引](GalgameResourceExtract/catalog/experiences.json)。原游戏对白、资源、存档、密钥和项目证据保存在本地，不随技能分发。
-
-以下项目已有局部结果，但尚未作为通用引擎适配收录：
-
-| 状态 | 引擎 / 路线 | 实测游戏 | 当前范围 |
-| :---: | --- | --- | --- |
-| 🟡 项目专用 | Unity 上的标题专用 DAT / BS5 | 苍之彼方的四重奏（蒼の彼方のフォーリズム） | 已在本地验证多语言台词与显式姓名提取；不代表通用 Unity 剧情或存档支持 |
-
-CMVS、YU-RIS 与 MUSICA 的当前样本仍有读取或格式障碍，暂不标记为已适配。未列入表格的参考引擎与工具支持范围，以对应引擎页及实际版本验证为准。
+| 引擎 / 格式族 | 代表游戏 |
+| --- | --- |
+| ✅ SiglusEngine | Rewrite＋ |
+| ✅ NScripter | 寒蝉鸣泣之时（ひぐらしのなく頃に） |
+| ✅ Majiro | 片羽（カタハネ ―An' call Belle―） |
+| ✅ Artemis | 常轨脱离 Creative（ハミダシクリエイティブ） |
+| ✅ RealLive | 智代 After ～It’s a Wonderful Life～ |
+| ✅ BGI / Ethornell | 美好的每一天 ～不连续存在～ Full Voice HD |
+| ✅ Ren’Py | 片轮少女（かたわ少女） |
+| ✅ System-NNN | 虫爱少女 |
+| ✅ Nitroplus 格式族 | 沙耶之歌（沙耶の唄） |
+| ✅ NeXAS | 认真和我恋爱！（真剣で私に恋しなさい!!） |
+| ✅ FVP | 星空的记忆 -Wish upon a shooting star- |
+| ✅ rUGP | Muv-Luv |
+| ✅ [Eushully AGE](GalgameResourceExtract/engine/eushully.md) | 神采炼金大师（神採りアルケミーマイスター） |
+| ✅ [Yuka](GalgameResourceExtract/engine/yuka.md) | 望见青空之丘（あおぞらの見える丘） |
+| ✅ [Liar-soft / RScript](GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN |
+| ✅ [Leaf](GalgameResourceExtract/engine/leaf.md) | WHITE ALBUM2 Special Contents |
+| ✅ [TyranoScript](GalgameResourceExtract/engine/tyrano.md) | Teaching Feeling 4.0.6 |
+| ✅ [MUSICA](GalgameResourceExtract/engine/musica.md) | eden* |
+| ✅ [Bishop](GalgameResourceExtract/engine/bishop.md) | 鬼父 after |
+| ✅ [YU-RIS](GalgameResourceExtract/engine/yuris.md) | MagusTale ～世界樹と恋する魔法使い～ |
+| ✅ [KiriKiri](GalgameResourceExtract/engine/kirikiri.md) | 千恋万花（千恋＊万花） |
 
 ## 快速开始
 
@@ -97,7 +94,7 @@ npx skills add CbShuiMu/Galgear-GalgameReverse-Skill --skill galgame-resource-pa
 | --- | --- |
 | AI 助手 | 能读取 `SKILL.md`、访问本地文件并运行命令 |
 | Python | 3.10+；配置记忆与资源交接脚本使用标准库 |
-| 解包与封包工具 | GalExtract、GalPack 独立随附 11 组 CLI；新补 GalArc 子集、FreeMote、Siglus、rpatool、RLdev SEEN 与 Majiro V3。按[工具索引](GalgameResourceExtract/commands/index.md)确认版本与能力；rpatool / SEEN / Majiro 需 Python 3.9+，GalArc / FreeMote 需 Windows .NET Framework 4.8，其他系统另行确认 |
+| 解包与封包工具 | GalExtract、GalPack 各自随附归档 CLI；新补 GalArc 子集、FreeMote、Siglus、rpatool、RLdev SEEN 与 Majiro V3。按[工具索引](GalgameResourceExtract/commands/index.md)确认版本与能力；rpatool / SEEN / Majiro 需 Python 3.9+，GalArc / FreeMote 需 Windows .NET Framework 4.8，其他系统另行确认 |
 | 逆向工具 | GalReverse 不随附调试器、编译器或通用游戏解析器，按目标平台与当前障碍使用已有工具 |
 | 音频处理 | GalTTS 需要 FFmpeg，以及 `av`、`numpy`、`soundfile`、`filelock` |
 | TTS 后端 | 自行准备可用模型或服务；可使用 IndexTTS 适配器、通用命令客户端或自定义 Python 适配器 |

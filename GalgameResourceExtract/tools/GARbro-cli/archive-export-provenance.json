@@ -1,0 +1,13 @@
+{
+  "runtime": "GARbro-Mod-1.0.2.2",
+  "upstream_commit": "102d19710c819ed363b7ea28f2d883ccaf922214",
+  "upstream_source": "source/GARbro-Mod-1.0.2.2.zip",
+  "license": "MIT (GARbro-LICENSE.txt)",
+  "scope": "Ordinal-preserving logical extraction with optional explicit archive tag, PAZ scheme selection and JSONL readback records.",
+  "files": {
+    "GalArchiveExport.exe": "24facf3594f8b45b9224e4ba577be004bfe888c11b3dc1cb518e652d48cea248",
+    "source/GalArchiveExport.cs": "c95db6bf86b078ee7b96496e7dc86fe39786629d3c20cd5555ad8d6d89af2e89",
+    "source/build-archive-export.ps1": "fc302a882a84f7c9ffe0c8ae66fbfa02ca1944e58dfad9f29ee39df05f7836a2",
+    "GARbro-LICENSE.txt": "3af2d4f4ad5b50c8e78da20c3716781978beff0b684069d5c9fc2957490b26c3"
+  }
+}

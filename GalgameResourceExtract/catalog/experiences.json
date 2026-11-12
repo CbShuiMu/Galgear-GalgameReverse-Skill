@@ -460,6 +460,114 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "bfe28b97a8624cd3186ad398686aab14d942927f067e705b24eb998a3e959035",
+      "engine": "eushully",
+      "engine_version": "S4AC",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/eushully.md"
+    },
+    {
+      "experience_id": "72d5898e3e30145f06b67db344b340f2d9b69a635846f46734958699f6bfc563",
+      "engine": "yuka",
+      "engine_version": "YKC001 / YKS001",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/yuka.md"
+    },
+    {
+      "experience_id": "7b3e545fe71fd9697d1ed239e945c84ac17bd6abca9fe1bf71931b21bd9891b9",
+      "engine": "liar",
+      "engine_version": "LB 01 00 XFL",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/liar.md"
+    },
+    {
+      "experience_id": "536f2cee8f3e4e33f43b43af3e263da624e68fc4f5c3e407a5b2850f99936dc7",
+      "engine": "leaf",
+      "engine_version": "KCAP 0x2c",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/leaf.md"
+    },
+    {
+      "experience_id": "f673ceb18cb2063088746b950e0d448a4eb1c4042225eb8adc54a5a1afe4a8e9",
+      "engine": "fvp",
+      "engine_version": "BIN/FVP 名称区布局",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/fvp.md"
+    },
+    {
+      "experience_id": "572d9e12af6487f8133095abdaf1a1bdf36cb3b1275e8bcd084cedb273502593",
+      "engine": "artemis",
+      "engine_version": "PF8",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "104781b6336244e30015389b3d0d145c11b46ee0c93696a9a73dd25fbd16f34c",
+      "engine": "bishop",
+      "engine_version": "BSArc v2 / fixed-name records",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/bishop.md"
+    },
+    {
+      "experience_id": "08a5459690800a4366dbf5b7da33e45761539e312cf21a54abe60abbe03dfa13",
+      "engine": "nexas",
+      "engine_version": "PAC type 4",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/nexas.md"
+    },
+    {
+      "experience_id": "a16148cc2444418aad30660a5d49b07de579450f852390aa91a85cd4cf5f3fd6",
+      "engine": "yuris",
+      "engine_version": "YPF 263 / SwapTable04",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/yuris.md"
+    },
+    {
+      "experience_id": "b82d8506ba722b045ac660280bf8624a97cec0432e5d355ece82c71102280775",
+      "engine": "musica",
+      "engine_version": "PAZ scheme version 1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/musica.md"
+    },
+    {
+      "experience_id": "9f5fd42f1afdcb8b6aabf396cfda3dd035140c24176d133c3945dec337864b1f",
+      "engine": "kirikiri",
+      "engine_version": "XP3 / 同名条目",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/kirikiri.md"
+    },
+    {
+      "experience_id": "13af774895267b40be05720708c62cd1a102d7709ab52a3d8c19d193b7784870",
+      "engine": "siglus",
+      "engine_version": "92-byte PCK / no embedded source tail",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
     }
   ]
 }

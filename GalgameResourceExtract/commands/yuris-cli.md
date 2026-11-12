@@ -15,3 +15,17 @@ python tools/yuris-cli/yuris_cli.py script INPUT.ybn result.json --commands ysc.
 独立 Python 实现依据 [GARbro ArcYPF.cs](https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/YuRis/ArcYPF.cs) 与 [VNTranslationTools v0.0.41](https://github.com/arcusmaximus/VNTranslationTools/tree/36fbe909d02f2e9bb187443e03e2df595f56bfec/VNTextPatch.Shared/Scripts/Yuris)，均为 MIT。对应源码、许可证和哈希随工具保留，详见 `tools/yuris-cli/provenance.json`。控制元数据另参考 [yuri 的布局分析](https://github.com/shimamura-sakura/yuri/blob/main/yuri/fileformat/ystb.py)；该仓库未标明许可证，其源码未收入工具包。
 
 没有封包、脚本写入、条件执行或存档恢复能力。原版、补丁、语言和备份分别处理；成员提取成功不代表已覆盖有效加载脚本。
+
+## YPF 263 旧版索引
+
+另有 `tools/yuris-cli/ypf263.py` 读取独立 YPF 263 的已验证旧版布局。
+
+```text
+python tools/yuris-cli/ypf263.py list INPUT.ypf
+python tools/yuris-cli/ypf263.py extract INPUT.ypf NEW_DIR
+python tools/yuris-cli/ypf263.py extract INPUT.ypf NEW_STORED_DIR --stored
+```
+
+在文件头版本、SwapTable04 名称长度、索引完整消耗和载荷范围同时匹配时，用全部名称的 Adler-32 验证单一 XOR 参数。随后逐条对存储载荷计算 Adler-32，压缩成员另核对 zlib 终点和解码长度。名称、名称字节、偏移、大小、状态及 SHA-256 保存在 `manifest.jsonl`，成员按序号保存，避免重复或无法解码的名称覆盖。输出目录必须不存在；有失败返回 1。`--stored` 只验证并复制原始存储范围。
+
+263 分支使用 32 字节头之后的索引长度及 Adler-32 名称值。474 CLI 的索引结束位置与 CRC-32 名称规则不能直接套用。263 入口仅解包，不解释 YBN 语义或写回。参考源码和许可在 [provenance.json](../tools/yuris-cli/provenance.json)。

@@ -30,6 +30,17 @@ $tool = '.\tools\siglus-ssu\siglus-ssu.exe'
 
 这些 DAT 已经过内部解压或解密，工作目录不等于原样 PCK 的字节基线。原归档、工作 DAT、修改输入和验证目录分别存放；包级属性/命令表变化或新增场景不在适配入口的范围内。
 
+## 只有声明而无嵌入源码的场景包
+
+遇到 `invalid embedded source header` 时，先核对 92 字节头、场景索引与载荷终点。如果声明的源码头大于零、实际最后一条恰好结束于 EOF，可为只读解包创建工作副本。工具核对连续场景范围并清除这一声明字段；保留原文件和所有场景字节。工作副本仍须通过常规 `unpack` 的完整结构校验及密钥来源验证。
+
+```text
+python tools/siglus-ssu/scene_read_copy.py ORIGINAL_SCENE NEW_WORKING.pck
+tools/siglus-ssu/siglus-ssu.exe unpack NEW_WORKING.pck NEW_DAT_DIR --angou MATCHING_SIGLUS_EXE
+```
+
+仅用这份副本读取 DAT，原文件仍作为项目证据。遇到真实尾部数据时工具拒绝生成副本，封包和源码恢复继续依据原始包的实际布局。
+
 ## 保留的上游命令
 
 以 `-x`、`-c` 等上游模式开头的参数原样交给 SSSU。上游命令与归档适配的输出和覆盖规则不同，按[固定版手册][manual]执行。

@@ -337,5 +337,131 @@
     },
     "summary": "HCB指令边界及字符串候选方法；不将字符串池宣称为完整对白。",
     "aliases": []
+  },
+  {
+    "id": "eushully",
+    "extensions": [
+      ".alf",
+      ".aai"
+    ],
+    "magic_ascii": [
+      "S4IC",
+      "S4AC",
+      "S3IC",
+      "S3IN"
+    ],
+    "reference": "engine/eushully.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Eushully AGE：从独立主索引及同名 AAI 定位 ALF 卷和成员；脚本与加载行为另验。",
+    "aliases": []
+  },
+  {
+    "id": "yuka",
+    "extensions": [
+      ".ykc",
+      ".yks"
+    ],
+    "magic_ascii": [
+      "YKC001",
+      "YKC002",
+      "YKS001"
+    ],
+    "reference": "engine/yuka.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Yuka：按 YKC 版本区分名称编码，核对 YKS001 文本区变换。",
+    "aliases": []
+  },
+  {
+    "id": "liar",
+    "extensions": [
+      ".xfl",
+      ".lwg",
+      ".gsc",
+      ".wcg"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/liar.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Liar-soft：标准 XFL、GSC 与图层资源；补丁包单独识别。",
+    "aliases": []
+  },
+  {
+    "id": "leaf",
+    "extensions": [
+      ".pak"
+    ],
+    "magic_ascii": [
+      "KCAP",
+      "LAC"
+    ],
+    "reference": "engine/leaf.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "Leaf：按实际签名与索引布局区分 KCAP、LAC 及同后缀媒体。",
+    "aliases": []
+  },
+  {
+    "id": "musica",
+    "extensions": [
+      ".paz"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/musica.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "已用两套运行库对照真实 PAZ 脚本包字节。",
+    "aliases": []
+  },
+  {
+    "id": "bishop",
+    "extensions": [
+      ".bsa"
+    ],
+    "magic_ascii": [
+      "BSArc"
+    ],
+    "reference": "engine/bishop.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "真实 BSArc v2 头下的固定长度名称记录已核验。",
+    "aliases": []
+  },
+  {
+    "id": "shiina-rio",
+    "extensions": [
+      ".war"
+    ],
+    "magic_ascii": [
+      "WARC"
+    ],
+    "reference": "engine/shiina-rio.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "实测 WARC 1.7 可列出目录，部分载荷仍有解码障碍。",
+    "aliases": []
   }
 ]

@@ -17,6 +17,8 @@
 | `x` | `GARbro.Console.exe x [options] <file>` | 提取归档，或对单个图像、音频文件执行转换流程 |
 | `c` / `pack` | `GARbro.Console.exe c -t <Tag> -o <archive> [options] <input-directory>` | 将目录中的文件封包为指定格式的归档 |
 
+兼容后端这一构建的列表表头依次为 `Offset`、`Size`、`Name`，实际条目行依次输出方括号内的十六进制存储大小、十进制偏移、名称。Mod CLI 的行序不同。用已知长度的样本和实际条目范围校验，按所调用的构建解析。
+
 ## 创建选项（`c` / `pack`）
 
 输入目录必须是最后一个参数。默认仅包含该目录直接下属的文件。不保存空目录。

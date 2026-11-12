@@ -1,0 +1,12 @@
+{
+  "implementation": "Python adaptation of the NeXAS footer layout and MSB-first Huffman stream; strict checks and explicit last-extent recovery",
+  "reference_source": "../GARbro-cli/source/GARbro-Mod-1.0.2.2.zip",
+  "commit": "102d19710c819ed363b7ea28f2d883ccaf922214",
+  "license": "MIT (GARbro-LICENSE.txt)",
+  "paths": [
+    "ArcFormats/Nexas/ArcPAC.cs",
+    "ArcFormats/HuffmanCompression.cs",
+    "ArcFormats/BitStream.cs"
+  ],
+  "sha256": "8df317812874f79d423768cb36988baafae074e324e6b4e0b89efa7d9cca7867"
+}
