@@ -72,7 +72,7 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | RLdev SEEN：原样归档拆分与重建 | [rldev-seen](commands/rldev-seen.md) |
 | Majiro V3 CLI：哈希索引与原样归档 | [majiro-cli](commands/majiro-cli.md) |
 | Emote / PSB：场景资源 | [emote](engine/emote.md) |
-| Entis GLS / Cotopha：NOA、CSX 与 Cotomi 存档 | [entis-gls](engine/entis-gls.md) |
+| Entis GLS / Cotopha：64 位 NOA、CSX 对白与 Cotomi 上下文 | [entis-gls](engine/entis-gls.md) |
 | WillPlus / AdvHD：翻译表与说话人 | [willplus](engine/willplus.md) |
 | KiriKiri / KAG：XP3、文本与 TJS | [kirikiri](engine/kirikiri.md) |
 | CMVS：CPZ 版本与独立补丁归档 | [CMVS](engine/cmvs.md) / [PKP v0 CLI](commands/pkp.md) |

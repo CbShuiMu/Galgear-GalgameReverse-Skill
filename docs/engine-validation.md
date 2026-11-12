@@ -24,6 +24,7 @@
 | ✅ | [Leaf](../GalgameResourceExtract/engine/leaf.md) | WHITE ALBUM2 Special Contents | KCAP、LAC 归档解包与脚本载荷核对 | 脚本语义、封包和存档定位 |
 | ✅ | [TyranoScript](../GalgameResourceExtract/engine/tyrano.md) | Teaching Feeling 4.0.6 | 已展开的 Electron 项目中定位并逐哈希校验 KS 场景副本 | 标签和宏执行、动态分支及存档 |
 | ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | PAZ 逻辑成员、SC 台词及姓名、条件路线和嵌入脚本 | 两个小包的载荷、运行对照、实际槽位与封包 |
+| ✅ | [Entis GLS / Cotopha](../GalgameResourceExtract/engine/entis-gls.md) | 狙われた女神天使エンゼルティアー FHD 版 | 大型 NOA、CSX 台词与姓名、真实槽位上下文解码 | 全部差分合成、完整运行分支、恢复和回封 |
 | ✅ | [Bishop](../GalgameResourceExtract/engine/bishop.md) | 鬼父 after | BSArc v2 头下的固定名称索引、资源提取 | BSX 脚本和存档 |
 | ✅ | [YU-RIS](../GalgameResourceExtract/engine/yuris.md) | MagusTale ～世界樹と恋する魔法使い～ | YPF 263 指定布局的名称、存储载荷校验及成员解包 | 其他 YPF 方言、YSTB 263 台词和封包 |
 | ✅ | [KiriKiri](../GalgameResourceExtract/engine/kirikiri.md) | 千恋万花（千恋＊万花） | XP3 场景包解包，按序号保留同名成员并核对索引与载荷 | 场景语义、归档签名与游戏内加载 |
@@ -110,3 +111,14 @@
 | 原版 CRsa v17 | 176 个脚本中 53 个读到声明命令流末尾；28,948 条消息 | 18,895 条来自完整命令流，其余来自确认的顺序前缀。21,541 条有显式说话人。 |
 | Steam 静态分支 | 223,642 个指令坐标，228 个选择相关操作 | 12,966 个条件目标命中唯一同脚本坐标。122 个标签跳转已配对，1 个待确认。另保留跨脚本资源引用。 |
 | 存档定位 | 4 个 Steam 读写存档指令位置 | 已有静态指令坐标，未找到与两版对应的存档样本，当前恢复位置和分支状态待验证。 |
+
+## 2026-11-12 狙われた女神天使エンゼルティアー FHD 版
+
+| 阶段 | 结果 | 验证边界 |
+| --- | --- | --- |
+| NOA 解包 | 主游戏和附赠短篇的 23 个顶层包共 70,650 个成员。另解包 7 个内嵌 NOA，共 1,198 个成员 | 顶层清单与 GARbro 对照并核对输出哈希，2,646 个成员起点超出 4 GiB。附赠短篇的 ERISA 脚本独立解码。 |
+| 图像 | 18 个 ERI 样本全部导出 PNG，含两个超 4 GiB 包的尾部样本 | 原生资源全部保留，完整 CG 和差分合成待验。 |
+| CSX | 主游戏 71,298 次对白调用，附赠短篇 5,166 次 | 核对姓名、正文、语音参数和指令位置。主游戏 38,705 次含显式姓名，2,470 个字面跳转命中反汇编边界，10 个待确认。 |
+| Cotomi 槽位 | 79 份文件去重后得到 48 个上下文，全部解码。21 个预览文本唯一对应当前脚本的一处对白 | 46 个首字段与保存函数的后继指令吻合，另外 2 个未匹配当前指令边界。完整剧情调用栈和游戏内恢复待验。 |
+
+本地主脚本与所附汉化脚本哈希一致。附赠短篇、原生图片、台词和存档证据在工作区独立保存。 [SYRUP 官方版本说明](https://syrup-soft.com/mm/megami/)

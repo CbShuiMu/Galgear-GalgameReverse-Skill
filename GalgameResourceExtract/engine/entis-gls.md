@@ -8,6 +8,8 @@
 | [GalArc CLI 子集](../commands/galarc.md)，随附工具 | 原样读取指定平面 Raw NOA | 显式 `pack noa ... --raw` 创建新的 Raw 平面 NOA | 已测合成成员往返及 GARbro 独立读取；不保时间戳等元数据，不支持压缩、加密或目录变体，不能替代未知原包的完整重建 |
 | [EntisGLS_Tools：CSXTool][readme]，外部工具 | 提取 CSX 1.x 内联字符串 | 将修改文本回写 CSX，不创建 NOA | 上游声明的 1.x 范围；提取模式有适用差异，先验证代表性脚本 |
 | [EntisGLS_Tools：CSXToolPlus][readme]，外部工具 | 提取 CSX 2.x–3.x 字符串 | 将修改文本回写 CSX，不创建 NOA | 按实际布局选择模式；随包仅有[类型源码摘录](../provenance/entisgls-tools/README.md)与许可证，没有完整工具或预编译程序 |
+| [parse_cotopha_csx.py](../scripts/parse_cotopha_csx.py) | 结合 CSXToolPlus v2.2 反汇编核对字符串、显式姓名、正文、语音参数和字面跳转 | 只读 | 已验证有 `conststr` 和匹配 `WitchWizard::OutMsg` 调用布局的样本 |
+| [inspect_cotomi_save.py](../scripts/inspect_cotomi_save.py) | 核对 BMP 附加区，并用随附 GARbro 解码 ERISA 运行上下文 | 只读 | 已验证 Cotomi 外层和内层 Cotopha 上下文，游戏内恢复待验 |
 
 工具路径相对于本技能根目录。只需原样资源时，完成归档解包及成员核对即可；脚本解析、文本回写和存档分析按用户目标执行，分别验证。
 
@@ -34,6 +36,8 @@
 4. **指令与语义**：需要语义解析时核对 `image` 中的引用和调用，按目标确认相应字段；对白与语音关联任务再确认对白、姓名、语音及顺序。字符串表包含代码标识符、标签和界面文字，不等于剧情顺序。
 
 [GARbro 的固定版本 NOA 实现][noa]识别 `Entis\x1a` / `VIST\x1a` 与文件 ID `0x02000400`，从 `0x40` 的 `DirEntry` 开始读索引；条目偏移以当前目录记录起点为基准。文件记录正文通常在条目偏移加 16 字节处，另有压缩/加密分支。优先调用现有工具，避免只截取索引的逻辑长度而漏掉封装或解压步骤。
+
+真实平面 NOA 样本使用属性 `0x01000000`，同时以编码字段 0 存放 Raw 成员。索引相对位置及 `filedata` 长度按 64 位读取，已回读超过 4 GiB 位置的成员。内嵌 NOA 和编码 `0x80000010` 的 ERISA 成员分别检查内部索引、解码大小和载荷哈希。标准 Raw 子集写入器的属性范围仍以对应工具页为准。[GARbro Mod NOA 实现](https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/Entis/ArcNOA.cs)
 
 NOA 与 CSX 可共享 Entis 外层标记，不能只凭 `Entis` 判为同一种内容。GARbro 的 `IDR_COTOMI` XML 检查可定位归档密钥；这段实现**没有证明**游戏的资源加载先后关系。
 
@@ -91,6 +95,13 @@ require p == section_end           # 不等则调查版本、基址或字段假�
 
 最小程序应先输出段表、原始字符串数、空条目数、段末游标、引用匹配统计和少量经过边界核验的样例。形成可检验布局后立即保存并测试程序，再做全量语义提取。不要为读出更多字符串而继续无目标扫描。对白与姓名/语音关联须来自调用结构、参数和实际文件；未知姓名保留未知。
 
+```text
+CSXToolPlus disassemble INPUT.csx -F v3 -T DISASSEMBLY.txt
+python scripts/parse_cotopha_csx.py INPUT.csx DISASSEMBLY.txt NEW_REPORT.json
+```
+
+使用[固定 v2.2 发布](https://github.com/crskycode/EntisGLS_Tools/releases/tag/v2.2)的反汇编命令。对 `WitchWizard::OutMsg` 核对实际方法地址、立即数、姓名／正文的索引操作数和语音数组。字面 `Jump`、`CJump` 按原指令的相对位移计算，保留反汇编缺少对应指令边界的目标。实际路线及其他调用形态另验。
+
 ### 版本、语言和资源覆盖
 
 若多个归档/散文件含同名脚本，分别记录候选来源、哈希、文件头、段表和语言。**本页引用的源码不足以确立通用 first / last 加载规则。** XML 的声明顺序、文件名、修改时间、解包器枚举顺序和文本可读性，单独都不能证明运行时赢家。
@@ -100,6 +111,8 @@ require p == section_end           # 不等则调查版本、基址或字段假�
 ### Cotomi 存档：当前标题与运行状态分开验证
 
 观察到 `cotomi context file` 时，先确认它所在的真实层级：它可能处于图像预览之后，也可能是独立对象文件。检查容器边界、长度、编码和可能的压缩层，不以扩展名或任意 UTF-16 扫描代替结构解析。
+
+对已验证的 BMP 槽位，以 `bfSize` 定位附加区。外层 `context` 正文先存 4 字节展开长度，其后是 ERISA 码流。运行 `python scripts/inspect_cotomi_save.py INPUT.bmp NEW_REPORT.json`，可用 `--decoded NEW_CONTEXT.bin` 保存展开的原样上下文。工具借用随附 GARbro 的解码分支，并验证内层 `Cotopha Script Context` 文件头、段长度和边界。内层 `context` 的首个数值须和当前脚本指令核对。已验证样本中匹配的值指向保存函数的续执行处，剧情定位还需核对预览、脚本版本和调用栈。
 
 可读的存档标题/预览对白能与候选脚本做精确核验，并为当前定位提供锚点。它不自动给出执行指针、已读历史、路线、时间顺序或姓名。重复文本要结合可验证上下文消歧；标题截断/控制码清理要保留原始字节和规范化规则。压缩运行状态必须按有证据的算法解码，失败时报告缺少的格式证据；不得猜偏移、猜解压参数、把附近整数当作 PC，或把脚本物理前缀当作玩家已读历史。
 
@@ -115,3 +128,55 @@ require p == section_end           # 不等则调查版本、基址或字段假�
 [loader]: https://github.com/crskycode/EntisGLS_Tools/blob/ccc67f537f56302fedae91b12ad8eff5ce8b4d62/CSXToolPlus/ECSExecutionImage.cs
 [disasm]: https://github.com/crskycode/EntisGLS_Tools/blob/ccc67f537f56302fedae91b12ad8eff5ce8b4d62/CSXToolPlus/ECSExecutionImageDisassembler.cs
 [noa]: https://github.com/Alex123666tw/GARbro-cli/blob/7b9160f4ea51cca6987ec96f895941de1780e1b6/ArcFormats/Entis/ArcNOA.cs
+
+<!-- EXPERIENCE:9af6256484277d9e96728a39ecdd5f821154983026c3f775e47c6ec119439361:START -->
+## 核对大 NOA 的 64 位成员位置及 CSX 对白操作数
+
+- 引擎版本：NOA 0x02000400 and indexed CSX
+- 方言/条件：Windows，限匹配脚本布局
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`9af6256484277d9e96728a39ecdd5f821154983026c3f775e47c6ec119439361`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 归档头、目录布局、脚本版本和字面调用均已匹配。
+
+### 已验证步骤
+
+- 用独立目录遍历和读取器核对原样成员范围及哈希；回读 CSX 字符串索引、方法目标和指令位移。
+
+### 限制与失效条件
+
+- 限已验证的平面 NOA 与索引式 CSX，完整动态分支、差分合成和回封另验。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:9af6256484277d9e96728a39ecdd5f821154983026c3f775e47c6ec119439361:END -->
+
+<!-- EXPERIENCE:789952bae6f49961a2ed9d5cb6cb98083e9fa67279732055f154f448f91ad696:START -->
+## 解码 BMP 附加区的 ERISA 上下文并核对内层段
+
+- 引擎版本：Cotomi BMP ERISA context
+- 方言/条件：Windows，限匹配脚本布局
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`789952bae6f49961a2ed9d5cb6cb98083e9fa67279732055f154f448f91ad696`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- BMP 文件边界、外层上下文和解码输出长度均可核对。
+
+### 已验证步骤
+
+- 从 context 段取展开长度和码流，调用已验证的解码器；逐段检查内层文件并以当前脚本核对指令候选。
+
+### 限制与失效条件
+
+- 限匹配上下文布局，保存函数后继、剧情位置和实际恢复分别验收。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:789952bae6f49961a2ed9d5cb6cb98083e9fa67279732055f154f448f91ad696:END -->

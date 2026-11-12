@@ -16,8 +16,41 @@ with patch.object(sys, "path", [str(ROOT / "GalgameResourceExtract/scripts"), *s
     SC_TRACE = load("gal_musica_trace", "trace_musica_sc.py")
     MJO_FLOW = load("gal_majiro_flow", "index_majiro_flow.py")
     MJO_SAVE = load("gal_majiro_save", "locate_majiro_save.py")
+    CSX = load("gal_cotopha_csx", "parse_cotopha_csx.py")
+    COTOMI = load("gal_cotomi_save", "inspect_cotomi_save.py")
 
 class ScriptParsers(unittest.TestCase):
+    def test_cotopha_conststr_keeps_empty_index_and_checks_raw_reference(self):
+        image = b"\x02\0\x06" + struct.pack("<II", 0x80000000, 1)
+        raw = struct.pack("<4I", 2, 0, 0, 1) + "試".encode("utf-16le") + struct.pack("<2I", 1, 7)
+        values, references = CSX.read_constants(raw, image)
+        self.assertEqual((values, references), (["", "試"], 1))
+        self.assertEqual(CSX.text_load((0, 'Load String "sample" (1)'), image, values),
+                         {"index": 1, "image_offset": 0, "value": "試"})
+        for bad in (raw[:-1], raw + b"\0", raw[:-4] + struct.pack("<I", 100)):
+            with self.assertRaises(ValueError):
+                CSX.read_constants(bad, image)
+
+    def test_cotomi_bmp_boundary_and_erisa_bridge(self):
+        bmp = bytearray(58)
+        bmp[:2] = b"BM"
+        struct.pack_into("<I", bmp, 2, len(bmp))
+        struct.pack_into("<II", bmp, 10, 54, 40)
+        body = struct.pack("<I", 96) + b"encoded"
+        section = struct.pack("<8sQ", b"context ", len(body)) + body
+        header = (CSX.ENTIS + b"\0" * 8 + b"cotomi context file").ljust(56, b"\0")
+        slot = bytes(bmp) + header + struct.pack("<Q", len(section)) + section
+        end, context, size, encoded = COTOMI.context_stream(slot)
+        self.assertEqual((end, context, size, encoded), (58, 138, 96, b"encoded"))
+        archive = COTOMI.wrap_erisa(encoded, size)
+        index_size = struct.unpack_from("<Q", archive, 72)[0]
+        offset = 64 + struct.unpack_from("<q", archive, 100)[0]
+        self.assertEqual(offset, 80 + index_size)
+        self.assertEqual(archive[offset:offset + 8], b"filedata")
+        self.assertEqual(archive[offset + 16:], encoded + b"\0" * 4)
+        with self.assertRaises(ValueError):
+            COTOMI.context_stream(slot[:-1])
+
     def test_musica_include_resumes_in_caller_and_keeps_overlay_coordinates(self):
         with tempfile.TemporaryDirectory() as td:
             base = Path(td) / "base"

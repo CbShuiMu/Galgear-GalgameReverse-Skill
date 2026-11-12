@@ -658,6 +658,24 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "9af6256484277d9e96728a39ecdd5f821154983026c3f775e47c6ec119439361",
+      "engine": "entis-gls",
+      "engine_version": "NOA 0x02000400 and indexed CSX",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/entis-gls.md"
+    },
+    {
+      "experience_id": "789952bae6f49961a2ed9d5cb6cb98083e9fa67279732055f154f448f91ad696",
+      "engine": "entis-gls",
+      "engine_version": "Cotomi BMP ERISA context",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/entis-gls.md"
     }
   ]
 }
