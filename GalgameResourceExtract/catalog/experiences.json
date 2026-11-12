@@ -622,6 +622,33 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "342936cf5cd9d6fde67ebb6128806761b876cb811d079c3234d41b8e3dc21c8a",
+      "engine": "musica",
+      "engine_version": "MUSICA SC",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/musica.md"
+    },
+    {
+      "experience_id": "732d5f15a8eac64a2cca45afd1bee4eb9dfb1e1eb48ebf862a18a29fe13b71c9",
+      "engine": "liar",
+      "engine_version": "GSC / LiarsoftTool v2.3.1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/liar.md"
+    },
+    {
+      "experience_id": "f00fb0f438b8299b20fff6e54744b1748829233f5c55706c98615b6d492e167d",
+      "engine": "majiro",
+      "engine_version": "MJO V1 localized",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
     }
   ]
 }

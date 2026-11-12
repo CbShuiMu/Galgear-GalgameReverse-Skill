@@ -10,8 +10,43 @@ AST=load('gal_literal_ast','parse_ast_tables.py')
 SPT=load('gal_release_spt','parse_system_nnn.py')
 MJO=load('gal_majiro_v1','parse_majiro_v1.py')
 SIG=load('gal_siglus_flow','parse_siglus_flow.py')
+SC=load('gal_musica_sc','parse_musica_sc.py')
 
 class ScriptParsers(unittest.TestCase):
+    def test_musica_mixed_encodings_duplicate_ids_and_branches(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "edition"
+            base = Path(td) / "base"
+            root.mkdir()
+            base.mkdir()
+            first = b".if done == 1\tfinish\r\n"
+            named = (b".message\t100\tvoice[50]\t@" + "太郎".encode("cp932")
+                     + b"\t" + "你好".encode("gbk") + b"\\nX\r\n")
+            second = b".message\t100\t\t\tNarration\r\n"
+            label = b".label finish\r\n"
+            path = root / "Scene.sc"
+            path.write_bytes(first + named + second + label + b".chain NEXT.SC\r\n.goto missing\r\n.end")
+            (base / "Next.sc").write_bytes(b";comment\n.end\n")
+
+            report = SC.extract(root, "gbk", "cp932", base)
+            one, two = report["scripts"][0]["dialogue"]
+            self.assertEqual((one["speaker"], one["voice_ref"], one["text"]), ("太郎", "voice[50]", "你好\\nX"))
+            self.assertTrue(one["speaker_marked"])
+            self.assertIsNone(two["speaker"])
+            self.assertEqual(one["message_id"], two["message_id"])
+            self.assertEqual(two["byte_offset"], len(first + named))
+            branch, chain, missing, end = report["control_flow"]
+            self.assertEqual(branch["target"]["line"], 4)
+            self.assertEqual(branch["fallthrough"]["line"], 2)
+            self.assertEqual(chain["target"], {"group": "chain-base", "file": "Next.sc", "line": 2, "byte_offset": 9})
+            self.assertEqual(missing["status"], "unresolved")
+            self.assertEqual(end["status"], "terminal")
+            self.assertFalse(report["save_slot_mapping_verified"])
+
+            path.write_bytes(first + b".message 100 voice\n")
+            with self.assertRaisesRegex(ValueError, "Scene.sc:2: message"):
+                SC.extract(root, "gbk", "cp932")
+
     def test_majiro_assembly_and_branch_name_boundary(self):
         def instruction(off,name,args=(),targets=()):
             return dict(offset=off,end=off+2,name=name,operands=list(args),targets=list(targets))

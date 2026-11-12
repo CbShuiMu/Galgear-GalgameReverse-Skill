@@ -20,10 +20,10 @@
 | ✅ | rUGP | Muv-Luv | 标准 Cr6Ti／CRip008 图像载荷、透明差分与绘制矩形；Cr6Ti 和累计 RUO 的静态往返 | CBg2d、完整 CG 组合、完整 RIO 重建和游戏内加载 |
 | ✅ | [Eushully AGE](../GalgameResourceExtract/engine/eushully.md) | 神采炼金大师（神採りアルケミーマイスター） | 按主索引和 AAI 识别并提取 ALF 逻辑成员 | AGF 转换、脚本和加载 |
 | ✅ | [Yuka](../GalgameResourceExtract/engine/yuka.md) | 望见青空之丘（あおぞらの見える丘） | YKC001 解包及 YKS 文本区还原抽检 | YKS 指令、分支和存档 |
-| ✅ | [Liar-soft / RScript](../GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN | 标准 XFL 解包与 GSC 载荷保留 | 非标准头汉化包、GSC 语义和 CG 合成 |
+| ✅ | [Liar-soft / RScript](../GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN | 标准 XFL 解包，原版 GSC 导出文本、姓名、选择和局部标签 | 非标准头汉化包、跨脚本控制流、存档和 CG 合成 |
 | ✅ | [Leaf](../GalgameResourceExtract/engine/leaf.md) | WHITE ALBUM2 Special Contents | KCAP、LAC 归档解包与脚本载荷核对 | 脚本语义、封包和存档定位 |
 | ✅ | [TyranoScript](../GalgameResourceExtract/engine/tyrano.md) | Teaching Feeling 4.0.6 | 已展开的 Electron 项目中定位并逐哈希校验 KS 场景副本 | 标签和宏执行、动态分支及存档 |
-| ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | 显式方案选择，原版和附加脚本包逻辑成员校验 | 部分同版本或改名归档、脚本语义和封包 |
+| ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | PAZ 逻辑成员、SC 台词及姓名、字面量条件和跨文件引用 | 两个小包的载荷、动态剧情、存档与封包 |
 | ✅ | [Bishop](../GalgameResourceExtract/engine/bishop.md) | 鬼父 after | BSArc v2 头下的固定名称索引、资源提取 | BSX 脚本和存档 |
 | ✅ | [YU-RIS](../GalgameResourceExtract/engine/yuris.md) | MagusTale ～世界樹と恋する魔法使い～ | YPF 263 指定布局的名称、存储载荷校验及成员解包 | 其他 YPF 方言、YSTB 263 台词和封包 |
 | ✅ | [KiriKiri](../GalgameResourceExtract/engine/kirikiri.md) | 千恋万花（千恋＊万花） | XP3 场景包解包，按序号保留同名成员并核对索引与载荷 | 场景语义、归档签名与游戏内加载 |
@@ -42,9 +42,9 @@
 | 姬狩—魔王再临 / 姫狩りダンジョンマイスター | Eushully AGE | 6/6 候选通过，13,287 个成员，散文件 52 | 按外部索引切分 ALF 卷。另核验 52 个散文件。 |
 | 甜蜜女友 3 / アマカノ3 | Artemis | 11/11 候选通过，50,634 个成员 | PF6 与 PF8 各卷独立核验，汉化 XP3 使用兼容后端。 |
 | 望见青空之丘 / あおぞらの見える丘 | Yuka | 3/3 候选通过，12,225 个成员 | 独立核对 YKC001 索引和 YKS 文本区还原。 |
-| 漆黑的夏尔诺斯 Full Voice ReBORN | Liar-soft / RScript | 19/20 候选通过，14,640 个成员 | 标准 XFL 已解包，非标准头的汉化补丁包仍待识别。 |
+| 漆黑的夏尔诺斯 Full Voice ReBORN | Liar-soft / RScript | 19/20 候选通过，14,640 个成员 | 原版 183/183 GSC 导出 TSC 和文本，6,473 条带显式姓名的文本命令，5,900 个局部目标均可定位。汉化 XFL 跳过，存档待验证。 |
 | BALDR SKY DiveX “DREAM WORLD” / 梦之世界 | NeXAS | 18/18 候选通过，36,623 个成员 | 补齐四个更新 PAC 的末条长度，按索引序号保留成员。 |
-| eden* They were only two, on the planet. / 伊甸园 | MUSICA | 18/20 候选通过，15,258 个成员 | 分别核对原版、PLUS+MOSAIC 和汉化 PAZ。两个小包待确认。 |
+| eden* They were only two, on the planet. / 伊甸园 | MUSICA | 18/20 候选通过，15,258 个成员 | 原版、汉化和附加包分别核对 25、22、16 个 SC，共 22,822 条消息、128 条字面量控制流引用。附加包有 3 条链目标对应原版脚本。两个小包及存档仍待确认。 |
 | MagusTale ～世界樹と恋する魔法使い～ / 世界树与恋爱的魔法使 | YU-RIS | 12/12 候选通过，19,044 个成员 | 逐条核验 YPF 263 的名称与存储载荷。脚本包含 244 个 YBN。 |
 | Summer Pockets REFLECTION BLUE / 夏日口袋 | SiglusEngine | 517 个场景 DAT、3 个散文件 | 核对场景载荷连续至文件末尾，只修正读取副本中的源码尾部声明。 |
 | Teaching Feeling 4.0.6 / 希尔薇 | TyranoScript / Electron | 37,943 项散文件，34 个 KS 副本 | Electron 应用的数据目录已展开，保留原相对路径核对 KS 场景副本。 |
@@ -54,10 +54,10 @@
 | 五彩斑斓的世界 / いろとりどりのセカイ | Favorite View Point | 10/10 候选通过，22,780 个成员，散文件 1 | 分别核对 BIN 成员和散置 HCB。 |
 | 千恋万花 / 千恋＊万花 | KiriKiri | 14/14 候选通过，48,418 个成员 | 场景包已解包，五个含同名条目的 XP3 按索引序号保存。 |
 | 月姬 / 月姫 | NScripter | 1/1 候选通过，829 个成员，散文件 4 | 核对旧 PC 版 NSA 成员，并保留散置脚本。 |
-| 琥珀结晶 / アンバークォーツ | Majiro | 11/12 候选通过，71,798 个成员，散文件 151 | 核对 Majiro V2 ARC 及散置 MJO，另有一个补丁候选待确认。 |
+| 琥珀结晶 / アンバークォーツ | Majiro | 11/11 实际归档通过，71,798 个成员 | 一个同后缀文件确认是纯文本。151/151 个汉化 MJO 严格解析，导出 82,571 条静态拼接消息，其中 45,930 条带内联姓名，另有 171 个字面量选项。存档及运行分支待验证。 |
 | 秽翼的尤斯蒂娅 / 穢翼のユースティア | BGI / Ethornell | 65/65 候选通过，44,286 个成员 | 本篇与补丁 ARC 各自核验。 |
-| 花与乙女的祝福 / 花と乙女に祝福を | ShiinaRio | 0/9 候选通过，0 个成员，散文件 2 | 七个 WARC 1.7 能列出索引，逻辑载荷仍受阻。另有两个 BIN 待识别。 |
-| 赫炎的印加诺克 Full Voice ReBORN | Liar-soft / RScript | 25/26 候选通过，13,847 个成员 | 标准 XFL 已解包，非标准头的汉化补丁包仍待识别。 |
+| 花与乙女的祝福 / 花と乙女に祝福を | ShiinaRio | 7 个 WARC 1.7 可列索引，0 个包完成逻辑载荷验收 | 两套 GARbro 对照原版与 Royal Bouquet 方案，小型脚本包均为 1/6 输出且脚本未获验证。载荷与两个 BIN 暂跳过。 |
+| 赫炎的印加诺克 Full Voice ReBORN | Liar-soft / RScript | 25/26 候选通过，13,847 个成员 | 原版 412/412 GSC 导出 TSC 和文本，7,357 条带显式姓名的文本命令，6,907 个局部目标均可定位。汉化 XFL 跳过，存档待验证。 |
 | 鬼父 after | Bishop | 6/6 候选通过，4,377 个成员，散文件 11 | 独立核对 BSArc v2 头下的定长索引和成员，另保留散置脚本候选。 |
 
 本轮主要验证索引、解包和脚本载荷。完整剧情分支、说话人、存档定位、封包和游戏内加载各自验收。
@@ -73,7 +73,7 @@
 | 天津罪 / アマツツミ | CMVS · CPZ6 / PKP v0 | 18/18，30,869 个成员 | 四个 PKP v0 补丁共 729 个成员，逐条检查裸 DEFLATE 的结束与输出长度。原版与补丁分开保存。 |
 | 幸福噩梦 / ハピメア（另一个安装版本） | CMVS · CPZ5 | 13/13，25,641 个成员 | 补丁归档与此前登记的安装版本不同。 |
 | 幸福噩梦 Fragmentation Dream / ハピメア Fragmentation Dream | CMVS · CPZ5 | 12/12，22,746 个成员 | 原版与补丁分开保存。 |
-| 日在盛夏 / Summer Days | rUGP · MSI/CAB / RIO | 0/1，0 个成员 | 原版跨卷 CAB 交付 127/127 个 MSI 安装文件。原版和补丁 RIO 共找到 0 个匹配当前读取器的图像记录，内部对象目录待确认。原版与 1.09B 补丁分开验证。待处理 `rUGP.rio`。 |
+| 日在盛夏 / Summer Days | rUGP · MSI/CAB / RIO | 原版跨卷 CAB 交付 127/127 个 MSI 安装文件 | 原版与 1.09B 均确认内嵌 RIO 根对象头，读取器均报 `Bad class`。旧式 Cr6Ti 和 OOR 复扫均无候选，内部目录和 CG 暂跳过。 |
 | 临界边界 1 / Liminal Border Part I / クリミナルボーダー 1st Offence | KiriKiri · XP3 | 7/7，9,442 个成员 | 兼容后端提取媒体；两个含脚本的包按标准段读取，逐成员核对 Adler-32，保留原样文本包装。 |
 | 临界边界 2 / Liminal Border Part II / クリミナルボーダー 2nd Offence | KiriKiri · XP3 | 0/6，0 个成员 | 确认 Hxv4 顶层索引及配套程序资源结构；归档载荷仍待验证。待处理 `data.xp3`、`voice.xp3`、`bgimage.xp3`、`video.xp3`、`fgimage.xp3`、`evimage.xp3`。对应索引列出 8,480 项。 |
 | 临界边界 3 / Liminal Border Part III / クリミナルボーダー 3rd Offence | KiriKiri · XP3 | 0/6，0 个成员 | 确认 Hxv4 顶层索引及配套程序资源结构；归档载荷仍待验证。待处理 `data.xp3`、`voice.xp3`、`video.xp3`、`bgimage.xp3`、`fgimage.xp3`、`evimage.xp3`。对应索引列出 7,962 项。 |

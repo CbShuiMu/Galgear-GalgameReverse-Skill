@@ -31,6 +31,8 @@ RUO 为数据区、每项三个 uint32 的重定向表及末尾条目数，使�
 
 ## 已验证子集与失效条件
 
+遇到卷首 `0x596E32CD` 且有 `CrelicUnitedGameProject` 的 RIO 时，先试读取器的内嵌根对象路线。所引 [GARbro 读取器](https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/rUGP/ArcRIO.cs) 在这个分支直接从主卷读取根对象。若出现 `Bad class`，保留归档身份及失败阶段，下一步核对类引用表。没有匹配的 Cr6Ti 或 OOR 候选仅说明对应扫描的覆盖范围。
+
 对于以 MSI 安装介质分发的样本，先用 [Windows Installer 只读数据库][msi-open]查询 [Media 表][msi-media]与 File 表。外置 CAB 按介质序列排列，内部成员名对应 File 主键。核对各 CAB 的 set ID、卷序号、连续项与声明长度后，从每个 CAB 卷首依次调用 [FDICopy][fdi]。只接受已列入 Media 表的续卷和已列入 File 表的输出。跨卷文件可在前一卷的调用中完成，后续调用复用同一输出清单，避免重复计数。以 File 键、声明长度及输出哈希核验；原版和更新包分别保留。仅运行 `expand.exe` 在当前实测中会停在跨卷成员。安装层完成后再按 RIO 版本匹配对象目录和资源读取器。
 
 真实样本已验证原生记录提取、Cr6Ti／CRip008 已支持 profile 的逐条解码，以及 Cr6Ti 未修改和受控修改的静态累计 RUO 往返。返回 PNG 不足以验收：旧 Cr6Ti v1 的 kind 3 在共享差值／残差分步钳位以及透明段后的预测状态上与 native reference 不同。当前适配使用严格封装检查加 native reference；相关合成回归覆盖颜色越界后钳位和透明上一行的清除。

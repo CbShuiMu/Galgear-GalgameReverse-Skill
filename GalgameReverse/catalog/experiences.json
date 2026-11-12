@@ -37,6 +37,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "8e41531f55d1b515fa6800f011b684f093541786ece2efba8a31668ff53ca491",
+      "engine": "musica",
+      "engine_version": "MUSICA SC",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/musica.md"
     }
   ]
 }

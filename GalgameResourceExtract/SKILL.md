@@ -95,6 +95,6 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | Leaf：KCAP、LAC 与同后缀视频 | [leaf](engine/leaf.md) |
 | NeXAS PAC type 4：末尾索引及条目挽救 | [PAC type 4 CLI](commands/nexas-pac4.md) |
 | GARbro Mod：同名成员与显式读取标签 | [序号解包 CLI](commands/garbro-archive.md) |
-| MUSICA：PAZ 方案与载荷验证 | [musica](engine/musica.md) |
+| MUSICA：PAZ 载荷、SC 台词与静态分支 | [musica](engine/musica.md) |
 | Bishop：BSA 名称表和目录记录 | [bishop](engine/bishop.md) |
 | ShiinaRio：WARC 索引与载荷分别确认 | [shiina-rio](engine/shiina-rio.md) |
