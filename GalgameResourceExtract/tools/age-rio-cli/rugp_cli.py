@@ -13,6 +13,11 @@ from rUGP.tools.images.decode_record import decode_record,read_exact_extent
 from rUGP.formats.images.cr6ti_reference import decode_record as native_reference
 
 MAX_PIXELS=16777216;MAX_BYTES=16*1024*1024
+LEGACY_CR6TI_PROFILE='legacy-serialized-cr6ti'
+LEGACY_CR6TI_KINDS={
+    b'\x02\x06\x81\x00\x07', b'\x02\x06\x81\x00\x0f',
+    b'\x03\x03\x81\x00\x07', b'\x03\x03\x81\x00\x0f',
+}
 def digest(b):return hashlib.sha256(b).hexdigest()
 def dump(p,value):
     with pathlib.Path(p).open('x',encoding='utf-8') as f:json.dump(value,f,ensure_ascii=False,indent=2)
@@ -27,32 +32,50 @@ def safe_header(record,codec):
         if not 0<h.width*h.height<=MAX_PIXELS:raise ValueError('pixel safety limit')
         return dataclasses.asdict(h)
     return {}
-def decode_native(record,codec):
+def legacy_cr6ti_header(record):
+    return (len(record)>=46 and record[0]&3==0 and record[1]&0xc0==0xc0
+            and record[2:6]==b'\x45\0\0\0' and record[18:23] in LEGACY_CR6TI_KINDS)
+def image_decode_record(record,codec,profile=None):
+    if profile is None:return record
+    if profile!=LEGACY_CR6TI_PROFILE or codec!='cr6ti' or not legacy_cr6ti_header(record):
+        raise ValueError('image profile does not match the raw header')
+    return b'\x00\x04'+record[2:]
+def decode_native(record,codec,profile=None):
+    record=image_decode_record(record,codec,profile)
     header=safe_header(record,codec)
     if codec=='cr6ti':
         result=native_reference(record)
         return result.header.width,result.header.height,result.rgba,{**header,'decoder':'native-reference; combined kind3 clamp and cleared transparent predictors'}
     return decode_record(record,codec)
-def scan(sources,output):
+def scan(sources,output,legacy_cr6ti=False):
     output=fresh(output);rows=[];stats=[]
+    marker=b'\x45\0\0\0' if legacy_cr6ti else b'\x00\x04\x45'
+    marker_offset=2 if legacy_cr6ti else 0
+    profile=LEGACY_CR6TI_PROFILE if legacy_cr6ti else None
     for source in sources:
         source=norm(source);count=0
         with source.open('rb') as f,mmap.mmap(f.fileno(),0,access=mmap.ACCESS_READ) as b:
             at=0
             while True:
-                at=b.find(b'\x00\x04\x45',at)
+                at=b.find(marker,at)
                 if at<0:break
-                pos=at;at+=1;count+=1;h=b[pos:pos+48]
-                if len(h)<48:continue
+                pos=at-marker_offset;at+=1;count+=1
+                if pos<0:continue
+                h=b[pos:pos+48]
+                if len(h)<48 or (legacy_cr6ti and not legacy_cr6ti_header(h)):continue
                 w=int.from_bytes(h[6:8],'little');height=int.from_bytes(h[8:10],'little')
                 if not 0<w<=8192 or not 0<height<=8192 or w*height>MAX_PIXELS or h[18] not in (2,3):continue
                 options=[]
-                for codec,extent in [('cr6ti',int.from_bytes(h[32:36],'little')+46),('crip008',int.from_bytes(h[29:33],'little')+41)]:
+                layouts=[('cr6ti',int.from_bytes(h[32:36],'little')+46)]
+                if not legacy_cr6ti:layouts.append(('crip008',int.from_bytes(h[29:33],'little')+41))
+                for codec,extent in layouts:
                     if not 48<extent<=MAX_BYTES or pos+extent>len(b):continue
                     try:
-                        header=safe_header(b[pos:pos+extent],codec)
+                        header=safe_header(image_decode_record(b[pos:pos+extent],codec,profile),codec)
                         if codec=='crip008' and (header['header_version'] not in (0,129) or header['compress_flags']&~7 or any(header[k] not in range(5,9) for k in ('b_bits','g_bits','r_bits'))):continue
-                        options.append({'codec':codec,'extent':extent,'header':header})
+                        option={'codec':codec,'extent':extent,'header':header}
+                        if profile:option['profile']=profile
+                        options.append(option)
                     except ValueError:continue
                 if options:rows.append({'source':str(source),'offset':pos,'options':options,'identity':'header-candidate; directory/owner not inferred'})
         stats.append({'source':str(source),'size':source.stat().st_size,'mtime_ns':source.stat().st_mtime_ns,'magic_hits':count})
@@ -69,10 +92,12 @@ def extract(index,root,output):
     output.mkdir()
     with (output/'manifest.jsonl').open('x',encoding='utf-8') as f:
         for i,j,r,o,source in prepared:
-            raw=read_exact_extent(source,r['offset'],o['extent']);safe_header(raw,o['codec'])
+            raw=read_exact_extent(source,r['offset'],o['extent'])
+            safe_header(image_decode_record(raw,o['codec'],o.get('profile')),o['codec'])
             rel=source.name+'/'+f'{i:06d}-{r["offset"]:012x}-{j}-{o["codec"]}.bin';p=output/rel;p.parent.mkdir(exist_ok=True)
             with p.open('xb') as w:w.write(raw)
             row={'kind':'raw','id':f'{i:06d}-{j}','relative_path':rel,'source':str(source),'offset':r['offset'],'extent':len(raw),'codec':o['codec'],'sha256':digest(raw),'header':o.get('header',{}),'identity':r.get('identity','index-supplied')}
+            if 'profile' in o:row['profile']=o['profile']
             f.write(json.dumps(row,ensure_ascii=False)+'\n');f.flush()
     return {'raw_records':len(prepared)}
 def decode_tree(raw_root,output,limit=None):
@@ -85,7 +110,7 @@ def decode_tree(raw_root,output,limit=None):
             try:
                 raw=p.read_bytes()
                 if digest(raw)!=r['sha256']:raise ValueError('raw hash differs')
-                w,h,rgba,header=decode_native(raw,r['codec']);png=png_rgba_bytes(w,h,rgba)
+                w,h,rgba,header=decode_native(raw,r['codec'],r.get('profile'));png=png_rgba_bytes(w,h,rgba)
                 dest=output/(r['relative_path']+'.png');dest.parent.mkdir(parents=True,exist_ok=True)
                 with dest.open('xb') as f:f.write(png)
                 r.update(kind='png',png_relative_path=dest.relative_to(output).as_posix(),png_sha256=digest(png),rgba_sha256=digest(rgba),width=w,height=h,header=header,transparent_pixels=sum(a==0 for a in rgba[3::4]),partial_alpha_pixels=sum(0<a<255 for a in rgba[3::4]))
@@ -134,14 +159,14 @@ def overlay(record,source_offset,unit,output,base=None):
     dump(output.with_suffix(output.suffix+'.json'),report);return report
 def main():
     p=argparse.ArgumentParser(description=__doc__);s=p.add_subparsers(dest='command',required=True)
-    a=s.add_parser('scan');a.add_argument('output');a.add_argument('sources',nargs='+')
+    a=s.add_parser('scan');a.add_argument('output');a.add_argument('sources',nargs='+');a.add_argument('--legacy-cr6ti',action='store_true')
     a=s.add_parser('extract');a.add_argument('index');a.add_argument('root');a.add_argument('output')
     a=s.add_parser('decode-tree');a.add_argument('raw_root');a.add_argument('output');a.add_argument('--limit',type=int)
     a=s.add_parser('encode-cr6ti');a.add_argument('template');a.add_argument('rgba');a.add_argument('output');a.add_argument('--allow-quantization',action='store_true')
     a=s.add_parser('overlay');a.add_argument('record');a.add_argument('output');a.add_argument('--source-offset',type=lambda v:int(v,0),required=True);a.add_argument('--unit',type=int,required=True);a.add_argument('--base')
     args=p.parse_args()
     try:
-        if args.command=='scan':r=scan(args.sources,args.output)
+        if args.command=='scan':r=scan(args.sources,args.output,args.legacy_cr6ti)
         elif args.command=='extract':r=extract(args.index,args.root,args.output)
         elif args.command=='decode-tree':r=decode_tree(args.raw_root,args.output,args.limit)
         elif args.command=='encode-cr6ti':r=encode(args.template,args.rgba,args.output,args.allow_quantization)

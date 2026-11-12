@@ -28,6 +28,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/yuris.md"
+    },
+    {
+      "experience_id": "2b33a496c1c31554505f14e4e58361790a12798687cfa62cfe7a53eb9e204f7b",
+      "engine": "rugp",
+      "engine_version": "CRsa v18 PE32 native descriptors",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
     }
   ]
 }

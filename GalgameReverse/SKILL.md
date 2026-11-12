@@ -69,4 +69,4 @@ GalReverse 负责解除未知格式与加载逻辑的障碍。脚本、图像、
 
 自我进化时，引擎页按[结构与通用性规则](guides/engine-learning.md#引擎页结构与通用性)先列解包与封包工具表，再写格式特征、对应编码和注意事项；单款游戏的特殊编码等参数留在用户本地。
 
-外部主索引与追加卷见 [Eushully ALF](engine/eushully.md)，末尾索引截断见 [NeXAS PAC](engine/nexas.md)，旧版索引参数验证见 [YU-RIS YPF](engine/yuris.md)。
+外部主索引与追加卷见 [Eushully ALF](engine/eushully.md)，末尾索引截断见 [NeXAS PAC](engine/nexas.md)，旧版索引参数验证见 [YU-RIS YPF](engine/yuris.md)。rUGP 脚本的类型描述符、消息与指令坐标见 [CRsa](engine/rugp.md)。

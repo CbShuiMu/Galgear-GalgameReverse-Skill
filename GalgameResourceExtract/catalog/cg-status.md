@@ -7,8 +7,8 @@
 | 引擎 | 游戏样本 | 原生成员候选 | PNG 副本／子图 | 验证边界 |
 | --- | --- | ---: | ---: | --- |
 | rugp | Muv-Luv | 4949 | 4942 | 已验证标准图像载荷与静态累计 RUO；CBg2d、CG 组合及游戏加载未验收 |
-| rugp | Muv-Luv Alternative（Steam） | 6650 | 1813 | 原样候选全量核验，PNG 有界批次与跨卷抽样；差分关系与 CG 合成待验证 |
-| rugp | Muv-Luv Alternative（原版） | 0 | 0 | 目录、脚本及 OOR 已验证；当前图像扫描无候选 |
+| rugp | Muv-Luv Alternative（Steam） | 6650 | 6650 | 此前图像候选全部解码，含旧式 CRip007；完整 CG 合成待验证 |
+| rugp | Muv-Luv Alternative（原版） | 2457 | 2457 | 旧式 Cr6Ti 前缀、alpha 与绘制矩形；其他编码候选和父子图层关系待验证 |
 | siglus | Rewrite＋ | 4800 | 1884 | 部分原生／解码成功，仍有未完成项 |
 | nscripter | ひぐらしのなく頃に | 1219 | 1219 | 所选图像范围通过；CG 语义未确认 |
 | majiro | カタハネ ―An' call Belle― | 5061 | 1389 | 部分原生／解码成功，仍有未完成项 |

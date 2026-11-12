@@ -22,6 +22,24 @@ class Images(unittest.TestCase):
    d=pathlib.Path(td);raw,pixels=sample();source=d/'test.rio';source.write_bytes(bytes(8)+raw);index=d/'index.json';cli.scan([source],index)
    self.assertEqual(len(json.loads(index.read_text())['candidates']),1);cli.extract(index,d,d/'raw');r=cli.decode_tree(d/'raw',d/'png');self.assertEqual(r['counts'],{'decoded':1})
    p=next((d/'raw').rglob('*.bin'));p.write_bytes(p.read_bytes()+b'x');r=cli.decode_tree(d/'raw',d/'failed');self.assertEqual(r['counts'],{'failed':1})
+ def test_legacy_cr6ti_profile_preserves_original_prefix(self):
+  with tempfile.TemporaryDirectory() as td:
+   d=pathlib.Path(td)
+   standard,pixels=sample()
+   native=bytearray(standard);native[:2]=b'\x40\xc0';native[20]=0x81
+   invalid=bytearray(native);invalid[1]=0x80
+   source=d/'test.rio';source.write_bytes(bytes(8)+native+invalid)
+   cli.scan([source],d/'normal.json')
+   self.assertFalse(json.loads((d/'normal.json').read_text())['candidates'])
+   cli.scan([source],d/'legacy.json',legacy_cr6ti=True)
+   candidates=json.loads((d/'legacy.json').read_text())['candidates']
+   self.assertEqual([row['offset'] for row in candidates],[8])
+   cli.extract(d/'legacy.json',d,d/'raw')
+   row=json.loads((d/'raw/manifest.jsonl').read_text())
+   extracted=(d/'raw'/row['relative_path']).read_bytes()
+   self.assertEqual(extracted,native)
+   self.assertEqual(cli.decode_native(extracted,'cr6ti',row['profile'])[2],pixels)
+   self.assertEqual(cli.decode_tree(d/'raw',d/'png')['counts'],{'decoded':1})
  def test_kind3_shared_delta_clamps_only_after_residual(self):
   template,_=sample(3);pixels=bytes([254,0,254,255,254,254,254,255]*4);raw,expected,_=encode_cr6ti(template,pixels)
   self.assertEqual(expected,pixels);self.assertEqual(cli.decode_native(raw,'cr6ti')[2],pixels)

@@ -613,6 +613,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "b71b0ce2793de23890aa279f7d228fa6ad9d40c6ddf7d39d4fbd7db7fb65850d",
+      "engine": "rugp",
+      "engine_version": "Cr6Ti legacy serialized prefix",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
     }
   ]
 }
