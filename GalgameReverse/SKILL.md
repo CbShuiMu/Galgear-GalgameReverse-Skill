@@ -71,4 +71,4 @@ GalReverse 负责解除未知格式与加载逻辑的障碍。脚本、图像、
 
 外部主索引与追加卷见 [Eushully ALF](engine/eushully.md)，末尾索引截断见 [NeXAS PAC](engine/nexas.md)，旧版索引参数验证见 [YU-RIS YPF](engine/yuris.md)。rUGP 脚本的类型描述符、消息与指令坐标见 [CRsa](engine/rugp.md)。
 
-脚本字段使用不同编码或消息编号重复时，见 [MUSICA SC](engine/musica.md) 的字段对齐和静态位置核对。
+脚本字段使用不同编码或有内嵌脚本时，见 [MUSICA SC](engine/musica.md)。菜单结果分派和实际槽位中的脚本帧核对见 [Majiro](engine/majiro.md)。

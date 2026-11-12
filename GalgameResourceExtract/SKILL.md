@@ -83,7 +83,7 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | CatSystem2：INT、CST 与媒体 | [catsystem2](engine/catsystem2.md) |
 | YU-RIS：YPF 与 YBN | [yuris](engine/yuris.md) |
 | BGI / Ethornell：ARC、DSC 与脚本 | [ethornell](engine/ethornell.md) |
-| Majiro：ARC 与 MJO | [majiro](engine/majiro.md) |
+| Majiro：ARC、MJO 分支索引与已验证存档帧 | [majiro](engine/majiro.md) |
 | Ren'Py：RPA 与 RPY / RPYC | [renpy](engine/renpy.md) |
 | TyranoScript：散文件与桌面外壳 | [tyrano](engine/tyrano.md) |
 | Artemis：PF6 / PF8 与脚本 | [artemis](engine/artemis.md) |
@@ -95,6 +95,6 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | Leaf：KCAP、LAC 与同后缀视频 | [leaf](engine/leaf.md) |
 | NeXAS PAC type 4：末尾索引及条目挽救 | [PAC type 4 CLI](commands/nexas-pac4.md) |
 | GARbro Mod：同名成员与显式读取标签 | [序号解包 CLI](commands/garbro-archive.md) |
-| MUSICA：PAZ 载荷、SC 台词与静态分支 | [musica](engine/musica.md) |
+| MUSICA：PAZ 载荷、SC 台词、嵌入和静态路线 | [musica](engine/musica.md) |
 | Bishop：BSA 名称表和目录记录 | [bishop](engine/bishop.md) |
 | ShiinaRio：WARC 索引与载荷分别确认 | [shiina-rio](engine/shiina-rio.md) |

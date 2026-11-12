@@ -8,8 +8,9 @@ from pathlib import Path
 
 
 COMMAND = re.compile(rb"^[ \t]*\.(\w+)(?:[ \t](.*))?$")
+INCLUDE = re.compile(rb"^[ \t]*(#include)[ \t]+([^ \t]+)[ \t]*$")
 SEPARATOR = re.compile(rb"[ \t]")
-BRANCHES = {"if", "goto", "chain"}
+BRANCHES = {"if", "goto", "chain", "include"}
 ANNOTATIONS = {"set", "setGlobal", "pragma"}
 
 
@@ -22,12 +23,21 @@ def parse_script(path, text_encoding, speaker_encoding):
     for number, raw in enumerate(source.splitlines(keepends=True), 1):
         offset = position
         position += len(raw)
-        match = COMMAND.fullmatch(raw.rstrip(b"\r\n"))
-        if not match:
-            continue
-        command = match[1].decode("ascii")
+        line = raw.rstrip(b"\r\n")
+        match = COMMAND.fullmatch(line)
+        if match:
+            command = match[1].decode("ascii")
+            command_offset = match.start(1) - 1
+        else:
+            match = INCLUDE.fullmatch(line)
+            if not match:
+                if re.match(rb"^[ \t]*#include(?:[ \t]|$)", line):
+                    raise ValueError(f"{path.name}:{number}: malformed #include")
+                continue
+            command = "include"
+            command_offset = match.start(1)
         arguments = match[2] or b""
-        operation = {"line": number, "byte_offset": offset + match.start(1) - 1, "command": command}
+        operation = {"line": number, "byte_offset": offset + command_offset, "command": command}
         operations.append(operation)
         try:
             if command == "message":
@@ -111,13 +121,16 @@ def build_flow(scripts, base_scripts):
                 reference["fallthrough"] = coordinate(script, following)
             if command in {"if", "goto"}:
                 reference["target"] = coordinate(script, script["labels"].get(literal))
-            elif command == "chain":
+            elif command in {"chain", "include"}:
                 target = scripts.get(literal.casefold())
                 group = "input"
                 if target is None:
                     target = base_scripts.get(literal.casefold())
                     group = "chain-base"
                 reference["target"] = coordinate(target, target["operations"][0], group) if target else None
+                if command == "include":
+                    following = operations[index + 1] if index + 1 < len(operations) else None
+                    reference["continuation"] = coordinate(script, following)
             else:
                 reference["target"] = None
             if command in BRANCHES:

@@ -649,6 +649,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "f1036770d06d79b4d7b78eb1fb38cf62a535ec52a836f5961fcc8c6852e07b62",
+      "engine": "majiro",
+      "engine_version": "MajiroSavV1.105 contiguous frames",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
     }
   ]
 }

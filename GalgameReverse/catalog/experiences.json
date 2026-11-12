@@ -46,6 +46,24 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/musica.md"
+    },
+    {
+      "experience_id": "7d9e32baed967831d43d7e95fe98d397b1d509c76d76f64db0d22c2601b08319",
+      "engine": "musica",
+      "engine_version": "MUSICA SC integer conditions and includes",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/musica.md"
+    },
+    {
+      "experience_id": "651aa3fb995be5c9f5229a57c747440d8be1ba172d1c26c917c4bc11c46119d0",
+      "engine": "majiro",
+      "engine_version": "Majiro MJO V1 literal dispatch",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/majiro.md"
     }
   ]
 }

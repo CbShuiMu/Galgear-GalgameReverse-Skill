@@ -1,7 +1,8 @@
 """Installed parser boundary checks, with synthetic inputs only."""
 import importlib.util
 from pathlib import Path
-import struct,tempfile,unittest
+import struct,sys,tempfile,unittest
+from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 def load(name,file):
     spec=importlib.util.spec_from_file_location(name,ROOT/'GalgameResourceExtract/scripts'/file)
@@ -11,8 +12,101 @@ SPT=load('gal_release_spt','parse_system_nnn.py')
 MJO=load('gal_majiro_v1','parse_majiro_v1.py')
 SIG=load('gal_siglus_flow','parse_siglus_flow.py')
 SC=load('gal_musica_sc','parse_musica_sc.py')
+with patch.object(sys, "path", [str(ROOT / "GalgameResourceExtract/scripts"), *sys.path]):
+    SC_TRACE = load("gal_musica_trace", "trace_musica_sc.py")
+    MJO_FLOW = load("gal_majiro_flow", "index_majiro_flow.py")
+    MJO_SAVE = load("gal_majiro_save", "locate_majiro_save.py")
 
 class ScriptParsers(unittest.TestCase):
+    def test_musica_include_resumes_in_caller_and_keeps_overlay_coordinates(self):
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td) / "base"
+            overlay = Path(td) / "overlay"
+            base.mkdir()
+            overlay.mkdir()
+            (base / "start.sc").write_bytes(
+                b".if seen == 1 repeat\n#include Part.sc\n.label repeat\n.message 10   Tail\n.end\n"
+            )
+            (base / "part.sc").write_bytes(b".message 10   Original\n")
+            (overlay / "part.sc").write_bytes(b".message 10   Overlay\n")
+            scripts, origins = SC_TRACE.load_layers(base, overlay)
+            trace = SC_TRACE.trace(scripts, origins, "start.sc", {"seen": 0})
+            self.assertEqual([m["text"] for m in trace["messages"]], ["Overlay", "Tail"])
+            self.assertEqual([m["group"] for m in trace["messages"]], ["overlay", "base"])
+            self.assertEqual(trace["control"][1]["target"]["byte_offset"], 0)
+            self.assertEqual(trace["termination"], "end")
+            repeat = SC_TRACE.trace(scripts, origins, "start.sc", {"seen": 1})
+            self.assertEqual([m["text"] for m in repeat["messages"]], ["Tail"])
+            with self.assertRaisesRegex(ValueError, "missing initial value"):
+                SC_TRACE.trace(scripts, origins, "start.sc", {})
+
+            report = SC.extract(base, "cp932", "cp932")
+            include = next(ref for ref in report["control_flow"] if ref["command"] == "include")
+            self.assertEqual(include["continuation"]["line"], 3)
+            (base / "bad.sc").write_bytes(b"#include\n.end\n")
+            with self.assertRaisesRegex(ValueError, "bad.sc:1: malformed #include"):
+                SC.extract(base, "cp932", "cp932")
+
+    def test_majiro_script_transfer_and_alternate_pc_coordinates(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            def make_mjo(path, code, function_hash=123):
+                path.write_bytes(b"MajiroObjV1.000\0" + struct.pack("<6I", 0, 0, 1, function_hash, 0, len(code)) + code)
+
+            target_name = "試験"
+            target_arg = (target_name + ".txt").encode("cp932") + b"\0"
+            code = struct.pack("<HH", 0x801, len(target_arg)) + target_arg
+            code += struct.pack("<HIH", 0x835, 0x718EF651, 1)
+            code += struct.pack("<HiHHH", 0x83B, 4, 0x83A, 15, 0x82B)
+            make_mjo(root / "start.mjo", code)
+            make_mjo(root / (target_name + ".mjo"), struct.pack("<H", 0x82B), 124)
+            strict = MJO_FLOW.index([("base", root, "cp932", None)])
+            start = next(s for s in strict["scripts"] if s["file"] == "start.mjo")
+            self.assertEqual(start["script_transfers"][0]["status"], "missing-script")
+            result = MJO_FLOW.index([("base", root, "cp932", None)], strip_script_suffix=True)
+            start = next(s for s in result["scripts"] if s["file"] == "start.mjo")
+            ref = start["script_transfers"][0]
+            self.assertEqual((ref["status"], ref["target_key"], ref["target"]["file_offset"]),
+                             ("resolved", target_name + ".mjo", 40))
+            self.assertEqual(start["functions"][0]["hash"], 123)
+            branch = start["branches"][0]
+            self.assertEqual(branch["kind"], "alternate-pc-registration")
+            self.assertEqual(branch["targets"][0]["code_offset"], branch["next"]["code_offset"] + 4)
+
+    def test_majiro_menu_reports_numeric_cases_without_guessing_ordinal(self):
+        trace = [
+            {"offset": 0, "name": "call", "operands": [], "targets": []},
+            {"offset": 12, "name": "br.case", "operands": [], "targets": [18]},
+            {"offset": 18, "name": "line", "operands": [3], "targets": []},
+            {"offset": 22, "name": "ldc.i", "operands": [7], "targets": []},
+            {"offset": 28, "name": "bne.case", "operands": [], "targets": [40]},
+            {"offset": 34, "name": "ret", "operands": [], "targets": []},
+            {"offset": 40, "name": "ret", "operands": [], "targets": []},
+        ]
+        offsets = {op["offset"]: i for i, op in enumerate(trace)}
+        result = MJO_FLOW.menu_dispatch(trace, 0, offsets, {18, 40})
+        self.assertEqual(result["cases"], [{"value": 7, "target": 34}])
+        self.assertEqual(result["otherwise"], 40)
+
+    def test_majiro_slot_frame_run_requires_matching_version_and_adjacent_records(self):
+        def frame(name, pc):
+            return name.ljust(128, b"\0") + struct.pack("<10I", pc, 0, 0, 0, 9, 0, 0, 0, 0, 0)
+
+        first = frame(b"STORY.MJO", 12)
+        second = frame(b"console.mjo", 20)
+        def resolve(name, pc, line):
+            return [{"offset": pc}] if (name, pc, line) in {
+                (b"story.mjo", 12, 9), (b"console.mjo", 20, 9)
+            } else []
+
+        names = {b"story.mjo", b"console.mjo"}
+        prefix = MJO_SAVE.SIGNATURE + b"header"
+        runs = MJO_SAVE.match_frames(prefix + first + second, names, resolve)
+        self.assertEqual([f["slot_offset"] for f in runs[0]], [len(prefix), len(prefix) + 168])
+        for data in (prefix + first, prefix + first + b"gap" + second, b"MajiroSysV1.100\0" + first + second):
+            with self.assertRaises(ValueError):
+                MJO_SAVE.match_frames(data, names, resolve)
+
     def test_musica_mixed_encodings_duplicate_ids_and_branches(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "edition"

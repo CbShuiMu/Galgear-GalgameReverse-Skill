@@ -5,6 +5,8 @@
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用版本与限制 |
 | --- | --- | --- | --- |
 | 本技能 [parse_majiro_v1.py](../scripts/parse_majiro_v1.py)，VNTranslationTools v0.0.41 操作数表与消费者，MIT | V1 MJO 指令、Text 片段、受限消息拼接、字面量菜单及局部分支 | 不支持封包或脚本写入 | Python 3 标准库；严格长度、目标边界与编码检查；未知控制、动态插值和跨场景语义未覆盖 |
+| [index_majiro_flow.py](../scripts/index_majiro_flow.py) | 按显式覆盖顺序索引 MJO 入口、局部指令、字面量跨脚本和菜单分派 | 只读 | 动态目标和跨库函数候选保留待验证状态 |
+| [locate_majiro_save.py](../scripts/locate_majiro_save.py) | 从真实 V1.105 槽位定位与 MJO 边界吻合的连续脚本帧 | 只读 | V1.105 样本静态验证，至少两个连续帧。V1.103 和运行恢复另验 |
 | [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，格式标签 `MAJIRO` | 列表、解包 `MajiroArcV1.000`、`V2.000`、`V3.000` 分支 | 创建 `MajiroArcV1.000` | 当前写入器硬编码 V1，没有选择 V2/V3 的选项；只保存基本文件名，不支持子目录。能读取 V2/V3 不表示能按原版重建；见[实现][arc] |
 | [Majiro V3 CLI](../commands/majiro-cli.md)，随附，MIT | 校验并提取规范 V3 平面归档，核对名称、CRC-64 哈希及索引边界 | 创建有效哈希并严格排序的 V3 归档，原样保存成员 | Python 3.9+；仅小写且可逐字节往返的 CP932 基本文件名，不支持子目录、哈希碰撞或 V2。拒绝不满足条件的名称，不自动改名；见[命令与来源](../commands/majiro-cli.md) |
 | [MajiroTools][tools]，外部，未随附 | MJO 反汇编，输出 `.mjil` 及可选 `.mjres` 文本资源 | 将对应中间格式重新汇编为 MJO | 不是 ARC 封包工具；脚本操作码、字符串边界和重定位需要匹配。不能将反汇编成功当成全部控制流或语音关系已确认 |
@@ -29,6 +31,17 @@
 补丁字符串解码异常继续按资源拒绝，不用宽松替换或另一个编码“恰好能解码”掩盖。非标准字节标记、字符串填充及标题专用字库仍需独立证明，不能由原版成功推断补丁兼容。
 
 有独立证据支持补丁编码时，使用解析器的 `--encoding` 参数严格遍历全部 MJO，再核对字符串终止符、跳转边界、正文和内联姓名。对原版、更新包、散置补丁分别统计，保留同名文件的来源。归档后缀也要与文件头和实际目录结构核对。若疑似同后缀的说明文件，验证完整严格解码、字节往返和文本结构后再从归档统计中移出。
+
+### 分支索引与槽位核对
+
+```text
+python scripts/index_majiro_flow.py BASE_DIR NEW_FLOW.json --update UPDATE_DIR
+python scripts/locate_majiro_save.py INPUT.sav RAW_MJO_ROOT NEW_SLOT_REPORT.json
+```
+
+按原始文件和字节证据选择覆盖顺序。正文和文件名字符集分开传入。使用相邻的字符串操作数确认 `exec`、脚本调用及库加载的字面量目标，再查目标 MJO 主入口。用 `--strip-script-suffix` 前核对当前原生加载器是否去掉扩展名后补 `.mjo`。菜单的字面量文本和数值分派分别保留，`bsel.*` 的备用指针登记也单独保留。分支条件和动态调用仍需运行验证。[MajiroTools 指令说明](https://github.com/AtomCrafty/MajiroTools/wiki/Table-of-opcodes) · [majiro-py 固定版符号表](https://github.com/trigger-segfault/majiro-py/blob/f7ec450d5b78f0ed6df603b8c0b0ed79748d9cee/data/known_hashes_readable.json)
+
+先比较系统状态与槽位的文件头。匹配的 `MajiroSavV1.105` 样本存在连续的 168 字节帧。以 128 字节名称字段查找对应 MJO，核对帧内偏移和行字段，再用字节码指令边界和附近源码行交叉验证。剧情帧与控制台帧分别呈现，实际读档恢复、其他布局及只有一帧的输入仍需另验。
 
 先按 ARC 签名和索引项大小确认版本；核对名称解码、名称区边界、成员位置及条目数。使用 V1 写入器重建原 V2/V3 归档属于格式降级，必须单独证明目标加载器接受，不能标记为原样往返。V3 可使用随附 CLI 的已验证子集；V2 封包及子集之外的 V3 仍有缺口，不能写零哈希或改名绕过检查。
 
@@ -245,3 +258,29 @@ ARC 的 RCT、RC8 和配套差分保留原始成员及来源。解码失败、�
 
 原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
 <!-- EXPERIENCE:f00fb0f438b8299b20fff6e54744b1748829233f5c55706c98615b6d492e167d:END -->
+
+<!-- EXPERIENCE:f1036770d06d79b4d7b78eb1fb38cf62a535ec52a836f5961fcc8c6852e07b62:START -->
+## 从真实 V1.105 槽位回指连续 MJO 帧的指令与行号
+
+- 引擎版本：MajiroSavV1.105 contiguous frames
+- 方言/条件：Windows，限匹配脚本布局
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`f1036770d06d79b4d7b78eb1fb38cf62a535ec52a836f5961fcc8c6852e07b62`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 槽位版本和脚本版本均已确认，样本至少有两个连续帧。
+
+### 已验证步骤
+
+- 以脚本名和间距定位帧，再用原样 MJO 的指令边界、行字段及文件偏移互证。
+
+### 限制与失效条件
+
+- 限匹配布局，两个真实槽位指向同一剧情坐标；运行时恢复与其他版本另验。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:f1036770d06d79b4d7b78eb1fb38cf62a535ec52a836f5961fcc8c6852e07b62:END -->

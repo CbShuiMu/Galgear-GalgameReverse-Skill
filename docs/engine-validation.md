@@ -8,7 +8,7 @@
 | :---: | --- | --- | --- | --- |
 | ✅ | SiglusEngine | Rewrite＋ | 场景解包、消息与显式姓名、局部分支；存档活动字段及部分静态坐标核对 | 全路线语义、动态调用与游戏内存档恢复 |
 | ✅ | NScripter | 寒蝉鸣泣之时（ひぐらしのなく頃に） | 脚本解码、显示行候选、标签与字面量跳转目标 | 宏展开、动态姓名与存档恢复 |
-| ✅ | Majiro | 片羽（カタハネ ―An' call Belle―） | ARC 解包、匹配 MJO V1 的指令遍历、Text 片段与内联姓名、局部分支 | 部分补丁编码、完整消息拼接与存档格式 |
+| ✅ | Majiro | 片羽（カタハネ ―An' call Belle―） | ARC 解包、MJO V1 指令和局部分支、2 个真实 V1.105 槽位与剧情指令边界对照 | 部分补丁编码、完整消息拼接与读档恢复 |
 | ✅ | Artemis | 常轨脱离 Creative（ハミダシクリエイティブ） | AST 文本、姓名、多语言选项与显式选择标签 | 宏执行、跨场景运行顺序与存档活动 PC |
 | ✅ | RealLive | 智代 After ～It’s a Wonderful Life～ | SEEN 拆分与解压、消息及姓名、指令与字符串坐标、局部跳转 | 部分脚本、选择模块与存档读取 |
 | ✅ | BGI / Ethornell | 美好的每一天 ～不连续存在～ Full Voice HD | 脚本子集解包、消息及姓名消费者、原始字符串引用核对 | 失败脚本、完整分支图与存档活动字段 |
@@ -23,7 +23,7 @@
 | ✅ | [Liar-soft / RScript](../GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN | 标准 XFL 解包，原版 GSC 导出文本、姓名、选择和局部标签 | 非标准头汉化包、跨脚本控制流、存档和 CG 合成 |
 | ✅ | [Leaf](../GalgameResourceExtract/engine/leaf.md) | WHITE ALBUM2 Special Contents | KCAP、LAC 归档解包与脚本载荷核对 | 脚本语义、封包和存档定位 |
 | ✅ | [TyranoScript](../GalgameResourceExtract/engine/tyrano.md) | Teaching Feeling 4.0.6 | 已展开的 Electron 项目中定位并逐哈希校验 KS 场景副本 | 标签和宏执行、动态分支及存档 |
-| ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | PAZ 逻辑成员、SC 台词及姓名、字面量条件和跨文件引用 | 两个小包的载荷、动态剧情、存档与封包 |
+| ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | PAZ 逻辑成员、SC 台词及姓名、条件路线和嵌入脚本 | 两个小包的载荷、运行对照、实际槽位与封包 |
 | ✅ | [Bishop](../GalgameResourceExtract/engine/bishop.md) | 鬼父 after | BSArc v2 头下的固定名称索引、资源提取 | BSX 脚本和存档 |
 | ✅ | [YU-RIS](../GalgameResourceExtract/engine/yuris.md) | MagusTale ～世界樹と恋する魔法使い～ | YPF 263 指定布局的名称、存储载荷校验及成员解包 | 其他 YPF 方言、YSTB 263 台词和封包 |
 | ✅ | [KiriKiri](../GalgameResourceExtract/engine/kirikiri.md) | 千恋万花（千恋＊万花） | XP3 场景包解包，按序号保留同名成员并核对索引与载荷 | 场景语义、归档签名与游戏内加载 |
@@ -44,7 +44,7 @@
 | 望见青空之丘 / あおぞらの見える丘 | Yuka | 3/3 候选通过，12,225 个成员 | 独立核对 YKC001 索引和 YKS 文本区还原。 |
 | 漆黑的夏尔诺斯 Full Voice ReBORN | Liar-soft / RScript | 19/20 候选通过，14,640 个成员 | 原版 183/183 GSC 导出 TSC 和文本，6,473 条带显式姓名的文本命令，5,900 个局部目标均可定位。汉化 XFL 跳过，存档待验证。 |
 | BALDR SKY DiveX “DREAM WORLD” / 梦之世界 | NeXAS | 18/18 候选通过，36,623 个成员 | 补齐四个更新 PAC 的末条长度，按索引序号保留成员。 |
-| eden* They were only two, on the planet. / 伊甸园 | MUSICA | 18/20 候选通过，15,258 个成员 | 原版、汉化和附加包分别核对 25、22、16 个 SC，共 22,822 条消息、128 条字面量控制流引用。附加包有 3 条链目标对应原版脚本。两个小包及存档仍待确认。 |
+| eden* They were only two, on the planet. / 伊甸园 | MUSICA | 18/20 候选通过，15,258 个成员 | 逐组回读 36 条静态路径，覆盖 8 条嵌入引用和三套主线各 35 个条件点。原版进程已创建存档目录。真实槽位与两个小包的载荷仍待确认。 |
 | MagusTale ～世界樹と恋する魔法使い～ / 世界树与恋爱的魔法使 | YU-RIS | 12/12 候选通过，19,044 个成员 | 逐条核验 YPF 263 的名称与存储载荷。脚本包含 244 个 YBN。 |
 | Summer Pockets REFLECTION BLUE / 夏日口袋 | SiglusEngine | 517 个场景 DAT、3 个散文件 | 核对场景载荷连续至文件末尾，只修正读取副本中的源码尾部声明。 |
 | Teaching Feeling 4.0.6 / 希尔薇 | TyranoScript / Electron | 37,943 项散文件，34 个 KS 副本 | Electron 应用的数据目录已展开，保留原相对路径核对 KS 场景副本。 |
@@ -54,7 +54,7 @@
 | 五彩斑斓的世界 / いろとりどりのセカイ | Favorite View Point | 10/10 候选通过，22,780 个成员，散文件 1 | 分别核对 BIN 成员和散置 HCB。 |
 | 千恋万花 / 千恋＊万花 | KiriKiri | 14/14 候选通过，48,418 个成员 | 场景包已解包，五个含同名条目的 XP3 按索引序号保存。 |
 | 月姬 / 月姫 | NScripter | 1/1 候选通过，829 个成员，散文件 4 | 核对旧 PC 版 NSA 成员，并保留散置脚本。 |
-| 琥珀结晶 / アンバークォーツ | Majiro | 11/11 实际归档通过，71,798 个成员 | 一个同后缀文件确认是纯文本。151/151 个汉化 MJO 严格解析，导出 82,571 条静态拼接消息，其中 45,930 条带内联姓名，另有 171 个字面量选项。存档及运行分支待验证。 |
+| 琥珀结晶 / アンバークォーツ | Majiro | 11/11 实际归档通过，71,798 个成员 | 151 个汉化 MJO 对应更新包成员。按指定覆盖顺序核对 174 份脚本、160 条跨场景字面量引用、18 条库加载、57 处数值分派。随附全 CG 文件为系统状态。V1.103 槽位与动态路线待验证。 |
 | 秽翼的尤斯蒂娅 / 穢翼のユースティア | BGI / Ethornell | 65/65 候选通过，44,286 个成员 | 本篇与补丁 ARC 各自核验。 |
 | 花与乙女的祝福 / 花と乙女に祝福を | ShiinaRio | 7 个 WARC 1.7 可列索引，0 个包完成逻辑载荷验收 | 两套 GARbro 对照原版与 Royal Bouquet 方案，小型脚本包均为 1/6 输出且脚本未获验证。载荷与两个 BIN 暂跳过。 |
 | 赫炎的印加诺克 Full Voice ReBORN | Liar-soft / RScript | 25/26 候选通过，13,847 个成员 | 原版 412/412 GSC 导出 TSC 和文本，7,357 条带显式姓名的文本命令，6,907 个局部目标均可定位。汉化 XFL 跳过，存档待验证。 |

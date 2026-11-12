@@ -21,11 +21,14 @@ PAZ 索引偏移和处理由所选方案版本决定。归档文件名可参与�
 python scripts/parse_musica_sc.py INPUT_SC_DIR NEW_REPORT.json
 python scripts/parse_musica_sc.py LOCALIZED_SC_DIR NEW_REPORT.json --text-encoding gbk --speaker-encoding cp932
 python scripts/parse_musica_sc.py ADDON_SC_DIR NEW_REPORT.json --chain-base BASE_SC_DIR
+python scripts/trace_musica_sc.py BASE_SC_DIR ENTRY.sc NEW_ROUTE.json --initial FLAG=0
 ```
 
 每次传入一组平铺的原样 SC 成员。按单个空格或制表符切出 `.message` 的消息号、语音引用、姓名和正文，保留空字段、重复消息号、原始行号和字节偏移。说话人前缀 `@` 单独保留，语音引用保留原值，包括方括号参数。正文里的控制转义保留原样。汉化样本的正文和姓名采用不同编码，先用同场景、消息号、语音引用与同号出现次序和原版对齐，再指定编码。[固定版 SC 字段参考](https://github.com/arcusmaximus/VNTranslationTools/blob/36fbe909d02f2e9bb187443e03e2df595f56bfec/VNTextPatch.Shared/Scripts/MusicaScript.cs)
 
-`.if` 输出条件、字面量标签和顺序后继；`.goto` 核对同文件标签，`.chain` 核对同组 SC 的首条命令。已确认存在配套原版目录时，可用 `--chain-base` 核对缺失的链目标，输出会标注目标来源与基组文件哈希。保留 `.set`、`.setGlobal` 和 `.pragma`，供核对状态写入和存档开关；选择指令语义、分支条件求值及存档槽位恢复仍待验证。
+`.if` 输出条件、字面量标签和顺序后继，`.goto` 核对同文件标签，`.chain` 切换到目标 SC，`#include` 在当前路径中引入脚本并保留返回点。已确认配套原版目录时，可用 `--chain-base` 核对缺失的文件目标。输出标注目标来源与基组文件哈希。
+
+路线工具支持显式整数赋值、整数比较、标签、切换及嵌入。用 `--overlay` 显式提供已核对的同名覆盖源。逐条输出走到的台词、原始文件和坐标，遇到缺失标志或未支持的控制命令时报告位置。保留 `.set`、`.setGlobal` 和 `.pragma` 供核对状态写入和存档开关。运行时菜单、读取槽位及实际恢复仍需独立证据。
 
 PAZ 的 `mov` 包名还可能改变索引布局和成员解码器。前缀改名的包可用独立工作目录中的同名副本对照。索引可读时，继续检查成员长度、预期内容结构与资源身份，再确定提取状态。[固定版 PAZ 读取器](https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/Musica/ArcPAZ.cs)
 

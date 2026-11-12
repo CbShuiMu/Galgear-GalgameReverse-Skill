@@ -15,7 +15,9 @@ def read_majiro(p,opcode_source,encoding='cp932'):
     if sig not in (b'MajiroObjV1.000\0',b'MajiroObjX1.000\0'):raise ValueError('MJO V1 header mismatch')
     n=u32(raw,24);base=32+n*8
     if n>100000 or base>len(raw) or base+u32(raw,base-4)!=len(raw):raise ValueError('MJO code/function bounds')
-    code=raw[base:];functions=[u32(raw,32+i*8) for i in range(n)]
+    code=raw[base:]
+    function_table=[{'hash':u32(raw,28+i*8),'offset':u32(raw,32+i*8)} for i in range(n)]
+    functions=[entry['offset'] for entry in function_table]
     if sig[9:10]==b'X':
         table=[]
         for x in range(256):
@@ -61,7 +63,8 @@ def read_majiro(p,opcode_source,encoding='cp932'):
     invalid=[t for v in tr for t in v['targets'] if t not in boundaries]
     if invalid:raise ValueError('MJO targets not at instruction boundaries')
     if any(x not in boundaries for x in functions):raise ValueError('MJO function entry boundary')
-    return rows,candidates,tr,{'code_base':base,'code_size':len(code),'instructions':len(tr),'functions':functions,'complete':pos==len(code)}
+    return rows,candidates,tr,{'code_base':base,'code_size':len(code),'instructions':len(tr),'functions':functions,
+        'function_table':function_table,'main_offset':u32(raw,16),'declared_line_count':u32(raw,20),'complete':pos==len(code)}
 
 def binary_graph(p,tr,scene,base,functions=()):
     byoff={v['offset']:i for i,v in enumerate(tr)};leaders={0}|{byoff[x] for x in functions};nodes=[];edges=[]
