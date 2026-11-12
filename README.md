@@ -33,7 +33,7 @@
 
 ## 已验证的引擎与代表游戏
 
-✅ 表示代表游戏已通过至少一项验证。各引擎的实测范围、待验证项及新增 21 个安装目录的结果见[详细验证表](docs/engine-validation.md)。图像另见 [CG 实测状态表](GalgameResourceExtract/catalog/cg-status.md)。
+✅ 表示代表游戏已通过至少一项验证。各引擎的实测范围、待验证项及历次新增安装目录的结果见[详细验证表](docs/engine-validation.md)。图像另见 [CG 实测状态表](GalgameResourceExtract/catalog/cg-status.md)。
 
 | 引擎 / 格式族 | 代表游戏 |
 | --- | --- |
@@ -58,6 +58,7 @@
 | ✅ [Bishop](GalgameResourceExtract/engine/bishop.md) | 鬼父 after |
 | ✅ [YU-RIS](GalgameResourceExtract/engine/yuris.md) | MagusTale ～世界樹と恋する魔法使い～ |
 | ✅ [KiriKiri](GalgameResourceExtract/engine/kirikiri.md) | 千恋万花（千恋＊万花） |
+| ✅ [CMVS](GalgameResourceExtract/engine/cmvs.md) | 天津罪（アマツツミ） |
 
 ## 快速开始
 

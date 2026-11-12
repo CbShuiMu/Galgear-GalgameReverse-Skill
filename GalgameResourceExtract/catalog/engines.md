@@ -4,6 +4,7 @@
 
 | 引擎 | 常见脚本格式 | 常见语音文件格式 | 常见封包／存放方式 | 说明与参考 |
 |---|---|---|---|---|
+| CMVS／Purple Software | `.ps2`、`.ps3` 编译成员 | Ogg 等，核对实际载荷 | CPZ3 / CPZ5 / CPZ6 / CPZ7 | 补丁可能使用独立容器；见 [CMVS 资料](../engine/cmvs.md) |
 | 吉里吉里 KiriKiri／KAG | `.ks`：剧情脚本；`.tjs`：程序逻辑 | `.ogg`、`.wav`；其他格式取决于插件 | `.xp3`，也可直接存放散文件 | 脚本可能经过加密；[KAG 文档](https://kirikirikag.sourceforge.net/contents/Prepare.html) |
 | NScripter | `0.txt`、`00.txt` 等文本脚本；`nscript.dat`：编码后的脚本 | `.wav`、`.mp3`；`.ogg` 支持依版本而异 | `.nsa`、`.sar`，或散文件 | `nscript.dat` 不是普通文本；[命令参考](https://07th-mod.github.io/ponscripter-fork/api/) |
 | ONScripter 及其衍生版 | `0.txt`、`00.txt`、`nscript.dat`；部分衍生版有其他形式 | `.ogg`、`.wav`、`.mp3` | `.nsa`、`.sar`、`.ns2`，或散文件 | 兼容 NScripter 脚本，衍生版支持范围不同；[官方说明](https://ogapee.github.io/www/onscripter_en.html) |
@@ -18,7 +19,7 @@
 | Ren’Py | `.rpy`：源码；`.rpyc`：编译脚本 | 常见 `.ogg`、`.opus`、`.mp3`、`.wav`，也支持 `.flac` 等 | `.rpa`，或 `game/` 下的散文件 | 语音通常由 `voice` 语句或自动语音机制引用；[音频文档](https://www.renpy.org/doc/html/audio.html) |
 | TyranoScript／TyranoBuilder | `.ks`：剧情脚本；`.js`：逻辑及插件 | `.mp3`、`.ogg`、`.m4a`、`.wav` | 通常在 `data/scenario/`、`data/sound/` 等目录；桌面版可能另行封装 | 实际音频支持取决于浏览器或桌面运行环境；[官方标签参考](https://tyrano.jp/tag/v5) |
 | Artemis | AST / ASB 等脚本，按版本与实际资源确认 | 以成员文件头与脚本引用为准 | `.pfs`，常见 PF6 / PF8 | 随附 pfs-rs 读取 PF6 / PF8、仅创建 PF8；见[引擎资料](../engine/artemis.md) |
-| rUGP | 对象目录与资源载荷分开分析，脚本语义未验证 | 依对象类与当前载荷确认 | `.rio`、`.ici` 及额外卷 | 随附工具仅导出只读对象元数据，CG 载荷解码未通过；见 [rUGP 资料](../engine/rugp.md) |
+| rUGP | 对象目录与资源载荷分开分析，脚本语义未验证 | 依对象类与当前载荷确认 | `.rio`、`.ici` 及额外卷 | 已验证部分 Cr6Ti／CRip008 图像；其他发行版按对象目录与载荷另验；见 [rUGP 资料](../engine/rugp.md) |
 
 ## 使用说明
 

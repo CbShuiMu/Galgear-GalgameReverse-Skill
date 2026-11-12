@@ -568,6 +568,51 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "729ee3a545f8206bcb52667b0f8aed03e8a48277bb35bc6ea2760961112943fb",
+      "engine": "cmvs",
+      "engine_version": "CPZ3/5/6/7 / GARbro Mod 1.0.2.2",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/cmvs.md"
+    },
+    {
+      "experience_id": "0703e8bd6b7b74052c4eec6d30c721b5037f6e74350ff3fd9b38428b04fff19b",
+      "engine": "kirikiri",
+      "engine_version": "XP3 / zero info flags / standard segments",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/kirikiri.md"
+    },
+    {
+      "experience_id": "20ba418313cd16d46f2bcfd0a147076f844a84f29ef74840040d724d79a1626f",
+      "engine": "rugp",
+      "engine_version": "MSI external cabinet set / Windows FDI",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "1f1481a744954565c7b235ec221f41f8775bf86db0a2f3b3b7007f01278098e8",
+      "engine": "rugp",
+      "engine_version": "CRsa / 11- and 12-byte object headers",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "c6622085dff24a35228b32d269e7b560bd914fce37b6abbd4b4d15ddab8bbe6a",
+      "engine": "rugp",
+      "engine_version": "OOR / oor-extractor 0952e1758837 / vgmstream r2168",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/rugp.md"
     }
   ]
 }

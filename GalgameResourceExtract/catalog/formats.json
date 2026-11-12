@@ -76,6 +76,31 @@
     ]
   },
   {
+    "id": "cmvs",
+    "extensions": [
+      ".cpz",
+      ".ps2",
+      ".ps3",
+      ".pb3"
+    ],
+    "magic_ascii": [
+      "CPZ3",
+      "CPZ5",
+      "CPZ6",
+      "CPZ7"
+    ],
+    "reference": "engine/cmvs.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "CMVS：按 CPZ 版本核对索引与逻辑流；补丁容器和脚本语义单独确认。",
+    "aliases": [
+      "purple-software"
+    ]
+  },
+  {
     "id": "kirikiri",
     "extensions": [
       ".xp3",
