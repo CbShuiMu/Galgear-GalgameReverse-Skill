@@ -46,7 +46,8 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 
 | 内容 | 文档 |
 | --- | --- |
-| 逐款 CG、差分、蒙版、子图与原生资源的分别验收 | [CG 提取流程](guides/cg-extraction.md) |
+| 逐包抽样、CG 差分依赖、蒙版、子图和原样资源核验 | [CG 提取流程](guides/cg-extraction.md) |
+| UnityFS 的事件图、纹理与 Sprite 样本 | [UnityFS 图像](engine/unity-cg.md) |
 | 各引擎真实样本的图像子集、失败与完整性限制 | [CG 实测状态](catalog/cg-status.md) |
 | rUGP 载荷、旧式 Cr6Ti 头、透明差分与静态 RUO 回封 | [rUGP / RIO](engine/rugp.md) / [图像与 RUO CLI](commands/rugp-images.md) / [目录 CLI](commands/age-rio.md) |
 | rUGP 脚本载荷：按卷和目录范围核对 CRsa 分块校验 | [CRsa CLI](commands/rugp-crsa.md) |

@@ -676,6 +676,33 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/entis-gls.md"
+    },
+    {
+      "experience_id": "198f89e4f78cb71d5c30efcfafcb2c8788d50ba4e3e5b8297cc42b9ea1f864a5",
+      "engine": "cmvs",
+      "engine_version": "PB3 type 6/8 reference",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/cmvs.md"
+    },
+    {
+      "experience_id": "73056ae4fde9d3226172f75492e884414f2bf487f70926d9e807dfe2c16d2feb",
+      "engine": "siglus",
+      "engine_version": "G00 v2 / multiple non-empty cuts",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "040832d2a0c3fc65378c8198c8531a7c4d50076eb312be200eb2b3dadd7e2cbf",
+      "engine": "unity-cg",
+      "engine_version": "UnityFS / Addressables textures",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/unity-cg.md"
     }
   ]
 }

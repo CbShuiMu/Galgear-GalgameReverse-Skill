@@ -27,9 +27,14 @@
 - 试用 Akaibu 时，在新的目录运行 `akaibu_cli.exe -o NEW_OUTPUT_DIRECTORY INPUT.cpz` 并选定匹配方案。抽检媒体签名，逐项核对清单、存储范围和输出长度。仅有退出码不足以确认成功。
 - 补丁加载顺序、脚本语义、CG 差分组合、封包和游戏内运行均须按当前样本另验。
 
+### PB3 底图依赖
+
+在 PB3 的类型 6 和 8 分支，读取器按成员名在相邻路径寻找底图，再应用差分。按序号导出时保留原成员名映射。先沿明确引用收集同一版本的依赖链，检查重复引用与循环，再把样本以原 basename 放到独立目录。分别导出底图和差分，复核尺寸及像素是否变化。已在多个真实 CPZ 样本验证这条读取路线。[GARbro PB3 读取器][pb3]
+
 [cmvs]: https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/Cmvs/ArcCPZ.cs
 [cpz3]: https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/Cmvs/ArcCPZ3.cs
 [akaibu]: https://github.com/Forlos/akaibu/releases/tag/0.1.17
+[pb3]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/Cmvs/ImagePB3.cs
 
 <!-- EXPERIENCE:729ee3a545f8206bcb52667b0f8aed03e8a48277bb35bc6ea2760961112943fb:START -->
 ## 按 CPZ 文件头选择读取器并核对逻辑成员
@@ -56,3 +61,29 @@
 
 原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
 <!-- EXPERIENCE:729ee3a545f8206bcb52667b0f8aed03e8a48277bb35bc6ea2760961112943fb:END -->
+
+<!-- EXPERIENCE:198f89e4f78cb71d5c30efcfafcb2c8788d50ba4e3e5b8297cc42b9ea1f864a5:START -->
+## 按原成员名复原 PB3 差分的底图依赖
+
+- 引擎版本：PB3 type 6/8 reference
+- 方言/条件：Windows，匹配格式的真实样本
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`198f89e4f78cb71d5c30efcfafcb2c8788d50ba4e3e5b8297cc42b9ea1f864a5`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 源包与原样成员清单可核对，使用独立输出目录。
+
+### 已验证步骤
+
+- 从头字段核对引用，按原成员名保留代表底图和差分链，逐张解码并比较像素。
+
+### 限制与失效条件
+
+- 只验证已匹配的 PB3 引用样本，完整 CG、跨卷规则和运行时行为另验。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:198f89e4f78cb71d5c30efcfafcb2c8788d50ba4e3e5b8297cc42b9ea1f864a5:END -->
