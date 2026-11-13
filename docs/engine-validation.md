@@ -76,10 +76,10 @@
 | 幸福噩梦 Fragmentation Dream / ハピメア Fragmentation Dream | CMVS · CPZ5 | 12/12，22,746 个成员 | 原版与补丁分开保存。 |
 | 日在盛夏 / Summer Days | rUGP · MSI/CAB / RIO | 原版跨卷 CAB 交付 127/127 个 MSI 安装文件 | 原版与 1.09B 均确认内嵌 RIO 根对象头，读取器均报 `Bad class`。旧式 Cr6Ti 和 OOR 复扫均无候选，内部目录和 CG 暂跳过。 |
 | 临界边界 1 / Liminal Border Part I / クリミナルボーダー 1st Offence | KiriKiri · XP3 | 7/7，9,442 个成员 | 历史由旧版提取媒体，两个含脚本的包按标准段读取。Mod 显式参数复验了语音包和主数据包的抽样成员，发现一个 MDF 输出层级差异。 |
-| 临界边界 2 / Liminal Border Part II / クリミナルボーダー 2nd Offence | KiriKiri · XP3 | 0/6，0 个成员 | 确认 Hxv4 顶层索引及配套程序资源结构；归档载荷仍待验证。待处理 `data.xp3`、`voice.xp3`、`bgimage.xp3`、`video.xp3`、`fgimage.xp3`、`evimage.xp3`。对应索引列出 8,480 项。 |
-| 临界边界 3 / Liminal Border Part III / クリミナルボーダー 3rd Offence | KiriKiri · XP3 | 0/6，0 个成员 | 确认 Hxv4 顶层索引及配套程序资源结构；归档载荷仍待验证。待处理 `data.xp3`、`voice.xp3`、`video.xp3`、`bgimage.xp3`、`fgimage.xp3`、`evimage.xp3`。对应索引列出 7,962 项。 |
+| 临界边界 2 / Liminal Border Part II / クリミナルボーダー 2nd Offence | KiriKiri · XP3 | 6/6 个包有通过验证的样本 | Mod 显式 Hxv4 方案复核 8,480 项索引。各包至少一个成员通过结构检查或图像解码，完整载荷和真实名称待验。 [续测](garbro-mod-followup.md) |
+| 临界边界 3 / Liminal Border Part III / クリミナルボーダー 3rd Offence | KiriKiri · XP3 | 6/6 个包有通过验证的样本 | Mod 显式 Hxv4 方案复核 7,962 项索引。各包至少一个成员通过结构检查或图像解码，完整载荷和真实名称待验。 [续测](garbro-mod-followup.md) |
 | 为与明日君相逢 / 明日の君と逢うために | CMVS · CPZ3 | 9/9，27,414 个成员 | 核对旧版 CPZ3 与脚本成员。 |
-| 久那土国记 / Kunado Chronicles / クナド国記 | KiriKiri · XP3 | 5/5，33,891 个成员 | 两个目录的 5 个 XP3 逐包 SHA-256 相同，只计一组。历史采用 GARbro 1.5.44 提取。Mod 显式参数下主数据包抽查一致，带非零过滤标志的小补丁仍待处理。 |
+| 久那土国记 / Kunado Chronicles / クナド国記 | KiriKiri · XP3 | 5/5，33,891 个成员 | 两个目录的 5 个 XP3 逐包 SHA-256 相同，只计一组。历史采用 GARbro 1.5.44 提取。Mod 显式参数下主数据包抽查一致，带非零过滤标志的小补丁唯一成员已与旧版逐字节核对。 |
 | 未来乡愁 / 未来ノスタルジア | CMVS · CPZ5 | 9/9，35,299 个成员 | CPZ 全部通过，散置 mirai.bin 的编码仍待确认。 |
 | 柯罗的怀表 / ChronoClock / クロノクロック | CMVS · CPZ6 | 13/13，25,864 个成员 | 核对脚本、附加语音、更新包与原生图像。 |
 | 重生游戏 / リアライブ | CMVS · CPZ7 | 12/12，42,706 个成员 | 由原始 CPZ7 文件头与实际成员确认引擎。 |
@@ -132,3 +132,5 @@
 ## 2026-11-13 GARbro Mod 迁移抽查
 
 串行复测了 16 款游戏的 18 个代表包。8 个包可用默认 CLI 抽查提取，另有 4 个包使用 Mod 读取库的显式选项后通过抽查。一个 XP3 的样本包含需分层比较的 MDF，另一个 WARC 只读出部分成员，4 个包仍待处理。表中列出每个包的历史基线、索引与字节对照，以及封包限制。 [GARbro Mod 迁移抽查表](garbro-mod-retest.md)
+
+续测打通了久那土国记小补丁的唯一成员。临界边界 2 和 3 的 12 个包均有结构或解码验证通过的样本。WARC 新确认一份 S25 图像，脚本包及汉化 XFL 仍有缺口。 [续测验证表](garbro-mod-followup.md)
