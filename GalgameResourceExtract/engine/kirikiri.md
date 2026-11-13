@@ -6,11 +6,11 @@
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附；[XP3 实现][garbro-xp3] | 识别、列出并解包支持的 XP3；读取器也能定位部分附加在 EXE 后的 XP3 | 创建 XP3 v1 / v2，可配置索引压缩、成员压缩及保留目录 | 写入能力不代表支持所有加密插件。CLI 的复杂 `Scheme` 不能直接赋值；需特殊方案且无法表达时停止，不用普通 XP3 冒充兼容产物 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附；[XP3 实现][garbro-xp3] | 识别、列出并解包支持的 XP3；读取器也能定位部分附加在 EXE 后的 XP3 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 需匹配当前游戏的过滤器；解包成功不能证明封包或插件兼容性 |
 | [序号解包 CLI](../commands/garbro-archive.md)，随附 | 含同名条目的 XP3 按索引序号提取，保留原名和偏移 | 无封包接口 | 逻辑流仍依赖匹配过滤器，归档签名与加载顺序须另验。 |
 | KiriKiri Z 引擎[文本流实现][text]，外部源码参考 | 核对 BOM、默认编码、简易变换和压缩文本流的读取顺序 | 描述对应文本流写入方式；不是本技能的独立脚本 CLI | 不提供 TJS 字节码反编译或任意游戏专用过滤器；不需要运行游戏来阅读源码 |
 
-归档命令使用 `i` → `l` → `x`；需要封包时先查 `options XP3`，保留目录设置为 `RetainDirs=true`。完整参数见工具文档。
+使用 Mod 的 `GARbro.Console.exe ARCHIVE` 列表、`-x ARCHIVE` 解包；输出由工作目录指定。Mod CLI 不创建 XP3；完整参数见工具文档。自动识别失败时先确认索引结构和读取参数。标准未加密样本也可能因标题查找未命中、读取器发出的参数请求无人应答而报 `unknown format`。
 
 ## 格式特征与编码方式
 
@@ -25,18 +25,21 @@
 ## 注意事项
 
 - 原样资源根目录保留解包后成员字节及相对路径；文本包装解码、TLG 转图和脚本解析产物另存。记录工具是否额外执行成员过滤，避免把工作副本误作基线。
-- 当 Mod 拒绝而兼容后端可以列出 XP3 时，对照归档索引中的 `info` 与 `segm`，确认名称、全部长度与首段偏移，再使用兼容后端提取。检查成员尺寸、可辨认签名与 `adlr`。若工具额外解开内层文本包装，需保留原样逻辑流时，对零加密标志且校验匹配的标准段按索引直接读取。
+- 先核对 `info`、`segm`、`adlr`、完整名称与分段范围。整个索引符合标准分段且成员标志全为零时，可用 Mod 的读取 API 应答 XP3 参数请求，提供无额外归档过滤器的选项。此方式已在多个真实包对照历史索引和抽查成员，当前属于本地诊断路线。非零标志、非标准分段或未知过滤器须按已匹配方案处理，保留待验状态。
+- Mod 的成员读取流可自动展开 MDF 等内部包装。已见同一脚本的旧标准段输出包含 MDF，Mod 返回内层数据。对照时先按 MDF 头的声明长度和压缩流边界独立解码，再比较同层级哈希；保留带包装的旧成员作封包基线。
 - 若顶层索引含 `Hxv4`，常规列表可能只给出可见名称或占位记录。保留这一级证据，并用匹配版本的读取链逐包核验载荷；不能把常规列表或错误过滤器的输出视为成功。[Hxv4 索引实现参考][hxv4]
 - `.ks` 不保证是 KAG 明文，`.tjs` 也可能是字节码。发现 PSB 或编译场景时，按文件头分流到 [Emote / PSB](emote.md) 等对应资源页；XP3 成功解包不能证明脚本可编辑。
 - 封包后用新目录重新解包，检查完整路径集合、数量及哈希；再核对脚本编码、引用和分支。补丁命名、加载顺序、密钥与特定插件参数由当前项目证据确认，不写成引擎通则。
 
 ## 来源、版本与验证边界
 
-实现参考固定为 KiriKiri Z `fd5c4baa6a2ef5978db1bd043634351f48667daf` 和 GARbro `b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0`。本页为源码阅读等级，不声明真实游戏或运行验证。遇到非标准索引、专用过滤器、文本流模式或编码设置不符时失效，改查目标版本实现；项目特殊参数留在本地。
+实现参考固定为 KiriKiri Z `fd5c4baa6a2ef5978db1bd043634351f48667daf`、GARbro `b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0` 及 Mod 1.0.2.2 的 [XP3 参数请求][mod-xp3] 与 [成员流过滤][mod-filter]。Mod 迁移结论覆盖已核对的真实索引和抽样成员。非标准索引、专用过滤器、文本流模式和编码须按目标版本重新验证。封包及游戏内加载另验。
 
 [archive]: https://github.com/krkrz/krkrz/blob/fd5c4baa6a2ef5978db1bd043634351f48667daf/base/XP3Archive.cpp
 [text]: https://github.com/krkrz/krkrz/blob/fd5c4baa6a2ef5978db1bd043634351f48667daf/base/TextStream.cpp
 [garbro-xp3]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/KiriKiri/ArcXP3.cs
+[mod-xp3]: https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/KiriKiri/ArcXP3.cs
+[mod-filter]: https://github.com/crskycode/GARbro/blob/102d19710c819ed363b7ea28f2d883ccaf922214/ArcFormats/KiriKiri/CryptAlgorithms.cs
 [hxv4]: https://github.com/hktkqj/cxdec-hxv4-static-analysis/blob/3c6dee001df011fa7ed557c7463635c6f67698f6/docs/core/hxv4/01-hxv4-table.md
 
 <!-- EXPERIENCE:9f5fd42f1afdcb8b6aabf396cfda3dd035140c24176d133c3945dec337864b1f:START -->

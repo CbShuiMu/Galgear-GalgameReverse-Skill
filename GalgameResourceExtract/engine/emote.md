@@ -6,7 +6,7 @@ PSB 是 Emote 使用的资源格式，也可用于其他场景资源；仅发现
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附工具 | 实际外层为支持的 XP3 等归档时，列出并提取 PSB 成员 | 可创建的外层格式以 `f --writable` 为准；XP3 参数见命令文档 | 归档能力不等于 PSB 场景解析或重建；加密方案须另行核对，不能因发现 PSB 就假定外层是 XP3 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附工具 | 实际外层为支持的 XP3 等归档时，列出并提取 PSB 成员 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 归档能力不等于 PSB 场景解析或重建；加密方案须另行核对，不能因发现 PSB 就假定外层是 XP3 |
 | [FreeMote：PsbDecompile](../commands/freemote.md)，随附 v4.9.0 CLI | 将支持的 PSB / SCN 及普通 MDF 解析为 JSON 和原样资源块 | 不负责重建；配合 PsBuild 使用 | 按文件头、PSB 版本、类型和壳确认支持；扩展名相同不代表格式相同。随附裁剪没有外部媒体转换和压缩壳插件 |
 | [FreeMote：PsBuild](../commands/freemote.md)，随附 v4.9.0 CLI | 使用 PsbDecompile 的工作产物 | 从 JSON 和资源重建支持的 PSB / SCN、普通 MDF | 保留配套资源及 `.resx.json` 中的版本、平台、编码和壳上下文；不替代外层归档封包，也不保证所有游戏变体兼容 |
 

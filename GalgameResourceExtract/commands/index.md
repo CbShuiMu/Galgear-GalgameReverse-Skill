@@ -5,9 +5,8 @@
 | 工具 | 入口 | 提取时的适用范围与命令文档 |
 | --- | --- | --- |
 | GARbro Mod CLI | `tools/GARbro-cli/GARbro.Console.exe` | 多引擎归档列表与解包，使用 `-l/-x`；见 [GARbro CLI](garbro.md) |
-| GARbro 兼容后端 | `tools/GARbro-cli/legacy/GARbro.Console.exe` | 需要 `i/l/x`、`-o`、筛选或封包时使用；见 [兼容后端](garbro-legacy.md) |
 | PKP v0 CLI | `tools/pkp-cli/pkp.py` | 指定布局的 UTF-16LE 索引、裸 DEFLATE 逻辑成员与存储字节；见 [PKP 命令](pkp.md) |
-| GARbro 图像批处理 | `tools/GARbro-cli/legacy/GalImageExport.exe` | 原生图像、PNG 及可识别多子图容器的分离导出与 JSONL 清单；见 [图像批处理](garbro-images.md) |
+| GARbro 图像批处理 | `tools/GARbro-cli/GalImageExport.exe` | 原生图像、PNG 及可识别多子图容器的分离导出与 JSONL 清单；见 [图像批处理](garbro-images.md) |
 | rUGP 图像／RUO | `tools/age-rio-cli/rugp_cli.py` | 有边界载荷、原样资源与 PNG、严格 Cr6Ti 编码及累计 RUO 静态读回；见 [命令](rugp-images.md) |
 | AgeReVerse RIO 目录 | `tools/age-rio-cli/rio_inventory.py` | ICI／RIO 图像对象元数据与卷内边界；不提取图像载荷；见 [RIO 目录 CLI](age-rio.md) |
 | rUGP CRsa 脚本载荷 | `tools/age-rio-cli/crsa_extract.py` | 目录中的原始 CRsa 与分块校验后的 VM 载荷；见 [CRsa 命令](rugp-crsa.md) |

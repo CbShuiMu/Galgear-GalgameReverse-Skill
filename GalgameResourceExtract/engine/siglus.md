@@ -7,7 +7,7 @@
 | 本技能 [parse_siglus_flow.py](../scripts/parse_siglus_flow.py)，固定 SSSU 0.5.7 源码 | 已解码DAT的显式消息、待定姓名及保守局部分支读取 | 不支持封包或脚本写入 | Python 3.12+，真实样本与合成边界；定制消费者、条件执行及实际存档加载未验证 |
 | [Siglus CLI：归档适配](../commands/siglus-ssu.md)，随附工具 | `unpack` 从支持的 `Scene.pck` 提取已解压、解密的场景 DAT | `pack --base` 按原包身份替换 DAT，保留包级属性、命令表与未修改成员的原压缩字节 | 已知 92 字节 PCK 头、连续场景数据布局；带嵌入源码时只允许未修改场景往返，拒绝新 DAT 与旧源码不符。未知布局直接报错 |
 | [SiglusSceneScriptUtility 0.5.7][upstream]，随附在同一 CLI | 上游 `-x` 解包并尝试恢复嵌入源码，`--disam` 反汇编；`--decompile` 为实验性反编译 | `-c` 从完整源码编译；`-c --dat-repack` 从现有 DAT 新建场景包 | 上游提供多个指令版本配置；缺少 `.inc` 时 `--dat-repack` 不能恢复原包的 include 元数据。不能用实验性反编译输出替代可靠的重建基线 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附工具 | 按实际格式识别其支持的图像、语音包和其他归档 | 仅适用于可写列表中的其他外层格式 | 不能用其他可写格式改扩展名代替 `Scene.pck`；特定媒体解码能力不等于场景归档写入能力 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附工具 | 按实际格式识别其支持的图像、语音包和其他归档 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 不能用其他可写格式改扩展名代替 `Scene.pck`；特定媒体解码能力不等于场景归档写入能力 |
 
 两个技能均独立随附 Windows x64 CLI，内含 Python 运行时，无需联网或安装 Rust。来源、许可、纯 Python 源码和构建方法见工具目录；图像编辑所需的可选 Pillow、诊断用 psutil 与 Rust 加速未随附，不把这些可选功能记为已验证能力。
 
@@ -81,7 +81,7 @@ G00/G01 散文件保留完整原生容器；匹配 G00 v2 时逐一导出非空�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -110,7 +110,7 @@ G00/G01 散文件保留完整原生容器；匹配 G00 v2 时逐一导出非空�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -311,6 +311,7 @@ G00/G01 散文件保留完整原生容器；匹配 G00 v2 时逐一导出非空�
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

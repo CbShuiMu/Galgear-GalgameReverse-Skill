@@ -3,7 +3,7 @@ import pathlib,sys,json,struct,zlib,tempfile,subprocess,zipfile,unittest
 ROOT=pathlib.Path(__file__).resolve().parents[1];SK=ROOT/'GalgameResourceExtract'
 sys.path.insert(0,str(SK/'scripts'))
 from cg_inventory import audit
-CLI=SK/'tools/GARbro-cli/legacy/GalImageExport.exe'
+CLI=SK/'tools/GARbro-cli/GalImageExport.exe'
 def png():
  def chunk(k,b):return struct.pack('>I',len(b))+k+b+struct.pack('>I',zlib.crc32(k+b))
  return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(bytes([0,10,20,30,123])))+chunk(b'IEND',b'')

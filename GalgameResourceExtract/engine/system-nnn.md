@@ -98,6 +98,7 @@ DWQ 与 override PNG 等不同来源分别保留。先按文件头识别，配�
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

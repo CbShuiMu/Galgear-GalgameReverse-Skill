@@ -6,7 +6,7 @@
 
 | 工具与来源 | 解包或读取用途 | 封包或重建用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附；[SAR][sar] / [NSA][nsa] / [NS2][ns2] 源码 | 读取支持的 SAR、NSA、NS2，NSA 可解开 SPB / LZSS / NBZ 成员 | 创建 SAR、NSA；NSA 可原样存储或对 BMP 使用 LZSS | NS2 在此写入器中 `CanWrite=false`；NSA 不写 SPB / NBZ 或密码保护。不能用改扩展名代替 NS2 封包 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附；[SAR][sar] / [NSA][nsa] / [NS2][ns2] 源码 | 读取支持的 SAR、NSA、NS2，NSA 可解开 SPB / LZSS / NBZ 成员 | Mod CLI 不提供封包；需另选匹配的引擎工具 | NS2 在此写入器中 `CanWrite=false`；NSA 不写 SPB / NBZ 或密码保护。不能用改扩展名代替 NS2 封包 |
 | [GalArc CLI](../commands/galarc.md)，随附适配工具 | 标准 NS2 归档读取能力以对应命令和合成测试为准 | 用于补齐标准 NS2 创建 | 只使用文档已列并验证的格式，不把上游 GUI 的全部能力当作 CLI 能力；特殊加密与变体另核对 |
 | [ONScripter-Tools][ons-tools]，外部 GPL 工具参考 | `nscdec` 处理支持的 `nscript.dat` 脚本包装；`nsadec`、`ns2dec`、`sardec` 处理对应归档 | `nscmake` 创建脚本包装；`nsamake`、`ns2make`、`sarmake` 创建对应归档 | 本技能未随附这组工具；工具分支和脚本包装必须匹配。`nscript.dat` 的编解码不是资源归档解包 |
 
@@ -61,7 +61,7 @@
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -139,6 +139,7 @@
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

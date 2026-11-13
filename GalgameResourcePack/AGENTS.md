@@ -6,7 +6,7 @@
 
 - 按用户需求封包脚本、图像、音频等资源，常规入口是[归档重建流程](guides/packing.md)。接收 GalTTS 清单时使用 `scripts/resource_workflow.py`，操作前阅读[资源交接与重建](guides/resource-workflow.md)。
 - 工具位于 `tools/`，相对于本技能根目录解析。按目标格式阅读 `commands/` 中对应的 CLI 文档；引擎经验按引擎名收录到 `engine/`。
-- `init` 可为各类原样资源建立快照；`merge` 当前读取 GalTTS 专用交接字段，`pack/verify` 的后端仅支持 GARbro。非 TTS 资源按常规流程准备暂存目录；其他 CLI 需单独调用并执行往返提取与比对。
+- `init` 可为各类原样资源建立快照；`merge` 当前读取 GalTTS 专用交接字段，`verify` 的后端统一为 GARbro Mod，`pack` 不再提供创建能力。非 TTS 资源按常规流程准备暂存目录；其他 CLI 需单独调用并执行往返提取与比对。
 - 成功重建后的方法按 [经验闭环](guides/engine-learning.md) 自动记入用户本地库，核对真实样本与可分发性后收录；运行前先查历史条件与失效记录。
 
 ## 封包与验证约束
@@ -25,8 +25,8 @@
 
 ```powershell
 $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
-python scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro tools/GARbro-cli/legacy/GARbro.Console.exe
+python scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro tools/GARbro-cli/GARbro.Console.exe
 ```
 
-- 测试使用临时合成资源和模拟后端，覆盖 ZIP 和 XP3 提取、嵌套同名文件、生成、完整与补丁合并、归档往返、哈希失败及路径拒绝，不启动真实 TTS 模型或测试游戏内播放。仅改文档时核对链接和命令；缺少依赖时如实记录未运行的检查。
+- 测试使用临时合成资源和模拟后端，覆盖 ZIP 提取，并探测 XP3 在 Mod 下的可读性（读取受限时明确报告后续集成未运行）、嵌套同名文件、生成、完整与补丁合并、独立合成归档的提取比对、禁止 Mod 封包、哈希失败及路径拒绝，不启动真实 TTS 模型或测试游戏内播放。仅改文档时核对链接和命令；缺少依赖时如实记录未运行的检查。
 - 交付绝对归档路径、封包模式、关键设置、替换及保留数量，以及资源比对、引擎验证和游戏运行验证各自的结果。

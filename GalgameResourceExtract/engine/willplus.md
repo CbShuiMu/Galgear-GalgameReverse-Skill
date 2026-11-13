@@ -4,8 +4,8 @@
 
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)：`ARC/Will`，随附工具 | 列出并解包匹配旧索引布局的 Will 归档 | 创建 `ARC/Will`，文件名字段长度按原始索引选择 `8` 或 `12` | 平面归档，不能直接保存子目录；文件名规范化和脚本字节变换见[实现][arc-will]，不代表所有 WillPlus 游戏兼容 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)：`ARC/WillV2`，随附工具 | 列出并解包匹配另一索引布局的 Will 归档 | 创建 `ARC/WillV2` | 平面归档；名称与脚本处理见[实现][arc-v2]。格式标签的 `V2` 不等于 AdvHD 程序版本，不能按名称直接选择 |
+| [GARbro Mod CLI](../commands/garbro.md)：`ARC/Will`，随附工具 | 列出并解包匹配旧索引布局的 Will 归档 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 平面归档，不能直接保存子目录；文件名规范化和脚本字节变换见[实现][arc-will]，不代表所有 WillPlus 游戏兼容 |
+| [GARbro Mod CLI](../commands/garbro.md)：`ARC/WillV2`，随附工具 | 列出并解包匹配另一索引布局的 Will 归档 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 平面归档；名称与脚本处理见[实现][arc-v2]。格式标签的 `V2` 不等于 AdvHD 程序版本，不能按名称直接选择 |
 | [advhd_ws2_tools][ws2-tools]，外部工具与源码参考 | 读取 WS2 指令、消息 ID 与姓名状态 | 不是 ARC 封包工具；脚本回写能力须单独核对当前版本 | 本技能未随附，不提供通用 WS2/LNG 解析器；读取实现存在版本差异，不据单个分支推断全部编码与兼容性 |
 
 ## 格式特征与编码方式

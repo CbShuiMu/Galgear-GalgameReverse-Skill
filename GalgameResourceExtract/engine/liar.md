@@ -4,7 +4,7 @@
 
 | 工具与来源 | 解包用途 | 封包用途 | 适用范围与限制 |
 | --- | --- | --- | --- |
-| [GARbro Mod CLI](../commands/garbro.md)，随附 | 读标准 XFL，提取 GSC、WCG、LWG 等逻辑成员 | Mod CLI 只读。[兼容后端](../commands/garbro-legacy.md)提供平面 XFL 写入。 | 原版 FVR 的标准 XFL 通过实测。未知头的同后缀汉化包须单独验证。 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附 | 读标准 XFL，提取 GSC、WCG、LWG 等逻辑成员 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 原版 FVR 的标准 XFL 通过实测。未知头的同后缀汉化包须单独验证。 |
 | 外部 [LiarsoftTool v2.3.1](https://github.com/Love-in-idleness/LiarsoftTool/releases/tag/v2.3.1)，GPL-3.0 | GSC 转 TSC 或可翻译文本，保留姓名、选项、命令和标签 | TSC 可编译为独立 GSC 副本 | 已核对两套 FVR 原版的脚本名与局部标签，代表脚本重导的结构一致。 |
 
 ## 格式特征与编码方式

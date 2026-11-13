@@ -11,7 +11,7 @@ description: 按用户需求识别 GalGame 引擎、定位归档并解包脚本�
 
 1. 从请求确定游戏根目录、目标资源、目标阶段及输出目录。只需原样资源时完成解包即可；需要可编辑资源或结构化内容时再做对应解码或解析。继续已有项目时先读[项目记忆](guides/memory.md)，用 `scripts/memory.py memory --where` 定位状态，复用前运行 `check`。状态不存在表示首次配置。
 2. 检查目录、文件头和版本线索，读[引擎与格式概览](catalog/engines.md)。按[格式索引](catalog/formats.json)选择已有引擎页，不一次加载所有资料。索引是资料路由，能力以随附实现和实测为准。
-3. 读[资源提取流程](guides/extraction.md)，按[工具索引](commands/index.md)选择 CLI，并读对应命令。程序路径相对于本技能根目录解析，保留工具运行依赖与许可证。
+3. 读[资源提取流程](guides/extraction.md)，按[工具索引](commands/index.md)选择 CLI，并读对应命令。程序路径相对于本技能根目录解析，保留工具运行依赖与许可证。GARbro 统一使用 Mod 1.0.2.2。迁移旧结果时，优先复测原先依赖旧版或显式方案的包，分别核对索引和同层级成员哈希。XP3 默认识别失败时按[引擎说明](engine/kirikiri.md)核对索引与选项。
 4. 按目标完成相应阶段的验证与交付。需要对白与语音关联时，同读[对白映射与证据契约](contracts/dialogue-audio.md)。未知格式先保留诊断；需要分析加载、加密或字节码时，可使用已安装的 GalReverse，未安装时按现有工具继续分析。
 
 ## 共同约束
@@ -63,7 +63,6 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
 | GARbro Mod CLI：列表与解包 | [garbro](commands/garbro.md) |
-| GARbro 兼容后端：封包与旧版选项 | [garbro-legacy](commands/garbro-legacy.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
 | GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |

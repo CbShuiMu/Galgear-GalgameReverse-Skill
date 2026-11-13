@@ -189,13 +189,13 @@ GalExtract 与 GalTTS 将项目状态保存在用户本地，技能包内的 `me
 | TTS 资源交接、基线快照与哈希校验 | [GalPack 资源交接与重建](GalgameResourcePack/guides/resource-workflow.md) |
 | 未知容器、压缩、加密和文件名哈希 | [GalReverse 格式与算法分析](GalgameReverse/guides/formats-and-algorithms.md) |
 | 逆向结果的验证和阶段交接 | [GalReverse 验证与交接](GalgameReverse/guides/validation-and-handoff.md) |
-| GARbro 命令和格式创建限制 | [新版 CLI](GalgameResourcePack/commands/garbro.md) / [兼容封包后端](GalgameResourcePack/commands/garbro-legacy.md) |
+| GARbro 命令和格式创建限制 | [GARbro Mod CLI](GalgameResourcePack/commands/garbro.md) |
 | BGI/Ethornell ARC20 提取、重建与 DSC 压缩 | [Ethornell CLI 命令](GalgameResourcePack/commands/ethornell.md) |
 | MRG/HED/NAM、MZP 等格式提取与重建 | [Mangetsu CLI 命令](GalgameResourcePack/commands/mangetsu.md) |
 | Artemis PF8/PFS 列表、提取与创建 | [pfs-rs CLI 命令](GalgameResourcePack/commands/pfs-rs.md) |
 | CRI 容器提取与修改、HCA/ADX/AHX 编解码 | [CriCodecs CLI 命令](GalgameResourcePack/commands/cricodecs.md) |
 
-随附 GARbro CLI 已更新为 [crskycode/GARbro Mod 1.0.2.2](https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2)，新版使用 `-l/-x`，只提供列表与解包。原有封包和图像批处理后端隔离保留在 `tools/GARbro-cli/legacy/`，使用各自运行库；命令、来源与验证边界见 [新版 CLI](GalgameResourceExtract/commands/garbro.md)和 [兼容后端](GalgameResourcePack/commands/garbro-legacy.md)。
+随附 GARbro 统一为 [crskycode/GARbro Mod 1.0.2.2](https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2)，已移除 GARbro 1.5.44 运行库。Mod 使用 `-l/-x`，只提供列表与解包；[图像批处理](GalgameResourceExtract/commands/garbro-images.md)已迁移到同一 Mod 运行库。资源流程保留基线、合并和 `verify`，旧 `pack` 入口明确返回不支持，封包需使用[引擎专用工具](GalgameResourcePack/commands/index.md)。Mod 自带的 `ArcLegacy.dll` 仍是必需的格式插件。历史验证记录保留当时工具版本，不据此声明全部游戏已通过 Mod 重验。
 
 ## 职责与资料分层
 
@@ -241,7 +241,7 @@ python GalgameTextToSpeech/scripts/test_dialogue_mapping.py
 ```powershell
 $ffmpeg = (Get-Command ffmpeg -ErrorAction Stop).Source
 python GalgameTextToSpeech/scripts/test_pipeline.py --ffmpeg $ffmpeg
-python GalgameResourcePack/scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro GalgameResourcePack/tools/GARbro-cli/legacy/GARbro.Console.exe
+python GalgameResourcePack/scripts/test_resource_workflow.py --ffmpeg $ffmpeg --garbro GalgameResourcePack/tools/GARbro-cli/GARbro.Console.exe
 ```
 
 测试使用临时状态、合成资源和模拟后端，不加载真实模型或运行游戏，也不在仓库中添加虚构的成功经验。格式往返通过仍不能证明目标游戏兼容性。
@@ -250,7 +250,7 @@ python GalgameResourcePack/scripts/test_resource_workflow.py --ffmpeg $ffmpeg --
 
 [GARbro](https://github.com/morkt/garbro)
 
-[GARbro-cli](https://github.com/Alex123666tw/GARbro-cli)
+[GARbro Mod](https://github.com/crskycode/GARbro)
 
 [mangetsu](https://github.com/rschlaikjer/mangetsu)
 

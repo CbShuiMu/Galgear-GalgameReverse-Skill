@@ -1,4 +1,4 @@
-"""Snapshot, merge, pack and verify one archive using shared resource manifests.
+"""Snapshot, merge and verify one archive using shared resource manifests.
 
 Uses only the Python standard library. Does not parse dialogue or select TTS models.
 """
@@ -222,17 +222,20 @@ def merge(args):
                 replaced=len(replacements), retained=len(entries) - len(replacements), total=len(entries))
 
 
-def cli(executable, arguments):
+def cli(executable, arguments, *, cwd):
     result = subprocess.run([str(executable.resolve(strict=True)), *map(str, arguments)],
-                            capture_output=True, encoding='utf-8-sig', errors='replace')
-    if result.returncode:
-        raise RuntimeError(f'GARbro exited with {result.returncode}: {result.stderr.strip()}')
+                            cwd=cwd, capture_output=True, encoding='utf-8-sig', errors='replace')
+    # Mod's Main returns void: failed reads can still exit 0.
+    if result.returncode or result.stderr.strip():
+        raise RuntimeError(f'GARbro Mod failed (exit {result.returncode}): {result.stderr.strip()}')
     return result
 
 
 def verify_output(value, archive, garbro, directory):
     directory = fresh_directory(directory, [value['resource_root'], value['original_root'], value['generated_root']])
-    cli(garbro, ['x', '-q', '-s', '-o', directory, archive])
+    archive = archive.resolve(strict=True)
+    directory.mkdir(parents=True)
+    cli(garbro, ['-x', archive], cwd=directory)
     report = compare_tree(directory, value['entries'])
     report.update(verified_at=now(), archive=file_info(archive), verification_directory=str(directory),
                   mode=value['mode'], format=value['archive']['format'], total=len(value['entries']),
@@ -243,25 +246,19 @@ def verify_output(value, archive, garbro, directory):
 
 
 def pack_or_verify(args):
+    if args.command == 'pack':
+        raise ValueError('GARbro Mod CLI does not support archive creation. '
+                         'Use an engine-specific packer, then run verify with GARbro Mod. '
+                         'No archive or output directory was created.')
     value = load_manifest(args.manifest, 'staged')
     roots = [value['resource_root'], value['original_root'], value['generated_root']]
-    archive = outside(args.output if args.command == 'pack' else args.archive, roots)
+    archive = outside(args.archive, roots)
     report_path = outside(args.report, roots)
     directory = fresh_directory(args.verification_dir, roots)
     if report_path.exists() or report_path == archive:
         raise FileExistsError(f'Use a new report path distinct from the archive: {report_path}')
     if archive.is_relative_to(directory) or report_path.is_relative_to(directory):
         raise ValueError('Archive and report must be outside the verification directory')
-    if args.command == 'pack':
-        if archive.exists():
-            raise FileExistsError(f'Use a new output archive: {archive}')
-        check_file(value['archive']['source'])
-        require_tree(value['resource_root'], value['entries'])
-        arguments = ['c', '-q', '-s', '-t', value['archive']['format'], '-o', archive, '-R']
-        for option in value['archive']['options']:
-            arguments += ['-O', option]
-        arguments.append(value['resource_root'])
-        cli(args.garbro, arguments)
     try:
         report = verify_output(value, archive, args.garbro, directory)
     except Exception as error:
@@ -287,7 +284,8 @@ def main(argv=None):
     combine.add_argument('--output', type=Path, required=True)
     combine.add_argument('--mode', choices=['full', 'patch'], default='full')
     for name in ['pack', 'verify']:
-        command = commands.add_parser(name)
+        command = commands.add_parser(name, help='Unsupported by GARbro Mod; use an engine-specific packer'
+                                      if name == 'pack' else 'Extract with GARbro Mod and compare staged hashes')
         command.add_argument('--manifest', type=Path, required=True)
         command.add_argument('--garbro', type=Path, required=True)
         command.add_argument('--output' if name == 'pack' else '--archive', type=Path, required=True)

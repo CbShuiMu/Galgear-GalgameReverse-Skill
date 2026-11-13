@@ -23,7 +23,7 @@ class GarbroDistributionTests(unittest.TestCase):
                 bundled = ROOT / skill / 'tools/GARbro-cli'
                 installed = base / 'installed tool'
                 shutil.copytree(bundled, installed,
-                                ignore=shutil.ignore_patterns('legacy', 'source', 'licenses'))
+                                ignore=shutil.ignore_patterns('source', 'licenses'))
                 cli = installed / 'GARbro.Console.exe'
 
                 def run(*arguments, cwd=base):
@@ -61,7 +61,9 @@ class GarbroDistributionTests(unittest.TestCase):
         manifests = []
         for skill in SKILLS:
             bundled = ROOT / skill / 'tools/GARbro-cli'
+            self.assertFalse((bundled / 'legacy').exists(), 'Only the Mod runtime may be bundled')
             manifest = json.loads((bundled / 'provenance.json').read_text('utf-8'))
+            self.assertNotIn('legacy', manifest)
             manifests.append(manifest['files'])
             self.assertIn('source/GARbro-Mod-1.0.2.2.zip', manifest['files'])
             for name, digest in manifest['files'].items():
@@ -70,6 +72,16 @@ class GarbroDistributionTests(unittest.TestCase):
             self.assertFalse(list(bundled.glob('GARbro.GUI*')))
             self.assertFalse(list(bundled.glob('*/GARbro.GUI.resources.dll')))
         self.assertEqual(manifests[0], manifests[1])
+
+    def test_image_helper_provenance_matches_mod_runtime(self):
+        bundled = ROOT / 'GalgameResourceExtract/tools/GARbro-cli'
+        manifest = json.loads((bundled / 'image-cli-provenance.json').read_text('utf-8'))
+        self.assertEqual(manifest['runtime'], 'GARbro-Mod-1.0.2.2')
+        for name, digest in manifest['files'].items():
+            with self.subTest(file=name):
+                self.assertEqual(hashlib.sha256((bundled / name).read_bytes()).hexdigest(), digest)
+        self.assertEqual((bundled / 'GalImageExport.exe.config').read_bytes(),
+                         (bundled / 'GARbro.Console.exe.config').read_bytes())
 
 
 if __name__ == '__main__':

@@ -165,7 +165,6 @@ def check(root):
     for folder in ['GalgameResourceExtract', 'GalgameResourcePack']:
         skill = root/folder
         for pattern in ['tools/GARbro-cli/GARbro.Console.exe',
-                        'tools/GARbro-cli/legacy/GARbro.Console.exe',
                         'tools/GARbro-cli/GARbro-LICENSE.txt',
                         'tools/GARbro-cli/source/GARbro-Mod-1.0.2.2.zip',
                         'tools/ethornell/ethornell.exe',

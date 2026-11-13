@@ -24,11 +24,11 @@
 
 ## 创建归档
 
-根据所选格式阅读 [GARbro 兼容后端](../commands/garbro-legacy.md)、[Ethornell](../commands/ethornell.md)、[Mangetsu](../commands/mangetsu.md)、[pfs-rs](../commands/pfs-rs.md)、[CriCodecs](../commands/cricodecs.md) 或[索引中的其他工具](../commands/index.md)。具体参数、内部压缩层级、关联文件、条目索引与输出规则仅在对应命令文档维护。按已确认的设置创建新归档，记录完整命令和实际输出路径。
+根据所选格式阅读 [Ethornell](../commands/ethornell.md)、[Mangetsu](../commands/mangetsu.md)、[pfs-rs](../commands/pfs-rs.md)、[CriCodecs](../commands/cricodecs.md) 或[索引中的其他工具](../commands/index.md)。具体参数、内部压缩层级、关联文件、条目索引与输出规则仅在对应命令文档维护。按已确认的设置创建新归档，记录完整命令和实际输出路径。
 
 逐个检查进程退出码。失败时保留诊断并修正原因，不猜测密钥或更换格式反复重试。除非覆盖该输出已获授权，否则不使用覆盖参数。
 
-已有 `staged` 清单且使用 GARbro 时，优先按[资源辅助命令](../commands/resource-workflow.md)执行 `pack`：它核对暂存哈希、创建归档并执行重新提取与比对；`verify` 用于复核现有归档。两者的后端仅支持 GARbro。其他 CLI 由 AI 助手独立执行以下验证；MRG 等具有填充或索引命名的格式按原条目身份和格式规则核对，不按生成的提取文件名直接对齐。
+GARbro Mod CLI 不提供封包，辅助脚本的 `pack` 返回不支持。用对应引擎工具创建归档；已有 `staged` 清单且归档可由 Mod 读取时，按[资源辅助命令](../commands/resource-workflow.md)执行 `verify`，重新提取并比较暂存清单中的哈希。其他格式独立执行以下验证；MRG 等具有填充或索引命名的格式按原条目身份和格式规则核对，不按生成的提取文件名直接对齐。
 
 ## 验证与交付
 

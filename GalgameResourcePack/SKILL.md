@@ -10,7 +10,7 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 ## 开始与路线
 
 1. 确定原始归档、原样资源根目录、替换资源、输出位置及完整重建或补丁模式。信息足够时直接继续；没有原始归档时需要明确目标格式和创建参数。
-2. 按[工具索引](commands/index.md)选择随附 CLI，读取对应命令；程序路径相对于本技能根目录解析。可读格式不代表可写，默认选项不代表原始设置。
+2. 按[工具索引](commands/index.md)选择随附 CLI，读取对应命令；程序路径相对于本技能根目录解析。GARbro Mod 1.0.2.2 的命令行只提供列表与解包。历史项目若依赖旧版写入器，先核对目标归档版本、目录布局和过滤选项，再找可写工具。若缺少经验证的写入路线，单独记录封包受阻和已确认的解包范围。
 3. 普通资源修改按[归档重建流程](guides/packing.md)准备暂存目录和预期资源清单。接收 GalTTS 输出时，从[资源交接与重建](guides/resource-workflow.md)准备经过核对的暂存资源集，再回到普通流程创建与验证归档。
 
 ## 共同约束
@@ -47,7 +47,6 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 | CriCodecs CLI：AI 助手调用参考 | [cricodecs](commands/cricodecs.md) |
 | Ethornell CLI 调用约定 | [ethornell](commands/ethornell.md) |
 | GARbro Mod CLI：列表与解包 | [garbro](commands/garbro.md) |
-| GARbro 兼容后端：封包与旧版选项 | [garbro-legacy](commands/garbro-legacy.md) |
 | Mangetsu CLI 调用约定 | [mangetsu](commands/mangetsu.md) |
 | pfs-rs CLI 调用约定 | [pfs-rs](commands/pfs-rs.md) |
 | GalArc CLI：NS2 与 Raw NOA | [galarc](commands/galarc.md) |

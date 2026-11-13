@@ -1,0 +1,22 @@
+{
+  "version": "2.0",
+  "runtime": "GARbro-Mod-1.0.2.2",
+  "scope": "Batch image/raw/frame export using the sole bundled Mod runtime; no game data",
+  "upstream": "https://github.com/crskycode/GARbro",
+  "reference_commit": "102d19710c819ed363b7ea28f2d883ccaf922214",
+  "source_archive": "source/GARbro-Mod-1.0.2.2.zip",
+  "license": "MIT; GARbro-LICENSE.txt",
+  "build": "source/build-images.ps1; .NET Framework C# compiler and Mod GameRes.dll; upstream binaries unchanged",
+  "files": {
+    "GalImageExport.exe": "67712f57db9c2ee3d6e087fbd433cfbffd5003d03962ccb2688e0d86f540ed95",
+    "GalImageExport.exe.config": "4186774d69a7c36cc79b969bd156bff7b614a5b3aa5cfce17a93852ddbbb884e",
+    "source/GalImageExport.cs": "09a7ea6238d2605e3e876332dc8f1f644adc6009e3299e8529039e8084004ec9",
+    "source/build-images.ps1": "f921101f8b98d768a061ca38c7a77eac7fe2a00e192b9e8a9d7dc7e8e8c6d979",
+    "GARbro-LICENSE.txt": "3af2d4f4ad5b50c8e78da20c3716781978beff0b684069d5c9fc2957490b26c3",
+    "GameRes.dll": "323aef3c4855c9168cb5f9e0294b82595611d6dc9d625b73ee4e4e942ca810f0",
+    "ArcFormats.dll": "6663ef0b57f211a4762ba3789b29f29128a854418f6c3925bb6cb34773f16e0d",
+    "ArcExtra.dll": "397b0a0e77913d073e7005cf4b3d2ee1a1795702164788f9c6f388265ff64691",
+    "ArcLegacy.dll": "206f4541e0cd6d6ecd5dbf11245c519667c37140aa68dfcb7b3b1cf16bc2ef7d",
+    "GameData/Formats.dat": "e0a9a8a78027b679975b357c0413c6bfbabeeec6cbdd981a41df75cc21b4f3b5"
+  }
+}

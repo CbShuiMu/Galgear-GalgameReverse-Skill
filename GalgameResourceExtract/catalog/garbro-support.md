@@ -4,7 +4,7 @@ GARbro 不能全部覆盖。它支持下表中大部分引擎的常见资源归�
 
 当前默认 CLI 为 [crskycode/GARbro Mod 1.0.2.2](https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2)，命令及验证边界见 [新版 CLI](../commands/garbro.md)。新版包含 ArcFormats、ArcExtra、ArcLegacy 读取库及发布包数据库，具体格式由 `-l` 查询；列出的格式仍须以当前输入验证。
 
-下表保留以原版 [morkt/GARbro](https://github.com/morkt/GARbro) 读取实现为依据的既有范围，对应 [旧版兼容后端](../commands/garbro-legacy.md)，不是本次新版全部格式的实测清单。
+下表保留以原版 [morkt/GARbro](https://github.com/morkt/GARbro) 读取实现为依据的既有范围，作为格式参考；当前运行入口统一为 Mod，不是 Mod 全部格式的实测清单。历史记录中的旧工具版本只说明当时的验证环境，不提供旧版调用路线。
 
 | 引擎 | GARbro 解包支持情况 | 限制 |
 |---|---|---|
@@ -23,7 +23,7 @@ GARbro 不能全部覆盖。它支持下表中大部分引擎的常见资源归�
 
 ## 支持范围说明
 
-随包 [格式列表快照](garbro-supported.html)复制自固定发布源码的 `docs/supported.html`，可能滞后于运行库；[版本记录](garbro-version.xml)标明本次安装的发布版本和数据库哈希，不是自动更新源。格式表中的作品不能代替当前样本验证，也不能证明同一引擎的所有作品均可解包。新版 CLI 没有封包入口，封包能力以兼容后端的 `f --writable` 和具体创建选项为准。
+随包 [格式列表快照](garbro-supported.html)复制自固定发布源码的 `docs/supported.html`，可能滞后于运行库；[版本记录](garbro-version.xml)标明本次安装的发布版本和数据库哈希，不是自动更新源。格式表中的作品不能代替当前样本验证，也不能证明同一引擎的所有作品均可解包。Mod CLI 没有封包入口；其读取库包含的写入实现也不能直接当作 CLI 封包能力。封包需选择独立的引擎工具。
 
 RealLive 音频包支持可见 [OVK／NWK 实现](https://github.com/morkt/GARbro/blob/master/ArcFormats/RealLive/ArcOVK.cs)；其 [SEEN 实现](https://github.com/morkt/GARbro/blob/master/ArcFormats/RealLive/ArcSEEN.cs)标注的是 AVG32 脚本包，不能泛化为全部 RealLive 脚本。
 

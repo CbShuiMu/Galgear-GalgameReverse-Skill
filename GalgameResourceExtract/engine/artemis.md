@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | 本技能 [Artemis 存档 CLI](../commands/artemis-save.md)，固定 ns2-savekit 读取实现，MIT | BOW* 1002/1003 索引核验及匹配 caret 的 ASB 脚本／命令序号 | 不修改存档 | 引擎 ASB 指针不直接等于上层 AST 剧情位置；Lua 状态及实际恢复仍未验证 |
 | [pfs-rs CLI](../commands/pfs-rs.md)，随附，上游 [pfs-rs / pf8][upstream] | 列表、提取以 `pf6` 或 `pf8` 开头的 PFS 归档 | 创建 PF8；目录和文件可以作为输入 | 随附版本为 `0.2.5`，读取 PF6/PF8 不等于可创建 PF6。当前写入名称为 UTF-8；旧版非 ASCII 文件名往返须特别核对。分包与路径规则见命令页 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，标签 `PFS` | 对所实现的 Artemis PFS 分支提供读取和提取候选路线 | 没有对应 PFS 归档写入器 | 以当前构建实际识别为准；不能把其他引擎同扩展名的 `.pfs` 当成 Artemis。需要精确能力时先看 `i` / `l` 结果与[读取实现][garbro] |
+| [GARbro Mod CLI](../commands/garbro.md)，随附，标签 `PFS` | 对所实现的 Artemis PFS 分支提供读取和提取候选路线 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 以当前构建实际识别为准；不能把其他引擎同扩展名的 `.pfs` 当成 Artemis。需要精确能力时先看归档列表结果与[读取实现][garbro] |
 | [Artemis 官方工具与资料][official]，外部，未随附 | 核对脚本、宏及目标平台的资源使用规则 | 有对应工程时，沿用匹配版本的官方构建流程 | 官方说明的脚本语法不等于 PFS 二进制格式规范；当前技能没有通用 Artemis 脚本解析或编译器 |
 
 ## 格式特征与编码方式
@@ -66,6 +66,8 @@ PF8 重新封包会重建索引并重算派生数据，故归档字节通常不�
 
 仅对当前读取器实际识别的 PFS 图像成员记录原生提取与 PNG；索引名异常、读取失败、零个已分类图像或补丁覆盖未知都保留缺口。 实际样本阶段见 [CG 状态表](../catalog/cg-status.md)，命令与边界见 [图像 CLI](../commands/garbro-images.md)。本节不声明完整 CG 或全部差分组合。
 
+Mod 迁移复测中，两个 PFS 代表包的索引及抽样成员与旧输出一致。命令行按名提取时须使用列表中的原始分隔符，路径可在事后比对时归一化。若补丁实际是 XP3，按容器签名分流到 [XP3 读取路线](kirikiri.md)，与主 PFS 分开验收。
+
 <!-- EXPERIENCE:99caf658cf62eb215dbda7a66ac6309e703da37982a3572a075efa4ed36c957d:START -->
 ## 已验证脚本子集提取；脚本坐标与存档恢复分别验收
 
@@ -84,7 +86,7 @@ PF8 重新封包会重建索引并重算派生数据，故归档字节通常不�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -113,7 +115,7 @@ PF8 重新封包会重建索引并重算派生数据，故归档字节通常不�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -314,6 +316,7 @@ PF8 重新封包会重建索引并重算派生数据，故归档字节通常不�
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

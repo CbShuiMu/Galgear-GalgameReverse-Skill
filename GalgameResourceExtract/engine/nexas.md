@@ -4,7 +4,7 @@
 
 | 工具与来源 | 解包用途 | 封包用途 | 适用版本和限制 |
 | --- | --- | --- | --- |
-| [随附 GARbro 兼容后端](../commands/garbro-legacy.md)，GARbro MIT 读取器 | 当前构建识别为 `PAC` 的归档列表与脚本子集提取 | 本轮未验证 | 真实 Windows 样本提取；不推广至所有 PAC 或 NeXAS 版本 |
+| [随附 GARbro Mod CLI](../commands/garbro.md)，GARbro MIT 读取器 | 当前构建识别为 `PAC` 的归档列表与脚本子集提取 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 历史 Windows 样本提取；Mod 仍需逐包重验；不推广至所有 PAC 或 NeXAS 版本 |
 | [PAC type 4 CLI](../commands/nexas-pac4.md)，随附，MIT | 索引末尾、原始名称与逻辑或存储成员；可按范围核对并恢复有限的末条截断 | 无写入接口 | 只覆盖末尾反码 Huffman 索引和成员方法 4，截断恢复需显式启用。 |
 
 ## 格式特征与编码方式
@@ -38,7 +38,7 @@ PAC 中可能有同名图像成员。以条目序号和原始位置分开保存�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 列出归档成员，再筛选脚本子集
+- 历史验证使用 GARbro CLI 0.1.1.0 列表并筛选脚本；该旧运行库已移除，现使用 Mod 的归档列表和按完整成员名提取，并重新核对结果
 - 在独立目录重新提取代表成员，对比 SHA-256；存储大小与解压后大小分别记录
 
 ### 限制与失效条件
@@ -53,6 +53,7 @@ PAC 中可能有同名图像成员。以条目序号和原始位置分开保存�
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

@@ -10,3 +10,4 @@ foreach ($assembly in @('PresentationCore','WindowsBase','PresentationFramework'
 $arguments += Join-Path $PSScriptRoot 'GalImageExport.cs'
 & $compiler @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Image CLI compilation failed' }
+Copy-Item -LiteralPath (Join-Path $toolDirectory 'GARbro.Console.exe.config') -Destination (Join-Path $toolDirectory 'GalImageExport.exe.config') -Force

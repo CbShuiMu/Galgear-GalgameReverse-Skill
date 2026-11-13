@@ -5,7 +5,7 @@
 | 工具与来源 | 解包或读取用途 | 封包或回写用途 | 适用版本与限制 |
 | --- | --- | --- | --- |
 | [Ethornell CLI](../commands/ethornell.md)，随附，源于 [ethornell-tools][eth-tools] 与本地 CLI 入口 | 列表、原样提取 `BURIKO ARC20` 条目；独立读取 DSC 元数据、解压 DSC | 创建 ARC20；对已确认的 `DSC FORMAT 1.00` 流重新压缩 | 不支持旧 `PackFile` 封包，也不支持 BSE 处理；ARC20 创建不会自动压缩 DSC。文件名按 Shift-JIS 处理，最多 95 编码字节；参数及退出码见命令页 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，标签 `BGI` / `BURIKO ARC` | 读取旧 PackFile 和 ARC20；读取过程中可展开 DSC，或按已实现分支还原 BSE 头部 | 没有对应归档写入器 | 读取 BSE 仅覆盖所引实现中的 `1.00` / `1.01` 分支；不是所有 BGI 加密资源的通用方案；见[实现][bgi] |
+| [GARbro Mod CLI](../commands/garbro.md)，随附，标签 `BGI` / `BURIKO ARC` | 读取旧 PackFile 和 ARC20；读取过程中可展开 DSC，或按已实现分支还原 BSE 头部 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 读取 BSE 仅覆盖所引实现中的 `1.00` / `1.01` 分支；不是所有 BGI 加密资源的通用方案；见[实现][bgi] |
 | [Bgi_asdis][bgi-asdis]，外部，未随附 | 按剧情 v0/v1 和 BP 系统脚本分流做反汇编及文本读取 | 相应脚本汇编与文本导回；不负责 ARC 封包 | 使用对应版本操作码和完整依赖；不能把工具支持多种编码理解为引擎默认支持这些编码。脚本与归档独立验收 |
 
 ## 格式特征与编码方式
@@ -73,7 +73,7 @@ BURIKO ARC／BGI 图像归档先区分原生成员、DSC/BSE 等包装和 CBG �
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -151,6 +151,7 @@ BURIKO ARC／BGI 图像归档先区分原生成员、DSC/BSE 等包装和 CBG �
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

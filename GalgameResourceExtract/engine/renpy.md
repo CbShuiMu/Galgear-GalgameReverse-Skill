@@ -8,7 +8,7 @@ RPA 是资源容器，RPYC 是编译脚本；解包、脚本反编译、重新�
 | --- | --- | --- | --- |
 | 本技能 [locate_renpy_save.py](../scripts/locate_renpy_save.py) 与 passive_pickle 辅助读取器 | 匹配旧 ZIP 日志中的活动 RollbackLog 节点与旧式 zlib RPYC 原生身份 | 不写存档或 RPYC | 不导入 pickle 类或调用 reducer；只支持已测试旧布局，现代 RPYC2 和其他对象操作码未覆盖 |
 | [rpatool CLI](../commands/rpatool.md)，随附；[Shizmob 上游][rpatool] + 本地适配 | 标准 RPA v2 / v3，读取全部分段及可选前缀 | 创建 RPA v2 / v3，保留子目录和原始成员字节 | Python 3.9+ 标准库；受限 pickle、大小与路径校验。只验证合成资源，RPI、v3.2、专用混淆不在适配入口范围 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附；[RPA 实现][garbro] | 所引读取器仅接受 `RPA-3.0`，每个成员仅使用首个索引片段 | 创建 RPA-3.0，可配置索引 XOR `Key` | 不是全版本或多分段 RPA 读取器；需要完整提取时优先用随附 rpatool，按所有条目检查 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附；[RPA 实现][garbro] | 所引读取器仅接受 `RPA-3.0`，每个成员仅使用首个索引片段 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 不是全版本或多分段 RPA 读取器；需要完整提取时优先用随附 rpatool，按所有条目检查 |
 | [unrpyc][unrpyc]，外部 MIT 工具 | 将支持的 `.rpyc` / `.rpymc` 反编译为脚本工作副本 | 不负责生成 RPYC 或创建 RPA | 未随附；v2 CLI 需 Python 3.9+，旧脚本适配看该版本兼容说明。只选离线 CLI，不自动采用向游戏注入 `un.rpyc` 的路线 |
 | [Ren'Py SDK][engine]，外部官方工具 | 读取自己支持版本的脚本与资源 | 从源脚本编译 RPYC，并按发布配置创建 RPA | 不是本技能运行依赖；使用与目标兼容的 SDK。SDK 编译会解释项目初始化代码，须按实际任务授权单独安排，不作为本页测试步骤 |
 
@@ -151,6 +151,7 @@ RPA 中的标准 PNG/JPEG 可保持原字节，按 event、背景、立绘等来
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

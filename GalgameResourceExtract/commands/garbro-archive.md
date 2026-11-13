@@ -13,7 +13,7 @@ GalArchiveExport.exe INPUT NEW_OUTPUT_DIRECTORY ALF
 
 退出 0 表示读取器已处理完所有索引成员，1 表示有失败，2 为用法错误。复核清单与索引的名称、偏移、大小及重复次数，重新计算输出哈希；媒体签名与脚本边界另验。外部中止可能留下未登记的临时文件。
 
-使用 `source/build-archive-export.ps1` 重建需要系统 .NET Framework C# 编译器。编译结果放在随附 Mod 运行目录；兼容后端的 DLL 继续隔离。
+使用 `source/build-archive-export.ps1` 重建需要系统 .NET Framework C# 编译器。编译结果放在随附 Mod 运行目录；只使用同目录 Mod 的 DLL 与数据库。
 
 ## 显式选择 PAZ 方案
 

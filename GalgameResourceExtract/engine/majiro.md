@@ -7,10 +7,10 @@
 | 本技能 [parse_majiro_v1.py](../scripts/parse_majiro_v1.py)，VNTranslationTools v0.0.41 操作数表与消费者，MIT | V1 MJO 指令、Text 片段、受限消息拼接、字面量菜单及局部分支 | 不支持封包或脚本写入 | Python 3 标准库；严格长度、目标边界与编码检查；未知控制、动态插值和跨场景语义未覆盖 |
 | [index_majiro_flow.py](../scripts/index_majiro_flow.py) | 按显式覆盖顺序索引 MJO 入口、局部指令、字面量跨脚本和菜单分派 | 只读 | 动态目标和跨库函数候选保留待验证状态 |
 | [locate_majiro_save.py](../scripts/locate_majiro_save.py) | 从真实 V1.105 槽位定位与 MJO 边界吻合的连续脚本帧 | 只读 | V1.105 样本静态验证，至少两个连续帧。V1.103 和运行恢复另验 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，格式标签 `MAJIRO` | 列表、解包 `MajiroArcV1.000`、`V2.000`、`V3.000` 分支 | 创建 `MajiroArcV1.000` | 当前写入器硬编码 V1，没有选择 V2/V3 的选项；只保存基本文件名，不支持子目录。能读取 V2/V3 不表示能按原版重建；见[实现][arc] |
+| [GARbro Mod CLI](../commands/garbro.md)，随附，格式标签 `MAJIRO` | 列表、解包 `MajiroArcV1.000`、`V2.000`、`V3.000` 分支 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 所引源码的写入器硬编码 V1，没有选择 V2/V3 的选项；只保存基本文件名，不支持子目录。能读取 V2/V3 不表示能按原版重建；见[实现][arc] |
 | [Majiro V3 CLI](../commands/majiro-cli.md)，随附，MIT | 校验并提取规范 V3 平面归档，核对名称、CRC-64 哈希及索引边界 | 创建有效哈希并严格排序的 V3 归档，原样保存成员 | Python 3.9+；仅小写且可逐字节往返的 CP932 基本文件名，不支持子目录、哈希碰撞或 V2。拒绝不满足条件的名称，不自动改名；见[命令与来源](../commands/majiro-cli.md) |
 | [MajiroTools][tools]，外部，未随附 | MJO 反汇编，输出 `.mjil` 及可选 `.mjres` 文本资源 | 将对应中间格式重新汇编为 MJO | 不是 ARC 封包工具；脚本操作码、字符串边界和重定位需要匹配。不能将反汇编成功当成全部控制流或语音关系已确认 |
-| [GARbro 兼容后端](../commands/garbro-legacy.md)，随附，图像读取分支 | 识别、解码所支持的 RCT/RC8 图像 | 本页不将通用图像导出流程视为所有 Majiro 图像版本的回写器 | 图像与 ARC、MJO 分开核对；保留原成员、透明度配套文件与解码元数据 |
+| [GARbro Mod CLI](../commands/garbro.md)，随附，图像读取分支 | 识别、解码所支持的 RCT/RC8 图像 | Mod CLI 不提供封包；需另选匹配的引擎工具 | 图像与 ARC、MJO 分开核对；保留原成员、透明度配套文件与解码元数据 |
 
 ## 格式特征与编码方式
 
@@ -98,7 +98,7 @@ ARC 的 RCT、RC8 和配套差分保留原始成员及来源。解码失败、�
 
 ### 已验证步骤
 
-- 使用随附 GARbro CLI 0.1.1.0 / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
+- 历史验证使用 GARbro CLI 0.1.1.0（现已移除，改用 Mod 后须重验） / SSSU 0.5.7 / rlseen 1.0 或标准 NScripter XOR 包装路线，实际调用见本地报告
 - 保存输入身份、成员清单、脚本副本和独立验证结果；原游戏保持不变
 
 ### 限制与失效条件
@@ -206,6 +206,7 @@ ARC 的 RCT、RC8 和配套差分保留原始成员及来源。解码失败、�
 ## 图像原生资源与解码副本分别保留并核验；差分、子图与未完成项独立记录
 
 - 引擎版本：Matched local image layouts; GARbro/GameRes 1.5.44 or recorded external reader
+- 版本迁移限制：本条保留历史验证版本；旧运行库现已移除，当前 GARbro Mod 必须重新核对。
 - 方言/条件：Read-only image extraction substage; no complete CG claim
 - 阶段：extract
 - 验证等级：real_sample

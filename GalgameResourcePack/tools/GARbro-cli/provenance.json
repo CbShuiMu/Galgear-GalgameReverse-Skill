@@ -1,6 +1,6 @@
 {
   "distribution": "GARbro-Mod-1.0.2.2",
-  "checked_date": "2026-11-03",
+  "checked_date": "2026-11-13",
   "upstream": "https://github.com/crskycode/GARbro",
   "release_url": "https://github.com/crskycode/GARbro/releases/tag/GARbro-Mod-1.0.2.2",
   "release_asset": {
@@ -75,66 +75,36 @@
       "zh-Hans/GARbro.GUI.resources.dll",
       "zh-Hant/GARbro.GUI.resources.dll"
     ],
-    "exclusions_reason": "GUI executable/config/satellite assemblies, WindowsAPICodePack and WPF Toolkit referenced only by GUI.csproj, separate Image.Convert utility, XML documentation and PDB symbols. Framework WPF and runtime dependencies are retained."
+    "exclusions_reason": "GUI executable/config/satellite assemblies, WindowsAPICodePack and WPF Toolkit referenced only by GUI.csproj, separate Image.Convert utility, XML documentation and PDB symbols. Framework WPF and runtime dependencies are retained.",
+    "runtime_policy": "Only GARbro Mod 1.0.2.2 is distributed. ArcLegacy.dll belongs to this Mod release. The separate GARbro 1.5.44 runtime was removed."
   },
   "licenses": {
     "garbro": "MIT; GARbro-LICENSE.txt",
     "dependencies": "licenses/packages.json and original license/notice files; source nuspec metadata retained",
     "additional_notices": "licenses/additional-notices.json; public-domain SQLite and upstream WiX/libwebp notices; external notice references do not establish exact native library build versions"
   },
-  "legacy": {
-    "path": "legacy/",
-    "retained_from_repository_commit": "b00640a",
-    "reason": "Upstream CLI has no c/pack, options, -o or old overwrite/filter switches. Existing archive creation and GalImageExport keep their original isolated runtime. No legacy binaries rebuilt.",
-    "files": {
-      "ArcFormats.dll": "437ae50a13fbbae5834fc7e9ae3082dc757f88800425b60c92ea0cb2efd1755a",
-      "ArcFormats.dll.config": "c14e135576679e6471b5441edeb2a1f580800e9b925e2269c6162b97d80d9798",
-      "GameData/Formats.dat": "54039fde222592c911536b0bd3f4d931bd580c66afd96eaefece34ea872f2982",
-      "GameRes.dll": "c2f5311e59f82c40d1552d3f2be707746956ce461c970863acef9a61973f69b3",
-      "GameRes.dll.config": "5ac8ef58fd332253733e98c06ebe74b2f7aadc6e7a2ae00d47f3c41ba5fce115",
-      "GARbro-LICENSE.txt": "fbcffdc0f547145fc774652201cc88b48030bb32ddca18ca0356988be0a6a84a",
-      "GARbro.Console.exe": "ce517628ddc3c7517a8908092cdb293c025ca640158c39193894ce499979adf0",
-      "GARbro.Console.exe.config": "80ac57288bc8d680765237f734b918ebbfe35820044c635c6b78f65ad21e6da9",
-      "ICSharpCode.SharpZipLib.dll": "c287e9b07a8251828f35914364c89a37db606b0c1d64457f9eb8fa2258f0dee3",
-      "ja-JP/ArcFormats.resources.dll": "58cd350588c5a21bd485658f018a3960968a4332a09a1d98cd7aa18f0450964b",
-      "ja-JP/GameRes.resources.dll": "09d45d0f056fa41c0e4c67d017d710c3920219ba1ba61abab5f007806bedd33a",
-      "ko-KR/ArcFormats.resources.dll": "b066a0a0b94bc8bd2b5b451f8680baa7b25d6bc6c7532576ff5fac57fc1287c7",
-      "ko-KR/GameRes.resources.dll": "1c1fa8b5ec9b0411ed98141e9bd0e788fc37379da2f669d2d2efebc604cfab49",
-      "NAudio.dll": "bc4bacc3b8b28d898f1671b79f216cca439f95eb60cd32d3e3ecafbecac42780",
-      "Net20.dll": "d9203e021b3c8779808a6fe8c1febb09fe909b0a51466c8f9003fa001854029d",
-      "NVorbis.dll": "cf47c2fa6f44866b6001f006bdef491176163e8e14faf09b65964222483ebde1",
-      "ru-RU/ArcFormats.resources.dll": "ce26e6a7f13b1bb489380658ce02ec3aec564a75e670da30c4eb8691ff91a288",
-      "ru-RU/GameRes.resources.dll": "af576d703c4ca0f783eeade51fad6bfa6f144b0e6863c7162e4ede0f7ec17806",
-      "System.Buffers.dll": "423200010a7684763451473a4fb206dfa074fc8249676621ef9d9a13417d364d",
-      "System.Memory.dll": "3cb4f4f803c41b22c97ec61f752f93efc7be9328f8ceaa9ab0f36d3c5b563ef7",
-      "System.Runtime.CompilerServices.Unsafe.dll": "c4c3842dddfef79afa8a3ead085429f343d52165f8c4054b0cf4b1003d51343f",
-      "System.ValueTuple.dll": "d6fb0dcfee1490a8168117ed1b55758f11db38475417b3668d19f89dcb55cbdd",
-      "zh-Hans/ArcFormats.resources.dll": "e6bef8f2b4cbe3869b7d55e995bfc8d899a2e7c71f74e2af7c4f4648e9c65020",
-      "zh-Hans/GameRes.resources.dll": "6f924e90e15e55a351bff08b8decfd172be1db4b41ac821dc52959a711eedf62"
-    }
-  },
   "validation": {
-    "level": "synthetic resources only; no real game execution or TTS model",
+    "level": "synthetic resources only; no game execution or TTS model",
     "checks": [
-      "Both skill runtimes copied independently outside the repository: no-argument help, -l, ZIP listing, nested duplicate basenames, empty member, byte-identical extraction, case-insensitive selected member",
-      "New release independently reads synthetic NS2, raw NOA and Majiro v3 archives",
-      "Legacy image export preserves raw data, PNG alpha, multiple frames, duplicate names and path boundary",
-      "Legacy ZIP/XP3 workflow: full/patch round trips, retained entries, hashes, unsafe paths and stale handoff rejection using fake TTS backend"
+      "Both skills independently relocated: help, format list, ZIP members and exact extraction",
+      "Mod image helper: raw identity, alpha, multiple frames, duplicate members, path containment",
+      "Resource verification uses Mod -x with a fresh working directory; nonempty stderr is an error even with exit code 0",
+      "Former pack command refuses creation without artifacts; use an engine-specific writer"
     ],
     "limitations": [
-      "No new game compatibility asserted",
+      "Historical game validation is not upgraded to Mod without rechecking",
+      "Mod Console has no archive creation interface",
       "No general image conversion verified for upstream Console -c",
-      "Upstream Console can exit 0 on errors; verify logs and expected outputs",
-      "Legacy packing and image reader support has not been upgraded to the new DLLs"
+      "Synthetic unencrypted XP3 fixture is reported as unknown format by the pinned Mod Console; XP3 downstream workflow integration was not run"
     ],
     "results": {
-      "project_check": "passed; 89 Markdown files, 37 Python files",
-      "skill_validation": "both skills passed under UTF-8 mode",
-      "cross_skill_unittest": "64 tests passed",
-      "distribution_recheck": "2 tests passed after final dependency notice update",
-      "packing_integration": "ZIP and XP3 passed; FFmpeg 7.1; temporary virtual environment; fake TTS backend",
-      "legacy_preservation": "all originally bundled tool files retained byte-for-byte",
-      "git_diff_check": "passed with cr-at-eol for the repository and upstream CRLF text"
+      "project_check": "passed; 111 Markdown files, 45 Python files",
+      "skill_validation": "GalExtract and GalPack passed",
+      "cross_skill_unittest": "85 tests run: 81 passed, 4 skipped",
+      "image_tests": "3 passed: raw data, alpha, frames, duplicate names, path containment",
+      "mod_distribution": "3 passed: both isolated installations, hashes, source and helper provenance",
+      "mod_workflow": "3 targeted tests passed; ZIP full/patch TTS handoff integration passed with synthetic resources and fake backend; XP3 read limitation reported",
+      "git_diff_check": "passed with cr-at-eol"
     }
   },
   "files": {

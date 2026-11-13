@@ -6,7 +6,6 @@
 | --- | --- | --- |
 | rUGP 图像／RUO | `tools/age-rio-cli/rugp_cli.py` | 真实样本的 Cr6Ti 与累计 RUO 静态往返，完整 RIO 和游戏加载未验收；见 [命令](rugp-images.md) |
 | GARbro Mod CLI | `tools/GARbro-cli/GARbro.Console.exe` | 新版归档列表与解包，不提供封包；见 [GARbro CLI](garbro.md) |
-| GARbro 兼容后端 | `tools/GARbro-cli/legacy/GARbro.Console.exe` | 通过 `f --writable` 确认的可写格式；见 [兼容后端](garbro-legacy.md) |
 | Ethornell | `tools/ethornell/ethornell.exe` | BGI/Ethornell ARC20 创建及独立 DSC 压缩；见 [Ethornell 命令](ethornell.md) |
 | Mangetsu | `tools/mangetsu/*.exe` | MRG/HED/NAM 重建、按索引替换，MZP 封装、MZX/NXGX 压缩及特定文本表回填；见 [Mangetsu 命令](mangetsu.md) |
 | pfs-rs | `tools/pfs-rs/pfs-rs.exe` | Artemis PF8 创建，PF6 不提供原格式写入；见 [pfs-rs 命令](pfs-rs.md) |
@@ -22,4 +21,4 @@
 
 CriCodecs 不提供通用 ACB 创建或修改；AWB 替换后仍需核对 ACB 的引用和资源元数据。CPK 列表索引、CPK ID、AWB wave ID 不能互换。需要 HCA/ADX/AHX 时先准备采样率、声道和循环信息正确的 WAV，再编码为目标格式；不能仅重命名扩展名，也不能用有损编码前后 WAV 的哈希相等作为验收条件。
 
-需要基线快照或已有暂存清单时，查阅[资源辅助命令](resource-workflow.md)。接收 GalTTS 输出的步骤见[资源交接与重建](../guides/resource-workflow.md)，清单语义见[资源清单契约](../contracts/resource-manifest.md)。辅助脚本的 `pack/verify` 后端仅为 GARbro；其他 CLI 独立创建、重新提取并比对暂存清单中的资源。
+需要基线快照或已有暂存清单时，查阅[资源辅助命令](resource-workflow.md)。接收 GalTTS 输出的步骤见[资源交接与重建](../guides/resource-workflow.md)，清单语义见[资源清单契约](../contracts/resource-manifest.md)。辅助脚本的 `verify` 使用 GARbro Mod；`pack` 返回不支持。封包用对应 CLI 独立创建，再重新提取并比对暂存清单中的资源。
