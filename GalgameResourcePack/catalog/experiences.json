@@ -10,6 +10,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/rugp.md"
+    },
+    {
+      "experience_id": "e17abb0e3403402262b97168b9c3258dd80732ce91472d45df8c2ce892d49622",
+      "engine": "willplus",
+      "engine_version": "ARC/WillV2 连续平面布局",
+      "stage": "pack",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/willplus.md"
     }
   ]
 }

@@ -50,6 +50,10 @@ GARbro 的相应读取器可能在提取时还原脚本字节，写入器再做�
 
 完整走表后再筛选对白，保留原始空条目及编号；明确长度以字节还是字符代码单元计数、是否包括终止符，并核对表末边界与原始消息引用。不能将过滤后的行号当作消息 ID，也不能把某个文件的布局推广到所有 LNG。
 
+同一安装的原版脚本包与语言覆盖包可以拥有相同的归档名和成员编号。分别提取并保留语言层和归档身份，再将完整语言表与 WS2 的消息及选项 ID 比对。部分翻译记录用于菜单，应纳入编号核对。以配套姓名表、前后场景和存档字幕交叉核对。
+
+可参考 [VNTranslationTools 的 AdvHD 读取实现](https://github.com/arcusmaximus/VNTranslationTools/tree/main/VNTextPatch.Shared/Scripts/AdvHd) 按操作数布局遍历 WS2。多个布局能读到末尾时，对照同一安装的其他脚本、消息尾字段、跳转边界及语言表覆盖消歧。
+
 无需宿主专用映射 API。随包校验器只检查来源字节完整性和资源映射结构；消息 ID、表项与姓名状态之间的语义联系由当前本地解析器和对照结果证明。
 
 [arc-will]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/Will/ArcWILL.cs
@@ -58,3 +62,31 @@ GARbro 的相应读取器可能在提取时还原脚本字节，写入器再做�
 [ws2-reader]: https://github.com/DarthFly/advhd_ws2_tools/blob/2253327e02868ef5e84d963e8e34e2439f7e6c18/Ws2/Reader.php
 [message]: https://github.com/DarthFly/advhd_ws2_tools/blob/2253327e02868ef5e84d963e8e34e2439f7e6c18/Ws2/Opcodes/DisplayMessage.php
 [name]: https://github.com/DarthFly/advhd_ws2_tools/blob/2253327e02868ef5e84d963e8e34e2439f7e6c18/Ws2/Opcodes/SetDisplayName.php
+
+<!-- EXPERIENCE:eeadcb69e0ed6369eb6c81b89aea52bb5d74dcb7ebe21d5061394f47e5ffa7eb:START -->
+## 分离提取平面 WS2 脚本归档与语言覆盖归档
+
+- 引擎版本：ARC/WillV2
+- 方言/条件：Windows 平面归档与独立语言覆盖层
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`eeadcb69e0ed6369eb6c81b89aea52bb5d74dcb7ebe21d5061394f47e5ffa7eb`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 使用 GARbro Mod 1.0.2.2。原版和语言覆盖层以各自的归档身份处理。
+
+### 已验证步骤
+
+- 分别列出并解包到独立目录，核对完整成员名、输出数量和大小。
+- 将样本归档用 UTF-16LE 索引独立走表，将读取器还原后的脚本与储存层字节作变换对照。
+- 确认脚本包与配套语言表均可完整提取，归档解码与成员内层解析分别记账。
+
+### 限制与失效条件
+
+- 未验证其他 Will 索引版本、递归路径、未知包装或运行时补丁覆盖。
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:eeadcb69e0ed6369eb6c81b89aea52bb5d74dcb7ebe21d5061394f47e5ffa7eb:END -->

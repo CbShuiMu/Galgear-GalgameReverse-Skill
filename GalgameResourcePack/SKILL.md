@@ -56,3 +56,4 @@ description: 按用户需求将 GalGame 资源封包为游戏归档。适用于�
 | RLdev SEEN：原样归档拆分与重建 | [rldev-seen](commands/rldev-seen.md) |
 | Majiro V3 CLI：哈希索引与原样归档 | [majiro-cli](commands/majiro-cli.md) |
 | SiglusEngine：包级元数据与重建边界 | [siglus](engine/siglus.md) |
+| WillV2 平面索引与原包字节往返 | [WillPlus / AdvHD](engine/willplus.md) |

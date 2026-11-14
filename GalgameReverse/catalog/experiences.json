@@ -64,6 +64,15 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/majiro.md"
+    },
+    {
+      "experience_id": "e132f818deab8fdeb85be33bad7f544007804cf35d73a38969674a52550c120a",
+      "engine": "willplus",
+      "engine_version": "AdvHD WS2 V3 操作数布局与配套语言覆盖",
+      "stage": "reverse",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/willplus.md"
     }
   ]
 }
