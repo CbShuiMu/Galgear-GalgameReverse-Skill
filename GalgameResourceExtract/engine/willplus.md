@@ -56,6 +56,12 @@ GARbro 的相应读取器可能在提取时还原脚本字节，写入器再做�
 
 无需宿主专用映射 API。随包校验器只检查来源字节完整性和资源映射结构；消息 ID、表项与姓名状态之间的语义联系由当前本地解析器和对照结果证明。
 
+### 复用脚本和语言表读取器
+
+GARbro 返回的是归档成员。需要选项原文、实际跳转或说话人时，先从当前环境的可用工具及项目记忆查找已验证的 WS2 和 LNG 读取器。复用前核对输入属于同一脚本版本和语言覆盖层，并检查代表样本的指令边界、语言表编号及姓名映射。绑定通过后复用同一份结构化输出供路线和提要查询。按上文引用的 VNTranslationTools 读取实现对照 WS2 操作数布局；语言表仍须按当前方言核验。
+
+本技能当前随附 GARbro 归档读取器，WS2 和 LNG 的内层读取需要借助匹配的外部或项目工具。仅能抽取字符串时，记录可读对白和未确认的流程。若存档字幕与可读剧本分属不同语言，可按[跨语言提要定位](../guides/control-flow.md#翻译表无法读取时的前情提要)尝试候选截断。
+
 [arc-will]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/Will/ArcWILL.cs
 [arc-v2]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/Will/ArcPulltop.cs
 [ws2-tools]: https://github.com/DarthFly/advhd_ws2_tools/tree/2253327e02868ef5e84d963e8e34e2439f7e6c18

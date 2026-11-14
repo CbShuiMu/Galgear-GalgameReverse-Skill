@@ -30,6 +30,8 @@
 
 GARbro 的资料覆盖与读取限制见 [常见引擎支持情况](../catalog/garbro-support.md)，不能据此承诺脚本解析或回写。
 
+WillPlus 的 ARC 解包后，按 [WS2 和 LNG 读取器复用](../engine/willplus.md#复用脚本和语言表读取器)查找匹配的内层读取工具。
+
 [NeXAS PAC type 4 只读 CLI](nexas-pac4.md)用于末尾反码 Huffman 索引和成员方法 4。
 
 [GARbro 序号解包 CLI](garbro-archive.md)用于保存同名成员或指定已有归档读取器。
