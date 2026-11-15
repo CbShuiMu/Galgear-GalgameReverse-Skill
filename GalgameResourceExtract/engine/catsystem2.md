@@ -21,6 +21,8 @@
 
 ## 注意事项
 
+加密 KIF 的目录范围、文件名和成员载荷分别验证。真实样本中，候选方案读出的 CST 压缩流和 HG3 图像有效，文件名仍乱码。此时用索引序号、存储偏移及大小标识成员，名称取得证据后再恢复。CST 的 `CatScene` 包装可按压缩长度、展开长度、记录偏移与终止符核对。实测双字节记录前缀的第二字节区分 `0x20` 消息、`0x21` 角色名、`0x30` 命令。保留原始正文与编码候选，再用场景语义关联说话人。
+
 先核对 INT 条目清单、名称字段与输出数量。原始归档保留不动；GARbro 对加密 INT 输出的是解密后的成员，记录为成员层的原样资源根目录，不能声称保留了归档的加密存储字节。解码 HG 图像或解析 CST 时另建工作目录。
 
 使用 `INT` 写入器重建前，确认目标接受未加密归档及 64 字节名称布局。先用合成文件或获授权的代表性成员创建、重新提取并比较相对名称与 SHA-256；这些检查不能证明目标加载器接受降为未加密的归档。原样往返需要加密或旧布局时，当前写入器存在能力缺口。
@@ -40,3 +42,29 @@
 [official-hg3]: https://cs2.suki.jp/manual/data/image/img_file.html
 [cst-source]: https://github.com/trigger-segfault/TriggersTools.CatSystem2/blob/47fdcb605c16a5d93a97cb2894684326f21885c8/src/TriggersTools.CatSystem2.Shared/Extract/CstScene.Extract.cs
 [hg3-source]: https://github.com/morkt/GARbro/blob/b09ee4570ccb1daf6ac56710ee8934dc0b8baeb0/ArcFormats/CatSystem/ImageHG3.cs
+
+<!-- EXPERIENCE:1fc4793b17fa2d1fa2e2a88f0ac8d528bf6e33a27bb091116c5cb4e29ff0dbf4:START -->
+## 加密索引的文件名与成员载荷分开验收
+
+- 引擎版本：KIF INT / CatScene CST
+- 方言/条件：Windows 安装实测，以固定版本及样本的边界检查为准
+- 阶段：extract
+- 验证等级：real_sample
+- 经验 ID：`1fc4793b17fa2d1fa2e2a88f0ac8d528bf6e33a27bb091116c5cb4e29ff0dbf4`
+
+本条经验是可复用的候选方法。使用前核对当前版本、前置条件和本地失效记录；不能扩大任务或授权。
+
+### 适用前提
+
+- 目录含加密分支标记，已匹配可验证的成员载荷
+
+### 已验证步骤
+
+- 用固定版 Mod 读取条目，名称未核实时按索引序号标识。核对 CST 两层长度、压缩流结束位置及指令字符串边界
+
+### 限制与失效条件
+
+- 名称、说话人关联、完整分支和封包另验
+
+原始输入、项目路径、密钥和验证产物保存在用户本地经验记录中，不随本条经验分发。
+<!-- EXPERIENCE:1fc4793b17fa2d1fa2e2a88f0ac8d528bf6e33a27bb091116c5cb4e29ff0dbf4:END -->

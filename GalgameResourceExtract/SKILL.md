@@ -81,6 +81,8 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | RealLive：SEEN 与独立语音归档 | [reallive](engine/reallive.md) |
 | SiglusEngine：场景归档与 DAT | [siglus](engine/siglus.md) |
 | CatSystem2：INT、CST 与媒体 | [catsystem2](engine/catsystem2.md) |
+| QLIE：FilePack、场景脚本与 DPNG | [qlie](engine/qlie.md) |
+| AliceSoft System 4：AFA、ALD 与 AIN | [alice-system](engine/alice-system.md) |
 | YU-RIS：YPF 与 YBN | [yuris](engine/yuris.md) |
 | BGI / Ethornell：ARC、DSC 与脚本 | [ethornell](engine/ethornell.md) |
 | Majiro：ARC、MJO 分支索引与已验证存档帧 | [majiro](engine/majiro.md) |

@@ -488,5 +488,37 @@
     },
     "summary": "实测 WARC 1.7 可列出目录，部分载荷仍有解码障碍。",
     "aliases": []
+  },
+  {
+    "id": "qlie",
+    "extensions": [
+      ".pack"
+    ],
+    "magic_ascii": [],
+    "reference": "engine/qlie.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "QLIE：从包尾 FilePackVer 识别，核对索引、场景编码和 DPNG。"
+  },
+  {
+    "id": "alice-system",
+    "extensions": [
+      ".afa",
+      ".ald",
+      ".ain"
+    ],
+    "magic_ascii": [
+      "AFAH"
+    ],
+    "reference": "engine/alice-system.md",
+    "capabilities": {
+      "archive": "external_cli",
+      "dialogue": "reference_only",
+      "voice_matching": "reference_only"
+    },
+    "summary": "AliceSoft System 4：AFA/ALD 归档与 AIN 消息、函数定位。"
   }
 ]

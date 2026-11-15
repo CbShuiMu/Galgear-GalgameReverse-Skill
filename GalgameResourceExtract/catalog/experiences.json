@@ -712,6 +712,33 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/willplus.md"
+    },
+    {
+      "experience_id": "1fc4793b17fa2d1fa2e2a88f0ac8d528bf6e33a27bb091116c5cb4e29ff0dbf4",
+      "engine": "catsystem2",
+      "engine_version": "KIF INT / CatScene CST",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/catsystem2.md"
+    },
+    {
+      "experience_id": "1814e9a615096abc8bab72c779583f322caf62510f4163dd3f06748249348bd6",
+      "engine": "alice-system",
+      "engine_version": "AFA / ALD / AIN v6",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/alice-system.md"
+    },
+    {
+      "experience_id": "50b4db5cbd05dc1818a5bb0bfc3b924cb9aee6af634a848566ba6f10e773c153",
+      "engine": "qlie",
+      "engine_version": "FilePack 1.0 / 3.0 / 3.1",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/qlie.md"
     }
   ]
 }
