@@ -739,6 +739,33 @@
       "validation_level": "real_sample",
       "status": "active",
       "reference": "engine/qlie.md"
+    },
+    {
+      "experience_id": "d99d3225bea51578bbcc64b8f5b1192dfc9cd6bbd6bf623a26ad67508ebe1128",
+      "engine": "artemis",
+      "engine_version": "PF6；脚本引擎版本未确认",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/artemis.md"
+    },
+    {
+      "experience_id": "5616de2e047a93a4f8b6811f47b9a3e6fd56b99054b89b912359dd1755c03eaa",
+      "engine": "siglus",
+      "engine_version": "92 字节场景包头；引擎发行版本未确认",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/siglus.md"
+    },
+    {
+      "experience_id": "e834fa2fe4be73f7449bb956f8e043c6bdbe2dc3c1f6a2071e1f426fb53c17cb",
+      "engine": "kirikiri",
+      "engine_version": "XP3 与 PSB 场景；引擎发行版本未确认",
+      "stage": "extract",
+      "validation_level": "real_sample",
+      "status": "active",
+      "reference": "engine/kirikiri.md"
     }
   ]
 }
