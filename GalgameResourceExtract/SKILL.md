@@ -93,10 +93,10 @@ GalPack 按用户需求使用原样基线和已确认的替换资源重建；需
 | Nitroplus：PAK 与 NPK 分别识别 | [nitroplus](engine/nitroplus.md) |
 | Eushully AGE：ALF 卷、主索引及追加索引 | [eushully](engine/eushully.md) |
 | Yuka：YKC 名称编码与 YKS 文本区 | [yuka](engine/yuka.md) |
-| Liar-soft：XFL、GSC 与图层资源 | [liar](engine/liar.md) |
+| Liar-soft：标准 XFL、MoleBox 汉化包装、GSC 与图层资源 | [liar](engine/liar.md) |
 | Leaf：KCAP、LAC 与同后缀视频 | [leaf](engine/leaf.md) |
 | NeXAS PAC type 4：末尾索引及条目挽救 | [PAC type 4 CLI](commands/nexas-pac4.md) |
 | GARbro Mod：同名成员与显式读取标签 | [序号解包 CLI](commands/garbro-archive.md) |
 | MUSICA：PAZ 载荷、SC 台词、嵌入和静态路线 | [musica](engine/musica.md) |
 | Bishop：BSA 名称表和目录记录 | [bishop](engine/bishop.md) |
-| ShiinaRio：WARC 索引与载荷分别确认 | [shiina-rio](engine/shiina-rio.md) |
+| ShiinaRio：WARC 索引、YPK 预处理和完整压缩流校验 | [shiina-rio](engine/shiina-rio.md) |
