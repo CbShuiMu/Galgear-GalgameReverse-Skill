@@ -13,6 +13,10 @@
 
 `AI2` 是 AIN 压缩包装的候选特征。用工具核对 AIN 版本和段结构，再用适用编码导出。实测 AIN v6 汉化样本可用 CP936 导出，CP932 报非法字节序列。对不同安装重新验证。
 
+## 全量成员核验与 AFA 静态往返
+
+对 AFA、ALD 分别列索引，按条目序号保存成员，核对路径、范围、输出长度和 SHA-256。AFF 展开后的媒体头单列。对经核实的 AFA，可用 alice-tools 的 ALICEPACK 清单重建，再用独立读取器逐项核对相对路径与逻辑成员。在已验证的小型样本中，索引布局变化时内容及路径仍可逐项一致。成员名称编码或原有包装不同的归档继续按当前输入复测。
+
 ## 文本定位
 
 用 `alice ain dump --input-encoding ENCODING --output-encoding UTF-8 --text -o OUTPUT INPUT` 导出按函数组织的消息和字符串。用 `--functions` 核对函数表，保留 `m[ID]` 和 `s[ID]`，分别统计去重 ID 和静态引用次数。函数坐标仍需结合指令和调用关系才能确认说话人、分支或实际存档位置。 [AIN 工具文档](https://haniwa.technology/alice-tools/README-ain.html)
