@@ -20,7 +20,7 @@
 | ✅ | rUGP | Muv-Luv | 标准 Cr6Ti／CRip008 图像载荷、透明差分与绘制矩形；Cr6Ti 和累计 RUO 的静态往返 | CBg2d、完整 CG 组合、完整 RIO 重建和游戏内加载 |
 | ✅ | [Eushully AGE](../GalgameResourceExtract/engine/eushully.md) | 神采炼金大师（神採りアルケミーマイスター） | 按主索引和 AAI 识别并提取 ALF 逻辑成员 | AGF 转换、脚本和加载 |
 | ✅ | [Yuka](../GalgameResourceExtract/engine/yuka.md) | 望见青空之丘（あおぞらの見える丘） | YKC001 解包及 YKS 文本区还原抽检 | YKS 指令、分支和存档 |
-| ✅ | [Liar-soft / RScript](../GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN | 标准 XFL 与 MoleBox 汉化包解包，原版 GSC 导出文本、姓名、选择和局部标签，汉化 GSC 导出 TSC | 跨脚本控制流、存档和 CG 合成 |
+| ✅ | [Liar-soft / RScript](../GalgameResourceExtract/engine/liar.md) | 漆黑的夏尔诺斯 Full Voice ReBORN | 标准 XFL 与 MoleBox 汉化包解包，原版 GSC 导出文本、姓名、选择和局部标签，汉化 GSC 导出 TSC | 完整跨脚本控制流、原版独有成员回退、CG 合成 |
 | ✅ | [Leaf](../GalgameResourceExtract/engine/leaf.md) | WHITE ALBUM2 Special Contents | KCAP、LAC 归档解包与脚本载荷核对 | 脚本语义、封包和存档定位 |
 | ✅ | [TyranoScript](../GalgameResourceExtract/engine/tyrano.md) | Teaching Feeling 4.0.6 | 已展开的 Electron 项目中定位并逐哈希校验 KS 场景副本 | 标签和宏执行、动态分支及存档 |
 | ✅ | [MUSICA](../GalgameResourceExtract/engine/musica.md) | eden* | PAZ 逻辑成员、SC 台词及姓名、条件路线和嵌入脚本 | 两个小包的载荷、运行对照、实际槽位与封包 |
@@ -43,7 +43,7 @@
 | 姬狩—魔王再临 / 姫狩りダンジョンマイスター | Eushully AGE | 6/6 候选通过，13,287 个成员，散文件 52 | 按外部索引切分 ALF 卷。另核验 52 个散文件。 |
 | 甜蜜女友 3 / アマカノ3 | Artemis | 11/11 候选通过，50,634 个成员 | PF6 与 PF8 各卷独立核验，汉化 XP3 曾用旧版提取。Mod 默认读取失败，显式参数抽查通过。 |
 | 望见青空之丘 / あおぞらの見える丘 | Yuka | 3/3 候选通过，12,225 个成员 | 独立核对 YKC001 索引和 YKS 文本区还原。 |
-| 漆黑的夏尔诺斯 Full Voice ReBORN | Liar-soft / RScript | 19/20 候选通过，14,640 个成员 | 原版 183/183 GSC 导出 TSC 和文本，6,473 条带显式姓名的文本命令，5,900 个局部目标均可定位。后续已解包汉化 XFL，存档待验证。 [汉化包装验证](warc-xfl-validation-2026-11-19.md) |
+| 漆黑的夏尔诺斯 Full Voice ReBORN | Liar-soft / RScript | 19/20 候选通过，14,640 个成员 | 原版 183/183 GSC 导出 TSC 和文本，6,473 条带显式姓名的文本命令，5,900 个局部目标均可定位。汉化包已通过选择性回封与全量哈希复验。 [覆盖与加载实测](warc-xfl-scenario-validation-2026-11-20.md) |
 | BALDR SKY DiveX “DREAM WORLD” / 梦之世界 | NeXAS | 18/18 候选通过，36,623 个成员 | 补齐四个更新 PAC 的末条长度，按索引序号保留成员。 |
 | eden* They were only two, on the planet. / 伊甸园 | MUSICA | 18/20 候选通过，15,258 个成员 | 逐组回读 36 条静态路径，覆盖 8 条嵌入引用和三套主线各 35 个条件点。原版进程已创建存档目录。真实槽位与两个小包的载荷仍待确认。 |
 | MagusTale ～世界樹と恋する魔法使い～ / 世界树与恋爱的魔法使 | YU-RIS | 12/12 候选通过，19,044 个成员 | 逐条核验 YPF 263 的名称与存储载荷。脚本包含 244 个 YBN。 |
@@ -57,8 +57,8 @@
 | 月姬 / 月姫 | NScripter | 1/1 候选通过，829 个成员，散文件 4 | 核对旧 PC 版 NSA 成员，并保留散置脚本。 |
 | 琥珀结晶 / アンバークォーツ | Majiro | 11/11 实际归档通过，71,798 个成员 | 151 个汉化 MJO 对应更新包成员。按指定覆盖顺序核对 174 份脚本、160 条跨场景字面量引用、18 条库加载、57 处数值分派。随附全 CG 文件为系统状态。V1.103 槽位与动态路线待验证。 |
 | 秽翼的尤斯蒂娅 / 穢翼のユースティア | BGI / Ethornell | 65/65 候选通过，44,286 个成员 | 本篇与补丁 ARC 各自核验。 |
-| 花与乙女的祝福 / 花と乙女に祝福を | ShiinaRio | 7 个 WARC 1.7 可列索引，脚本包 6/6 SCN 已通过独立 zlib 与长度校验 | 使用 GARbro Mod 及对应原版读取器的 YPK 预处理参数。其他包与两个 BIN 的剩余成员待验。 [WARC 脚本验证](warc-xfl-validation-2026-11-19.md) |
-| 赫炎的印加诺克 Full Voice ReBORN | Liar-soft / RScript | 25/26 候选通过，13,847 个成员 | 原版 412/412 GSC 导出 TSC 和文本，7,357 条带显式姓名的文本命令，6,907 个局部目标均可定位。后续已解包汉化 XFL，存档待验证。 [汉化包装验证](warc-xfl-validation-2026-11-19.md) |
+| 花与乙女的祝福 / 花と乙女に祝福を | ShiinaRio | 7 个 WARC 1.7 可列索引，脚本包 6/6 SCN 已通过独立 zlib 与长度校验 | 217 份场景文本已导出，主脚本已建立静态分支图并定位 278 个续读表项。实存档恢复待验。 [SCN 剧情实测](warc-xfl-scenario-validation-2026-11-20.md) |
+| 赫炎的印加诺克 Full Voice ReBORN | Liar-soft / RScript | 25/26 候选通过，13,847 个成员 | 原版 412/412 GSC 导出 TSC 和文本，7,357 条带显式姓名的文本命令，6,907 个局部目标均可定位。汉化包已通过选择性回封与全量哈希复验。 [覆盖与加载实测](warc-xfl-scenario-validation-2026-11-20.md) |
 | 鬼父 after | Bishop | 6/6 候选通过，4,377 个成员，散文件 11 | 独立核对 BSArc v2 头下的定长索引和成员，另保留散置脚本候选。 |
 
 本轮主要验证索引、解包和脚本载荷。完整剧情分支、说话人、存档定位、封包和游戏内加载各自验收。
@@ -139,4 +139,4 @@
 
 串行验证了 8 个安装。新增 QLIE 和 AliceSoft System 4 引擎资料，并补充 CatSystem2 加密 INT 的成员身份验证。各游戏的解包、脚本、图像和待查项见 [新增游戏验证表](new-games-2026-11-15.md)。
 
-后续打通花与乙女的祝福的六个 WARC 脚本，以及赫炎的印加诺克、漆黑的夏尔诺斯的两份 MoleBox 汉化包。 [WARC 与汉化包装验证](warc-xfl-validation-2026-11-19.md)
+花与乙女的祝福已导出场景文本和静态分支，两份 Liar-soft 汉化包已通过代表脚本回封。 [三款游戏续测](warc-xfl-scenario-validation-2026-11-20.md)

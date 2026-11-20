@@ -10,4 +10,4 @@
 
 MoleBox 两包逐项核对目录路径、分块范围和逻辑长度。zlib 块另校验完整流及 Adler-32。已复核 GSC 分段范围及 WCG、LWG、MPG 文件头。GSC 导出使用 LiarsoftTool v2.3.1。封包与游戏内加载待验。 [MoleBox 2.x 提取器源码](https://aluigi.altervista.org/papers/molebox2ext.zip) · [LiarsoftTool v2.3.1](https://github.com/Love-in-idleness/LiarsoftTool/releases/tag/v2.3.1)
 
-[上一轮归档复验](continuation-validation-2026-11-19.md)
+[上一轮归档复验](continuation-validation-2026-11-19.md) · [2026-11-20 剧情、回封与加载续测](warc-xfl-scenario-validation-2026-11-20.md)
